@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/feedback/empty-state"
 import { PageHeader } from "@/components/layout/page-header"
 import { StatusBadge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Pagination } from "@/components/ui/pagination"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
 import { getFormatters } from "@/i18n/format"
 import { Link } from "@/i18n/navigation"
@@ -14,12 +15,12 @@ import { withUser } from "@/server/db"
 import { listParticipationsForUser } from "@/server/repositories/affiliates"
 import { listCommissionsForAffiliate } from "@/server/repositories/commissions"
 
+import { pageNumber } from "../_components/page-number"
 import { joinDetails, PortalList, PortalListItem } from "../_components/portal-list"
 
 export const dynamic = "force-dynamic"
 
-/** `listCommissionsForAffiliate` returns at most this many rows, newest first. */
-const LIST_LIMIT = 100
+const PAGE_SIZE = 25
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("portal.conversions")
@@ -32,42 +33,51 @@ export async function generateMetadata(): Promise<Metadata> {
  * leads with the payment amount and only marks a payment that was refunded;
  * the commission's own lifecycle lives on the Commissions page.
  */
-export default async function AffiliateConversionsPage() {
+export default async function AffiliateConversionsPage({
+  searchParams,
+}: PageProps<"/[locale]/affiliate/conversions">) {
   const t = await getTranslations("portal.conversions")
+  const ta = await getTranslations("common.actions")
   const tp = await getTranslations("portal.shared")
   const tc = await getTranslations("common.table")
   const f = await getFormatters()
   const user = await requireUser()
-
-  const rows = await withUser(user.id, async (tx) => {
-    const participations = await listParticipationsForUser(tx, user.id)
-    return listCommissionsForAffiliate(
-      tx,
-      participations.map((participation) => participation.participationId),
-      LIST_LIMIT,
-    )
-  })
+  const requestedPage = pageNumber((await searchParams).page)
 
   // Reversal rows (negative amounts) are the commission side of a refund, not
   // a payment of their own; the refunded payment keeps its `reversed` status.
-  const conversions = rows.filter((row) => row.commissionAmountMinor > 0)
-  const capped = rows.length >= LIST_LIMIT
+  // `kind: "conversions"` leaves them out in SQL, so pages and the count agree.
+  const { rows: conversions, total, page } = await withUser(user.id, async (tx) => {
+    const participations = await listParticipationsForUser(tx, user.id)
+    const ids = participations.map((participation) => participation.participationId)
+    const pageOf = (target: number) =>
+      listCommissionsForAffiliate(tx, ids, {
+        kind: "conversions",
+        limit: PAGE_SIZE,
+        offset: (target - 1) * PAGE_SIZE,
+      })
+
+    let page = requestedPage
+    let result = await pageOf(page)
+    const last = Math.max(1, Math.ceil(result.total / PAGE_SIZE))
+    if (page > last) {
+      page = last
+      result = await pageOf(page)
+    }
+    return { ...result, page }
+  })
+
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
     <>
       <PageHeader
         title={t("title")}
-        meta={
-          conversions.length > 0 ? (
-            <span>
-              {capped ? tp("latest", { count: conversions.length }) : f.number(conversions.length)}
-            </span>
-          ) : undefined
-        }
+        meta={total > 0 ? <span>{f.number(total)}</span> : undefined}
         description={t("description")}
       />
 
-      {conversions.length === 0 ? (
+      {total === 0 ? (
         <EmptyState
           icon={Receipt}
           title={t("empty.title")}
@@ -129,11 +139,22 @@ export default async function AffiliateConversionsPage() {
             ))}
           </PortalList>
 
-          {capped ? (
-            <p className="text-meta text-faint-foreground">{tp("cappedNote")}</p>
+          {pages > 1 ? (
+            <Pagination
+              label={tp("pagination")}
+              summary={t("pageOf", { page, pages, count: total })}
+              previous={page > 1 ? <Link href={pageHref(page - 1)} /> : null}
+              next={page < pages ? <Link href={pageHref(page + 1)} /> : null}
+              previousLabel={ta("previous")}
+              nextLabel={ta("next")}
+            />
           ) : null}
         </div>
       )}
     </>
   )
+}
+
+function pageHref(page: number) {
+  return { pathname: "/affiliate/conversions", query: { page } } as const
 }

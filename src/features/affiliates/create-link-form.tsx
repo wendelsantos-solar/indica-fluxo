@@ -134,6 +134,7 @@ export function CreateLinkForm({ participationId }: { participationId: string })
                 id={urlId}
                 name="destinationUrl"
                 type="url"
+                maxLength={2048}
                 inputMode="url"
                 autoComplete="off"
                 autoCapitalize="none"

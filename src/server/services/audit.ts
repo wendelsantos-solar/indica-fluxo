@@ -12,6 +12,7 @@ export type AuditAction =
   | "affiliate.created"
   | "affiliate.approved"
   | "affiliate.rejected"
+  | "affiliate.suspended"
   | "affiliate.rate_changed"
   | "link.created"
   | "commission.approved"

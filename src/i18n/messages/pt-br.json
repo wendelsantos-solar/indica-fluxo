@@ -376,6 +376,9 @@
       "owner": "Dono",
       "admin": "Admin",
       "member": "Membro"
+    },
+    "money": {
+      "otherCurrencies": "+ {amounts}"
     }
   },
   "auth": {
@@ -564,7 +567,8 @@
         "activeAffiliates": "Afiliados ativos",
         "customers": "Clientes conquistados",
         "netRevenueAfter": "{amount} de receita líquida",
-        "conversionOfClicks": "{rate} de {clicks, plural, one {# clique} other {# cliques}}"
+        "conversionOfClicks": "{rate} de {clicks, plural, one {# clique} other {# cliques}}",
+        "comparisonInCurrency": "Em {currency}, vs. 30 dias anteriores"
       },
       "revenueOverTime": "Receita ao longo do tempo",
       "conversionFunnel": "Funil de conversão",
@@ -625,7 +629,8 @@
       },
       "viewAllAffiliates": "Ver todos",
       "viewAllConversions": "Ver todas",
-      "chartSummary": "De {start} a {end}: {revenue} de receita de afiliados e {commission} em comissões. Maior receita em {peakDay}, com {peakRevenue}."
+      "chartSummary": "De {start} a {end}: {revenue} de receita de afiliados e {commission} em comissões. Maior receita em {peakDay}, com {peakRevenue}.",
+      "chartCurrencyNote": "Valores em {currency}. O movimento em {others} não entra neste gráfico."
     },
     "funnel": {
       "clicks": "Cliques",
@@ -663,7 +668,8 @@
         "title": "Crie um programa primeiro",
         "description": "Afiliados entram por um programa, que define quanto cada um ganha. Crie o programa e depois convide seus afiliados.",
         "action": "Criar programa"
-      }
+      },
+      "otherCurrenciesExcluded": "+ comissões em outra moeda"
     },
     "commissions": {
       "title": "Comissões",
@@ -698,9 +704,8 @@
         "description": "Quando um visitante rastreado vira cliente pagante, o pagamento aparece aqui junto do afiliado que o conquistou.",
         "descriptionConnected": "O Stripe está conectado. Quando um visitante rastreado virar cliente pagante, o pagamento aparece aqui."
       },
-      "latest": "Últimas {count}",
-      "capped": "Mostrando os {count} pagamentos mais recentes.",
-      "viewCommissions": "Ver comissões"
+      "pagination": "Paginação",
+      "pageOf": "Página {page} de {pages} · {total} conversões"
     },
     "payouts": {
       "title": "Pagamentos",
@@ -723,13 +728,15 @@
       "clearedAffiliatesLabel": "Afiliados a pagar",
       "awaitingPaymentLabel": "Lotes aguardando pagamento",
       "readyToPayDescription": "Escolha quem entra no lote. O lote congela os valores; depois de transferir o dinheiro, marque-o como pago.",
-      "otherCurrencies": "Mostrando comissões em {currency}. As comissões em {others} aparecem aqui depois, num lote próprio.",
       "batchStatus": {
         "draft": "Rascunho",
         "approved": "Aguardando pagamento",
         "paid": "Pago",
         "cancelled": "Cancelado"
-      }
+      },
+      "availableOtherCurrencies": "+ {amounts}",
+      "readyToPayByCurrency": "Um lote tem uma só moeda. Escolha a moeda e depois quem entra no lote; as outras moedas ficam para um lote próprio.",
+      "currencyTabs": "Moedas a pagar"
     },
     "programs": {
       "title": "Programas",
@@ -816,7 +823,6 @@
         "hold": "Quantos dias a comissão fica pendente antes de poder ser paga, para cobrir estornos e chargebacks."
       },
       "ofClicks": "{rate} dos cliques",
-      "totalsCapped": "Somas dos {shown} afiliados mais recentes, de {total}.",
       "affiliatesCapped": "Mostrando os {shown} afiliados mais recentes, de {total}.",
       "commissionsCapped": "Mostrando as {shown} comissões mais recentes, de {total}.",
       "viewAllAffiliates": "Ver todos os afiliados",
@@ -833,6 +839,32 @@
       "title": "Página não encontrada",
       "description": "O endereço pode estar errado, ou o item foi removido deste workspace.",
       "backToOverview": "Voltar para a visão geral"
+    },
+    "batch": {
+      "metaTitle": "Lote de pagamento",
+      "description": "Quem está neste lote e quanto cada afiliado recebe. Os valores foram congelados quando o lote foi criado.",
+      "total": "Total",
+      "affiliates": "Afiliados",
+      "commissions": "Comissões",
+      "commissionCount": "{count, plural, one {# comissão} other {# comissões}}",
+      "period": "Período",
+      "createdOn": "Criado em",
+      "paidOn": "Pago em",
+      "notPaid": "Ainda não pago",
+      "currency": "Moeda",
+      "notes": "Observações",
+      "items": "Afiliados no lote",
+      "itemsCapped": "Mostrando os {shown} maiores valores de {total} afiliados.",
+      "itemStatus": {
+        "pending": "Aguardando pagamento",
+        "paid": "Pago",
+        "failed": "Falhou",
+        "cancelled": "Cancelado"
+      },
+      "emptyItems": {
+        "title": "Nenhum afiliado neste lote",
+        "description": "Este lote não tem itens. Crie um novo lote a partir de Pagamentos."
+      }
     }
   },
   "onboarding": {
@@ -873,7 +905,9 @@
       "getStarted": {
         "title": "Compartilhe seu link para começar",
         "description": "Cliques e clientes aparecem aqui assim que alguém usar seu link."
-      }
+      },
+      "otherCurrencies": "e {amounts}",
+      "chartCurrencyNote": "Somente programas em {currency}"
     },
     "links": {
       "title": "Links",
@@ -906,7 +940,8 @@
         "paid": "O dono do programa marcou como paga.",
         "reversed": "Cancelada porque o cliente foi reembolsado ou contestou a cobrança. Não é paga.",
         "rejected": "Recusada pelo programa. Não entra em nenhum pagamento."
-      }
+      },
+      "pageOf": "Página {page} de {pages} · {count, plural, one {# comissão} other {# comissões}}"
     },
     "conversions": {
       "title": "Conversões",
@@ -917,7 +952,8 @@
         "title": "Nenhuma conversão ainda",
         "description": "Uma conversão é registrada quando alguém que clicou no seu link vira cliente pagante."
       },
-      "commissionOf": "sua comissão: {amount}"
+      "commissionOf": "sua comissão: {amount}",
+      "pageOf": "Página {page} de {pages} · {count, plural, one {# conversão} other {# conversões}}"
     },
     "payouts": {
       "title": "Pagamentos",
@@ -931,7 +967,8 @@
       "paidOn": "Pago em {date}",
       "awaiting": "Aguardando pagamento",
       "paymentReference": "Referência do pagamento",
-      "paymentReferenceValue": "Referência: <mono>{reference}</mono>"
+      "paymentReferenceValue": "Referência: <mono>{reference}</mono>",
+      "capped": "Mostrando os {count} pagamentos mais recentes."
     },
     "settings": {
       "title": "Configurações",
@@ -964,8 +1001,7 @@
     },
     "shared": {
       "viewLinks": "Ver meus links",
-      "latest": "Últimas {count}",
-      "cappedNote": "Mostrando apenas as mais recentes."
+      "pagination": "Paginação"
     },
     "error": {
       "title": "Não foi possível carregar esta página",
@@ -978,6 +1014,25 @@
       "title": "Página não encontrada",
       "description": "Este endereço não existe no portal do afiliado.",
       "back": "Voltar à visão geral"
+    },
+    "programStatus": {
+      "draft": {
+        "title": "Programa ainda não lançado",
+        "description": "O dono do programa ainda não abriu as indicações. Os cliques no seu link aparecem aqui, mas só passam a contar como indicação quando o programa for ativado."
+      },
+      "paused": {
+        "title": "Programa pausado",
+        "description": "Enquanto o programa estiver pausado, novos cliques no seu link aparecem aqui, mas não contam como indicação nem geram comissão. Clientes que você já indicou continuam gerando comissão normalmente."
+      },
+      "archived": {
+        "title": "Programa encerrado",
+        "description": "Este programa foi encerrado: novos cliques no seu link não contam mais como indicação. Clientes que você já indicou continuam gerando comissão conforme a regra do programa."
+      }
+    },
+    "defaultLink": {
+      "missingTitle": "Link padrão indisponível",
+      "missingDescription": "O dono do programa ainda não configurou o site do produto. Enquanto isso, crie um link com destino.",
+      "createLink": "Criar link"
     }
   },
   "forms": {
@@ -1028,7 +1083,11 @@
         "description": "Quem recebe o crédito por uma venda e quanto tempo a comissão espera antes de poder ser paga. Os padrões servem para a maioria dos programas.",
         "summary": "{model} · janela de {window, plural, one {# dia} other {# dias}} · retenção de {hold, plural, one {# dia} other {# dias}}",
         "summaryWithStatus": "{status} · {settings}"
-      }
+      },
+      "websiteUrl": "Site do produto",
+      "websiteUrlHint": "Onde o script de tracking está instalado. O link padrão dos afiliados aponta para cá.",
+      "websiteUrlPlaceholder": "https://seuproduto.com",
+      "durationMonthsHint": "De 2 a 120 meses. Para pagar só uma vez, escolha “Somente o primeiro pagamento”."
     },
     "workspace": {
       "title": "Workspace",
@@ -1110,10 +1169,12 @@
       "confirmSecret": "A chave secreta atual para de funcionar na hora. As chamadas do seu servidor a /api/identify falham até você atualizar a chave.",
       "confirmAction": "Gerar nova chave",
       "empty": {
-        "title": "Nenhuma chave ativa",
-        "description": "Gere uma chave pública para instalar o tracking. A chave secreta, para chamadas do seu servidor, pode ser gerada depois.",
+        "title": "Primeiro passo: gere sua chave pública",
+        "description": "Ela completa o código de tracking abaixo e só é exibida uma vez, na hora em que é gerada. A chave secreta, para chamadas do seu servidor, pode ser gerada depois.",
         "action": "Gerar chave pública"
-      }
+      },
+      "adminOnly": "Só administradores podem ver e gerar chaves de API.",
+      "snippetFirstStep": "Gere a chave pública acima para completar este código."
     },
     "payable": {
       "selectAll": "Selecionar todos os afiliados",
@@ -1153,7 +1214,36 @@
       "disconnectBody": "Novos pagamentos dos seus clientes deixam de gerar comissões até você conectar de novo. As comissões já registradas continuam como estão.",
       "disconnectConfirm": "Desconectar",
       "errorTitle": "A conexão com o Stripe está com erro",
-      "errorBody": "Novas comissões podem não estar sendo registradas. Confira a URL do webhook no painel do Stripe e conecte a conta de novo abaixo."
+      "errorBody": "Novas comissões podem não estar sendo registradas. Confira a URL do webhook no painel do Stripe e conecte a conta de novo abaixo.",
+      "adminOnly": "Só administradores podem conectar ou desconectar o Stripe."
+    },
+    "affiliateActions": {
+      "menuLabel": "Ações para {name}",
+      "approve": "Aprovar",
+      "suspend": "Suspender",
+      "reject": "Recusar",
+      "customRate": "Taxa especial…",
+      "suspendTitle": "Suspender {name}?",
+      "suspendBody": "Enquanto estiver suspenso, os cliques e as vendas pelos links de {name} deixam de gerar comissões em {program}. As comissões já registradas não mudam, e você pode aprovar de novo depois.",
+      "suspendConfirm": "Sim, suspender",
+      "rejectTitle": "Recusar {name}?",
+      "rejectBody": "{name} não entra em {program}: os links não geram comissões. Você pode aprovar essa pessoa depois, se mudar de ideia.",
+      "rejectConfirm": "Sim, recusar"
+    },
+    "customRate": {
+      "title": "Taxa especial de {name}",
+      "description": "Substitui a taxa de {program} ({rate}) só para este afiliado, nas próximas comissões.",
+      "descriptionNoRate": "Substitui a taxa de {program} só para este afiliado, nas próximas comissões.",
+      "type": "Tipo",
+      "typePercentage": "Percentual (%)",
+      "typeFixed": "Valor fixo ({currency})",
+      "valuePercentage": "Percentual",
+      "valueFixed": "Valor por venda ({currency})",
+      "hintPercentage": "De 0,01 a 100, com até 2 casas decimais.",
+      "hintFixed": "Na moeda do programa, pago por venda.",
+      "current": "Taxa especial atual: {rate}.",
+      "save": "Salvar taxa",
+      "remove": "Remover taxa especial"
     }
   },
   "errors": {
@@ -1222,7 +1312,27 @@
       "companyNameLength": "Use no máximo 120 caracteres.",
       "referralCodeFormat": "Use de 2 a 49 caracteres: letras minúsculas, números, - ou _, começando por letra ou número.",
       "customRateNumber": "Informe a taxa como número, por exemplo 25.",
-      "customRateRange": "A taxa especial vai de 0 a 100%."
+      "customRateRange": "A taxa especial vai de 0 a 100%.",
+      "generic": {
+        "required": "Preencha este campo.",
+        "minLength": "Use pelo menos {min} caracteres.",
+        "maxLength": "Use no máximo {max} caracteres.",
+        "minNumber": "Informe um valor a partir de {min}.",
+        "maxNumber": "Informe um valor até {max}.",
+        "minItems": "Selecione pelo menos {min}.",
+        "maxItems": "Selecione no máximo {max}.",
+        "email": "Informe um e-mail válido.",
+        "url": "Informe uma URL completa, incluindo https://",
+        "number": "Informe um número.",
+        "format": "Formato inválido.",
+        "choice": "Escolha uma das opções.",
+        "invalid": "Valor inválido."
+      },
+      "websiteUrlInvalid": "Informe o endereço completo do site, começando com https://",
+      "websiteUrlTooLong": "Use no máximo 2048 caracteres no endereço do site.",
+      "durationMonthsRange": "Informe de 2 a 120 meses. Para um único pagamento, escolha “Somente o primeiro pagamento”.",
+      "urlTooLong": "Use no máximo 2048 caracteres na URL.",
+      "customFixedAmount": "Informe um valor maior que zero, por exemplo 150 ou 49,90."
     },
     "programNotCreated": "Não foi possível criar o programa.",
     "authNetwork": "Não conseguimos nos conectar agora. Confira sua internet e tente de novo.",
@@ -1231,7 +1341,13 @@
     "emailUnavailable": "Não foi possível criar a conta com esse e-mail. Se ele já tem conta, <login>entre</login> ou <reset>redefina a senha</reset>.",
     "linkExpired": "Esse link expirou ou já foi usado. Peça um novo.",
     "passwordNotUpdated": "Não foi possível atualizar a senha. Tente de novo.",
-    "stripeAccountInvalid": "Informe o ID da conta Stripe, por exemplo acct_1A2b3C4d5E."
+    "stripeAccountInvalid": "Informe o ID da conta Stripe, por exemplo acct_1A2b3C4d5E.",
+    "affiliateStatusNotUpdated": "Não foi possível atualizar o afiliado.",
+    "participationTransitionInvalid": "O status deste afiliado mudou nesse meio-tempo. Atualize a página e tente de novo.",
+    "customRateCurrencyChanged": "A moeda do programa mudou. Atualize a página e informe o valor de novo.",
+    "payableChanged": "O que está a pagar mudou: algum afiliado selecionado não tem mais comissões pagáveis nessa moeda. Atualize a página e selecione de novo.",
+    "batchNotPaid": "Não foi possível marcar o lote como pago.",
+    "batchNotCancelled": "Não foi possível cancelar o lote."
   },
   "success": {
     "programSaved": "Programa salvo.",
@@ -1247,7 +1363,11 @@
     "affiliateAdded": "{name} entrou no programa. Ao entrar no IndicaFluxo com {email}, a pessoa já encontra o link de indicação.",
     "affiliateUpdated": "Afiliado atualizado.",
     "batchCreated": "Lote {reference} criado. Marque como pago depois de transferir o dinheiro.",
-    "confirmationResent": "E-mail reenviado."
+    "confirmationResent": "E-mail reenviado.",
+    "affiliateApproved": "Afiliado aprovado. As próximas vendas pelos links dele já geram comissão.",
+    "affiliateSuspended": "Afiliado suspenso. Os links dele deixam de gerar comissões.",
+    "affiliateRejected": "Afiliado recusado.",
+    "rateRemoved": "Taxa especial removida. Vale de novo a taxa do programa."
   },
   "notFound": {
     "title": "Página não encontrada",

@@ -31,6 +31,7 @@ export default async function DashboardLayout({
       workspaces={workspaces}
       current={current}
       email={user.email}
+      name={user.name}
       isAffiliate={participations.length > 0}
     >
       {children}

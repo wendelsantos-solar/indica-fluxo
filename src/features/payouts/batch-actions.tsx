@@ -36,6 +36,7 @@ export function MarkPaidDialog({
   affiliateCount,
   totalAmountMinor,
   currency,
+  triggerVariant = "secondary",
 }: {
   workspaceSlug: string
   batchId: string
@@ -43,12 +44,16 @@ export function MarkPaidDialog({
   affiliateCount: number
   totalAmountMinor: number
   currency: string
+  /** Secondary in a history row; the batch's own page makes it the primary action. */
+  triggerVariant?: "primary" | "secondary"
 }) {
   const t = useTranslations("forms.batch")
   const ta = useTranslations("common.actions")
   const f = useFormatters()
   const [open, setOpen] = useState(false)
   const [state, action, pending] = useActionState(markBatchPaidAction, INITIAL)
+  // Controlled, so a failed submission keeps the reference that was typed.
+  const [externalReference, setExternalReference] = useState("")
 
   // The dialog stays open on failure and says why inline; success closes it
   // and the row itself changes, so a toast confirms off-screen.
@@ -58,7 +63,7 @@ export function MarkPaidDialog({
     <Dialog open={open} onOpenChange={(next) => !pending && setOpen(next)}>
       <DialogTrigger asChild>
         {/* Secondary in the row: the page's amber action is creating a batch. */}
-        <Button variant="secondary" size="sm">
+        <Button variant={triggerVariant} size="sm">
           {t("markPaid")}
         </Button>
       </DialogTrigger>
@@ -83,6 +88,9 @@ export function MarkPaidDialog({
               <Input
                 id={`externalReference-${batchId}`}
                 name="externalReference"
+                value={externalReference}
+                onChange={(event) => setExternalReference(event.target.value)}
+                maxLength={120}
                 className="font-mono"
                 autoComplete="off"
                 aria-describedby={`externalReference-${batchId}-hint`}

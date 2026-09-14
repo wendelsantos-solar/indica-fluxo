@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/feedback/empty-state"
 import { PageHeader } from "@/components/layout/page-header"
 import { StatusBadge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Pagination } from "@/components/ui/pagination"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
 import { Term } from "@/components/ui/term"
 import { getFormatters } from "@/i18n/format"
@@ -17,12 +18,12 @@ import { effectiveCommissionStatus } from "@/server/domain/commission"
 import { listParticipationsForUser } from "@/server/repositories/affiliates"
 import { listCommissionsForAffiliate } from "@/server/repositories/commissions"
 
+import { pageNumber } from "../_components/page-number"
 import { joinDetails, PortalList, PortalListItem } from "../_components/portal-list"
 
 export const dynamic = "force-dynamic"
 
-/** `listCommissionsForAffiliate` returns at most this many rows, newest first. */
-const LIST_LIMIT = 100
+const PAGE_SIZE = 25
 
 const STATUS_ORDER = ["pending", "available", "approved", "paid", "reversed", "rejected"] as const
 
@@ -37,25 +38,39 @@ export async function generateMetadata(): Promise<Metadata> {
  * commission whose hold period has ended is already available, even if no
  * founder page has promoted the stored row yet.
  */
-export default async function AffiliateCommissionsPage() {
+export default async function AffiliateCommissionsPage({
+  searchParams,
+}: PageProps<"/[locale]/affiliate/commissions">) {
   const t = await getTranslations("portal.commissions")
+  const ta = await getTranslations("common.actions")
   const tp = await getTranslations("portal.shared")
   const ts = await getTranslations("status")
   const tc = await getTranslations("common.table")
   const f = await getFormatters()
   const user = await requireUser()
+  const requestedPage = pageNumber((await searchParams).page)
 
-  const { rows, now } = await withUser(user.id, async (tx) => {
+  const { rows, total, page, now } = await withUser(user.id, async (tx) => {
     const participations = await listParticipationsForUser(tx, user.id)
-    const rows = await listCommissionsForAffiliate(
-      tx,
-      participations.map((participation) => participation.participationId),
-      LIST_LIMIT,
-    )
-    return { rows, now: new Date() }
+    const ids = participations.map((participation) => participation.participationId)
+    const pageOf = (target: number) =>
+      listCommissionsForAffiliate(tx, ids, {
+        limit: PAGE_SIZE,
+        offset: (target - 1) * PAGE_SIZE,
+      })
+
+    let page = requestedPage
+    let result = await pageOf(page)
+    // A page past the end (a stale bookmark) shows the last page, not "no commissions".
+    const last = Math.max(1, Math.ceil(result.total / PAGE_SIZE))
+    if (page > last) {
+      page = last
+      result = await pageOf(page)
+    }
+    return { ...result, page, now: new Date() }
   })
 
-  const capped = rows.length >= LIST_LIMIT
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   const statusDefinition = STATUS_ORDER.map(
     (status) => `${ts(status)}: ${t(`statusHelp.${status}`)}`,
@@ -80,15 +95,11 @@ export default async function AffiliateCommissionsPage() {
     <>
       <PageHeader
         title={t("title")}
-        meta={
-          rows.length > 0 ? (
-            <span>{capped ? tp("latest", { count: rows.length }) : f.number(rows.length)}</span>
-          ) : undefined
-        }
+        meta={total > 0 ? <span>{f.number(total)}</span> : undefined}
         description={t("description")}
       />
 
-      {rows.length === 0 ? (
+      {total === 0 ? (
         <EmptyState
           icon={Coins}
           title={t("empty.title")}
@@ -200,11 +211,22 @@ export default async function AffiliateCommissionsPage() {
             </dl>
           </details>
 
-          {capped ? (
-            <p className="text-meta text-faint-foreground">{tp("cappedNote")}</p>
+          {pages > 1 ? (
+            <Pagination
+              label={tp("pagination")}
+              summary={t("pageOf", { page, pages, count: total })}
+              previous={page > 1 ? <Link href={pageHref(page - 1)} /> : null}
+              next={page < pages ? <Link href={pageHref(page + 1)} /> : null}
+              previousLabel={ta("previous")}
+              nextLabel={ta("next")}
+            />
           ) : null}
         </div>
       )}
     </>
   )
+}
+
+function pageHref(page: number) {
+  return { pathname: "/affiliate/commissions", query: { page } } as const
 }

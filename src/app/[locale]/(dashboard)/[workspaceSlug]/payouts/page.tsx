@@ -2,22 +2,22 @@ import { CreditCard } from "lucide-react"
 import type { Metadata } from "next"
 import { getTranslations } from "next-intl/server"
 
+import { Link } from "@/i18n/navigation"
+
 import { Metric, MetricCell, MetricGrid } from "@/components/data-display/metric"
 import { getFormatters } from "@/i18n/format"
 import { EmptyState } from "@/components/feedback/empty-state"
-import { InlineAlert } from "@/components/feedback/inline-alert"
 import { PageHeader, SectionHeader } from "@/components/layout/page-header"
 import { StatusBadge } from "@/components/ui/badge"
+import { TabLink } from "@/components/ui/tabs"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
 import { CancelBatchButton, MarkPaidDialog } from "@/features/payouts/batch-actions"
 import { PayableList } from "@/features/payouts/payable-list"
+import { formatMoneyTotals, orderMoneyTotals, pickPrimaryCurrency, toMoneyTotals } from "@/lib/money-totals"
 import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
-import {
-  listPayableByAffiliate,
-  promoteEligibleCommissions,
-} from "@/server/repositories/commissions"
-import { listPayoutBatches } from "@/server/services/payouts"
+import { listPayableByAffiliate } from "@/server/repositories/commissions"
+import { listPayoutBatches } from "@/server/repositories/payouts"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
 export const dynamic = "force-dynamic"
@@ -33,34 +33,57 @@ export async function generateMetadata({
 const BATCH_STATUSES = ["draft", "approved", "paid", "cancelled"] as const
 type BatchStatus = (typeof BATCH_STATUSES)[number]
 
-export default async function PayoutsPage({ params }: PageProps<"/[locale]/[workspaceSlug]/payouts">) {
+/** Lifts the row link's hit area over the whole row; the actions sit above it. */
+const STRETCHED_LINK = [
+  "rounded-badge after:absolute after:inset-0 after:content-['']",
+  "focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-ring",
+].join(" ")
+
+export default async function PayoutsPage({
+  params,
+  searchParams,
+}: PageProps<"/[locale]/[workspaceSlug]/payouts">) {
   const t = await getTranslations("dashboard.payouts")
   const tc = await getTranslations("common.table")
   const f = await getFormatters()
   const { workspaceSlug } = await params
+  const query = await searchParams
   const user = await requireUser()
   const workspace = await getWorkspaceForUser(user.id, workspaceSlug)
 
-  const { payable, batches } = await withUser(user.id, async (tx) => {
-    await promoteEligibleCommissions(tx, workspace.id)
-    return {
-      payable: await listPayableByAffiliate(tx, workspace.id),
-      batches: await listPayoutBatches(tx, workspace.id),
-    }
-  })
+  // Read-only: `listPayableByAffiliate` already counts matured `pending`
+  // commissions as payable, so rendering this page never writes to the ledger.
+  // The promotion is written down when a batch is created.
+  const [payable, batches] = await withUser(user.id, (tx) =>
+    Promise.all([listPayableByAffiliate(tx, workspace.id), listPayoutBatches(tx, workspace.id)]),
+  )
 
-  const currency = payable[0]?.currency ?? workspace.defaultCurrency
+  // One figure per currency — never a sum across them. A batch holds a single
+  // currency, so the list below shows one currency at a time.
+  const totals = toMoneyTotals(payable)
+  const primary = pickPrimaryCurrency(workspace.defaultCurrency, totals)
+  const currencies = orderMoneyTotals(totals, primary).map((total) => total.currency)
+  const requested = typeof query.currency === "string" ? query.currency.toUpperCase() : undefined
+  const currency = requested && currencies.includes(requested) ? requested : (currencies[0] ?? primary)
+
   const payableRows = payable.filter((row) => row.currency === currency)
-  const availableTotal = payableRows.reduce((sum, row) => sum + row.amountMinor, 0)
-  // A batch holds one currency; rows in any other one wait for their own batch.
-  const otherCurrencies = [...new Set(payable.map((row) => row.currency))].filter((code) => code !== currency)
+  const available = formatMoneyTotals(f.money, totals, currency)
+  const clearedAffiliates = new Set(payable.map((row) => row.participationId)).size
 
   const awaitingPayment = batches.filter((batch) => batch.status === "approved").length
+  const canManage = workspace.role !== "member"
 
   // "approved" reads "Aprovada" for a commission; a batch in that state is
   // waiting for the founder to transfer the money, and is a masculine noun.
   const batchLabel = (status: string) =>
     BATCH_STATUSES.includes(status as BatchStatus) ? t(`batchStatus.${status as BatchStatus}`) : undefined
+
+  const currencyHref = (code: string) =>
+    ({
+      pathname: "/[workspaceSlug]/payouts",
+      params: { workspaceSlug },
+      query: { currency: code },
+    }) as const
 
   return (
     <>
@@ -69,10 +92,16 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
       <div className="space-y-10">
         <MetricGrid>
           <MetricCell>
-            <Metric label={t("availableToPay")} value={f.money(availableTotal, currency)} />
+            <Metric label={t("availableToPay")} value={available.primary}>
+              {available.others ? (
+                <p className="truncate text-meta tabular-nums text-muted-foreground">
+                  {t("availableOtherCurrencies", { amounts: available.others })}
+                </p>
+              ) : null}
+            </Metric>
           </MetricCell>
           <MetricCell>
-            <Metric label={t("clearedAffiliatesLabel")} value={f.number(payableRows.length)} />
+            <Metric label={t("clearedAffiliatesLabel")} value={f.number(clearedAffiliates)} />
           </MetricCell>
           <MetricCell className="max-sm:col-span-2 max-sm:border-t max-sm:border-border-faint">
             <Metric label={t("awaitingPaymentLabel")} value={f.number(awaitingPayment)} />
@@ -83,12 +112,33 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
           <SectionHeader
             title={t("readyToPay")}
             count={payableRows.length > 0 ? f.number(payableRows.length) : undefined}
-            description={payableRows.length > 0 ? t("readyToPayDescription") : undefined}
+            description={
+              currencies.length > 1
+                ? t("readyToPayByCurrency")
+                : payableRows.length > 0
+                  ? t("readyToPayDescription")
+                  : undefined
+            }
           />
-          {otherCurrencies.length > 0 ? (
-            <InlineAlert className="mb-3">
-              {t("otherCurrencies", { currency, others: otherCurrencies.join(", ") })}
-            </InlineAlert>
+          {currencies.length > 1 ? (
+            <nav
+              aria-label={t("currencyTabs")}
+              className="-mx-4 mb-3 flex items-center gap-5 overflow-x-auto border-b border-border px-4 md:mx-0 md:px-0"
+            >
+              {orderMoneyTotals(totals, primary).map((total) => (
+                <TabLink
+                  key={total.currency}
+                  href={currencyHref(total.currency)}
+                  active={total.currency === currency}
+                  className="shrink-0"
+                >
+                  <span className="font-mono text-meta">{total.currency}</span>
+                  <span className="font-normal tabular-nums text-muted-foreground">
+                    {f.money(total.amountMinor, total.currency)}
+                  </span>
+                </TabLink>
+              ))}
+            </nav>
           ) : null}
           {payableRows.length === 0 ? (
             <EmptyState
@@ -98,7 +148,8 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
               className="border-y border-border py-12"
             />
           ) : (
-            <PayableList workspaceSlug={workspaceSlug} currency={currency} rows={payableRows} />
+            // Keyed by currency: switching currency starts a fresh selection.
+            <PayableList key={currency} workspaceSlug={workspaceSlug} currency={currency} rows={payableRows} />
           )}
         </section>
 
@@ -124,7 +175,7 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
                     <TH numeric>{t("affiliates")}</TH>
                     <TH numeric>{t("total")}</TH>
                     <TH>{tc("status")}</TH>
-                    {awaitingPayment > 0 ? <TH className="text-right">{tc("actions")}</TH> : null}
+                    {canManage && awaitingPayment > 0 ? <TH className="text-right">{tc("actions")}</TH> : null}
                   </tr>
                 </THead>
                 <TBody>
@@ -136,8 +187,9 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
                     // Rendered twice: in its own column on wide screens and
                     // under the stacked row on phones. Only one is visible.
                     // The irreversible "cancel" sits apart from "mark as paid".
+                    // `relative z-10` keeps them clickable above the row link.
                     const actions =
-                      batch.status === "approved" ? (
+                      canManage && batch.status === "approved" ? (
                         <>
                           <CancelBatchButton
                             workspaceSlug={workspaceSlug}
@@ -156,12 +208,18 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
                         </>
                       ) : null
                     return (
-                      <TR key={batch.id}>
+                      <TR key={batch.id} interactive className="relative">
                         <TD className="max-md:py-2.5">
                           <div className="flex items-center justify-between gap-3">
-                            <span className="truncate font-mono text-meta text-foreground">
+                            <Link
+                              href={{
+                                pathname: "/[workspaceSlug]/payouts/[batchId]",
+                                params: { workspaceSlug, batchId: batch.id },
+                              }}
+                              className={`truncate font-mono text-meta text-foreground ${STRETCHED_LINK}`}
+                            >
                               {batch.reference}
-                            </span>
+                            </Link>
                             <StatusBadge status={batch.status} label={label} className="md:hidden" />
                           </div>
                           <span className="mt-0.5 flex gap-3 text-meta text-muted-foreground md:hidden">
@@ -169,7 +227,7 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
                             <span className="ml-auto shrink-0 tabular-nums text-foreground">{total}</span>
                           </span>
                           {actions ? (
-                            <div className="mt-2 flex items-center justify-end gap-1 md:hidden">
+                            <div className="relative z-10 mt-2 flex items-center justify-end gap-1 md:hidden">
                               {actions}
                             </div>
                           ) : null}
@@ -191,9 +249,9 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
                             </span>
                           ) : null}
                         </TD>
-                        {awaitingPayment > 0 ? (
+                        {canManage && awaitingPayment > 0 ? (
                           <TD className="max-md:hidden">
-                            <div className="flex items-center justify-end gap-1">{actions}</div>
+                            <div className="relative z-10 flex items-center justify-end gap-1">{actions}</div>
                           </TD>
                         ) : null}
                       </TR>

@@ -1,10 +1,10 @@
 import { ArrowRight, Coins, Users } from "lucide-react"
 import type { Metadata } from "next"
-import { getLocale, getTranslations } from "next-intl/server"
+import { getTranslations } from "next-intl/server"
 import { notFound } from "next/navigation"
 import type * as React from "react"
 
-import { getPathname, Link } from "@/i18n/navigation"
+import { Link } from "@/i18n/navigation"
 
 import { Metric, MetricCell, MetricGrid } from "@/components/data-display/metric"
 import { getFormatters } from "@/i18n/format"
@@ -15,23 +15,41 @@ import { Button } from "@/components/ui/button"
 import { TabLink } from "@/components/ui/tabs"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
 import { Term } from "@/components/ui/term"
+import { formatMoneyTotals } from "@/lib/money-totals"
 import { InviteAffiliateDialog } from "@/features/affiliates/invite-affiliate-dialog"
 import { ProgramForm } from "@/features/programs/program-form"
-import { requireUser } from "@/server/auth/session"
+import { minorToMajor } from "@/lib/money"
+import { getSessionUser, requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
 import { listAffiliates } from "@/server/repositories/affiliates"
 import { listCommissions } from "@/server/repositories/commissions"
-import { findProgramBySlug } from "@/server/repositories/programs"
+import { findProgramBySlug, getProgramTotals } from "@/server/repositories/programs"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
 export const dynamic = "force-dynamic"
 
-// The program's own name would need a query here; the breadcrumb bar carries it.
+/**
+ * The program's name in the tab title. Metadata must never take the page down:
+ * no session, no access, an unknown slug or a failed read all fall back to the
+ * generic translated title, and the page itself renders the real outcome.
+ */
 export async function generateMetadata({
   params,
 }: PageProps<"/[locale]/[workspaceSlug]/programs/[programSlug]">): Promise<Metadata> {
-  const { locale } = await params
+  const { locale, workspaceSlug, programSlug } = await params
   const t = await getTranslations({ locale, namespace: "dashboard.program" })
+  try {
+    const user = await getSessionUser()
+    if (user) {
+      const workspace = await getWorkspaceForUser(user.id, workspaceSlug)
+      const program = await withUser(user.id, (tx) =>
+        findProgramBySlug(tx, workspace.id, programSlug),
+      )
+      if (program) return { title: program.name }
+    }
+  } catch {
+    // Fall through to the generic title.
+  }
   return { title: t("metaTitle") }
 }
 
@@ -49,6 +67,7 @@ export default async function ProgramDetailPage({
   const tp = await getTranslations("dashboard.programs")
   const ta = await getTranslations("dashboard.affiliates")
   const tc = await getTranslations("common.table")
+  const tm = await getTranslations("common.money")
   const f = await getFormatters()
   const { workspaceSlug, programSlug } = await params
   const query = await searchParams
@@ -62,35 +81,30 @@ export default async function ProgramDetailPage({
   )
   if (!program) notFound()
 
-  const [affiliates, commissions] = await withUser(user.id, (tx) =>
+  const [affiliates, commissions, totals] = await withUser(user.id, (tx) =>
     Promise.all([
       listAffiliates(tx, { workspaceId: workspace.id, programId: program.id, limit: PREVIEW_LIMIT }),
       listCommissions(tx, { workspaceId: workspace.id, programId: program.id, limit: PREVIEW_LIMIT }),
+      // Program-wide aggregates: the overview never sums the capped preview list.
+      getProgramTotals(tx, program.id),
     ]),
   )
 
-  const totals = affiliates.rows.reduce(
-    (acc, row) => ({
-      clicks: acc.clicks + row.clicks,
-      customers: acc.customers + row.customers,
-      revenue: acc.revenue + row.revenueMinor,
-      commission: acc.commission + row.commissionMinor,
-    }),
-    { clicks: 0, customers: 0, revenue: 0, commission: 0 },
-  )
   const affiliatesCapped = affiliates.total > affiliates.rows.length
   const commissionsCapped = commissions.total > commissions.rows.length
 
-  // TabLink renders a plain anchor, so the href has to be a real URL rather
-  // than a canonical pathname — `getPathname` resolves the locale prefix and
-  // the translated segments that `Link` would otherwise apply for us.
-  const base = getPathname({
-    href: {
+  // Per currency, the program's own currency first; see lib/money-totals.
+  const revenue = formatMoneyTotals(f.money, totals.revenue, program.currency)
+  const commissionTotal = formatMoneyTotals(f.money, totals.commission, program.currency)
+  const otherCurrencies = (others: string | null) =>
+    others ? tm("otherCurrencies", { amounts: others }) : null
+
+  const tabHref = (value: Tab) =>
+    ({
       pathname: "/[workspaceSlug]/programs/[programSlug]",
       params: { workspaceSlug, programSlug },
-    },
-    locale: await getLocale(),
-  })
+      query: { tab: value },
+    }) as const
 
   const programRef = [{ id: program.id, name: program.name }]
 
@@ -176,7 +190,7 @@ export default async function ProgramDetailPage({
               {TABS.map((value) => (
                 <TabLink
                   key={value}
-                  href={`${base}?tab=${value}`}
+                  href={tabHref(value)}
                   active={tab === value}
                   className="shrink-0"
                 >
@@ -204,20 +218,20 @@ export default async function ProgramDetailPage({
                     />
                   </MetricCell>
                   <MetricCell>
-                    <Metric label={tc("revenue")} value={f.money(totals.revenue, program.currency)} />
+                    <Metric
+                      label={tc("revenue")}
+                      value={revenue.primary}
+                      secondaryValue={otherCurrencies(revenue.others)}
+                    />
                   </MetricCell>
                   <MetricCell>
                     <Metric
                       label={tc("commission")}
-                      value={f.money(totals.commission, program.currency)}
+                      value={commissionTotal.primary}
+                      secondaryValue={otherCurrencies(commissionTotal.others)}
                     />
                   </MetricCell>
                 </MetricGrid>
-                {affiliatesCapped ? (
-                  <p className="pt-3 text-meta text-muted-foreground">
-                    {t("totalsCapped", { shown: affiliates.rows.length, total: affiliates.total })}
-                  </p>
-                ) : null}
               </div>
             ) : null}
 
@@ -402,9 +416,14 @@ export default async function ProgramDetailPage({
                   id: program.id,
                   name: program.name,
                   description: program.description ?? "",
+                  websiteUrl: program.websiteUrl ?? "",
                   status: program.status,
                   commissionType: program.commissionType,
-                  commissionAmount: String(program.commissionValue / 100),
+                  commissionAmount: String(
+                    program.commissionType === "percentage"
+                      ? program.commissionValue / 100
+                      : minorToMajor(program.commissionValue, program.currency),
+                  ),
                   recurrence:
                     program.commissionDurationMonths === null
                       ? "lifetime"

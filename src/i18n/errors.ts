@@ -1,4 +1,7 @@
 import { getTranslations } from "next-intl/server"
+import type { z } from "zod"
+
+import { describeIssue } from "@/i18n/zod-issues"
 
 import { isAppError } from "@/server/policies/errors"
 
@@ -42,4 +45,29 @@ export async function translateFieldErrors(
 export async function successMessage(key: string): Promise<string> {
   const t = await getTranslations("success")
   return t(key)
+}
+
+/**
+ * Field errors for a failed `safeParse`, every one a sentence in the reader's
+ * language. A message the schema set as a catalogue key is used as is; Zod's
+ * own built-in messages are replaced by `errors.fields.generic.*` from the
+ * issue's structured data. Use this instead of flattening by hand.
+ */
+export async function fieldErrorsFrom(error: z.ZodError): Promise<Record<string, string[]>> {
+  const fields = await getTranslations("errors.fields")
+  const out: Record<string, string[]> = {}
+
+  for (const issue of error.issues) {
+    const field = String(issue.path[0] ?? "_form")
+    let message: string
+    if (fields.has(issue.message)) {
+      message = fields(issue.message)
+    } else {
+      const { key, values } = describeIssue(issue)
+      message = fields(`generic.${key}`, values)
+    }
+    ;(out[field] ??= []).push(message)
+  }
+
+  return out
 }

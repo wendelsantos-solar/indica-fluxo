@@ -13,6 +13,7 @@ import { SettingsDisclosure } from "@/features/onboarding/settings-disclosure"
 import { CURRENCY_CODES } from "@/features/workspaces/options"
 
 import { createProgramAction, updateProgramAction, type ProgramFormState } from "./actions"
+import { DURATION_MONTHS_MAX, DURATION_MONTHS_MIN, WEBSITE_URL_MAX_LENGTH } from "./limits"
 
 const INITIAL: ProgramFormState = {}
 
@@ -20,6 +21,11 @@ export interface ProgramFormValues {
   id?: string
   name: string
   description: string
+  /**
+   * The product's site. Omitted by a caller that does not load it, in which
+   * case the field is not rendered and saving leaves the stored value alone.
+   */
+  websiteUrl?: string
   status: "draft" | "active" | "paused" | "archived"
   commissionType: "percentage" | "fixed"
   commissionAmount: string
@@ -34,7 +40,14 @@ export interface ProgramFormValues {
 /** Fields behind "Advanced settings", per variant; an error in one reveals it. */
 const ADVANCED_FIELDS = {
   full: ["attributionModel", "attributionWindowDays", "commissionHoldDays"],
-  onboarding: ["status", "currency", "attributionModel", "attributionWindowDays", "commissionHoldDays"],
+  onboarding: [
+    "websiteUrl",
+    "status",
+    "currency",
+    "attributionModel",
+    "attributionWindowDays",
+    "commissionHoldDays",
+  ],
 } as const
 
 /**
@@ -47,7 +60,9 @@ const ADVANCED_FIELDS = {
  * `onboarding` asks only what a founder must decide — name, commission and
  * recurrence — and keeps status, currency, attribution and hold behind a
  * collapsed disclosure that echoes their defaults. Every field still submits,
- * so the action's schema receives exactly what it did before.
+ * so the action's schema receives exactly what it did before. The product site
+ * is optional and sits in that disclosure too: affiliates are told where their
+ * default link is missing, so onboarding does not have to insist.
  */
 export function ProgramForm({
   workspaceSlug,
@@ -69,7 +84,15 @@ export function ProgramForm({
 
   // Controlled, so a failed submission keeps what was typed instead of
   // snapping back to the defaults when React resets the form.
-  const [values, setValues] = useState(defaultValues)
+  // A stored duration of 1 month *is* "first payment only", so the months
+  // field never starts below its minimum when someone switches to it.
+  const [values, setValues] = useState(() => ({
+    ...defaultValues,
+    durationMonths:
+      Number(defaultValues.durationMonths) >= DURATION_MONTHS_MIN
+        ? defaultValues.durationMonths
+        : "12",
+  }))
   const set =
     <K extends keyof ProgramFormValues>(key: K) =>
     (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -104,6 +127,32 @@ export function ProgramForm({
       />
     </Field>
   )
+
+  const websiteField =
+    values.websiteUrl === undefined ? null : (
+      <Field
+        label={t("websiteUrl")}
+        htmlFor="websiteUrl"
+        hint={t("websiteUrlHint")}
+        error={error("websiteUrl")}
+      >
+        <Input
+          id="websiteUrl"
+          name="websiteUrl"
+          type="url"
+          inputMode="url"
+          autoComplete="url"
+          autoCapitalize="none"
+          spellCheck={false}
+          maxLength={WEBSITE_URL_MAX_LENGTH}
+          value={values.websiteUrl}
+          onChange={set("websiteUrl")}
+          placeholder={t("websiteUrlPlaceholder")}
+          aria-describedby={describedBy("websiteUrl", true)}
+          invalid={Boolean(errors.websiteUrl)}
+        />
+      </Field>
+    )
 
   const statusField = (
     <Field label={t("status")} htmlFor="status" error={error("status")}>
@@ -212,17 +261,22 @@ export function ProgramForm({
 
   const durationField =
     values.recurrence === "months" ? (
-      <Field label={t("durationMonths")} htmlFor="durationMonths" error={error("durationMonths")}>
+      <Field
+        label={t("durationMonths")}
+        htmlFor="durationMonths"
+        hint={t("durationMonthsHint")}
+        error={error("durationMonths")}
+      >
         <Input
           id="durationMonths"
           name="durationMonths"
           type="number"
           inputMode="numeric"
-          min="1"
-          max="120"
+          min={DURATION_MONTHS_MIN}
+          max={DURATION_MONTHS_MAX}
           value={values.durationMonths}
           onChange={set("durationMonths")}
-          aria-describedby={describedBy("durationMonths")}
+          aria-describedby={describedBy("durationMonths", true)}
           invalid={Boolean(errors.durationMonths)}
           className="tabular-nums"
         />
@@ -338,6 +392,7 @@ export function ProgramForm({
             })}
             forceOpen={advancedError}
           >
+            {websiteField}
             <div className="grid gap-4 sm:grid-cols-2">
               {statusField}
               {currencyField}
@@ -392,6 +447,8 @@ export function ProgramForm({
               invalid={Boolean(errors.description)}
             />
           </Field>
+
+          {websiteField}
         </FormSection>
 
         <FormSection title={t("commission.title")} description={t("commission.description")}>

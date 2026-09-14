@@ -8,7 +8,7 @@ import { redirect as redirectToPath } from "next/navigation"
 import { z } from "zod"
 
 import { getPathname, redirect } from "@/i18n/navigation"
-import { translateFieldErrors } from "@/i18n/errors"
+import { fieldErrorsFrom } from "@/i18n/errors"
 import { routing, type Locale } from "@/i18n/routing"
 import { clientEnv } from "@/lib/env/client"
 import { logger } from "@/lib/logger"
@@ -86,7 +86,7 @@ async function errorState(kind: AuthErrorKind, fallback = "generic"): Promise<Er
 async function invalid(error: z.ZodError): Promise<ErrorState> {
   return {
     status: "error",
-    fieldErrors: await translateFieldErrors(z.flattenError(error).fieldErrors),
+    fieldErrors: await fieldErrorsFrom(error),
   }
 }
 

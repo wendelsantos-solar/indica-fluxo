@@ -13,6 +13,11 @@ import { recordAudit } from "./audit"
 export interface ProgramInput {
   name: string
   description?: string | null
+  /**
+   * The product's site, where the tracker runs and the affiliates' default
+   * link points. `undefined` leaves the stored value alone; `null` clears it.
+   */
+  websiteUrl?: string | null
   status: "draft" | "active" | "paused" | "archived"
   commissionType: "percentage" | "fixed"
   /** Basis points for percentage, minor units for fixed. */
@@ -65,6 +70,7 @@ export async function createProgram(
         name: input.name.trim(),
         slug,
         description: input.description?.trim() || null,
+        websiteUrl: input.websiteUrl?.trim() || null,
         status: input.status,
         commissionType: input.commissionType,
         commissionValue: input.commissionValue,
@@ -117,6 +123,7 @@ export async function updateProgram(
       .set({
         name: input.name.trim(),
         description: input.description?.trim() || null,
+        ...(input.websiteUrl === undefined ? {} : { websiteUrl: input.websiteUrl?.trim() || null }),
         status: input.status,
         commissionType: input.commissionType,
         commissionValue: input.commissionValue,

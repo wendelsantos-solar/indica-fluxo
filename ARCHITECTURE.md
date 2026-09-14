@@ -276,8 +276,8 @@ place a route's spelling lives. Components write canonical hrefs
 | a template-literal href | a typed `{ pathname, params }` object | the compiler cannot check a string |
 
 That last row is enforced by types: `Link` accepts only canonical pathnames, so
-`` href={`/${slug}/affiliates`} `` fails to compile. The one gap is `TabLink`,
-which renders a plain anchor — it resolves its href through `getPathname()`.
+`` href={`/${slug}/affiliates`} `` fails to compile. `TabLink` wraps the same
+`Link`, so tab changes are typed client navigations that keep the scroll position.
 
 **Formatting.** `lib/money.ts` is pure and takes a locale; `getFormatters()`
 (server) and `useFormatters()` (client) bind it once per render. The ledger's

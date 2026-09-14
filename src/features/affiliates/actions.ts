@@ -1,6 +1,6 @@
 "use server"
 
-import { actionError, successMessage, translateFieldErrors } from "@/i18n/errors"
+import { actionError, fieldErrorsFrom, successMessage, translateFieldErrors } from "@/i18n/errors"
 import { getTranslations } from "next-intl/server"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
@@ -8,11 +8,16 @@ import { z } from "zod"
 import { requireUser } from "@/server/auth/session"
 import {
   createReferralLink,
+  type CustomRate,
   inviteAffiliate,
   setCustomRate,
   setParticipationStatus,
 } from "@/server/services/affiliates"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
+
+import { AFFILIATE_LAYOUT, DASHBOARD_LAYOUT } from "@/lib/revalidate"
+
+import { parseCustomRate } from "./custom-rate"
 
 export interface AffiliateFormState {
   error?: string
@@ -62,7 +67,7 @@ export async function inviteAffiliateAction(
   })
 
   if (!parsed.success) return {
-      fieldErrors: await translateFieldErrors(z.flattenError(parsed.error).fieldErrors),
+      fieldErrors: await fieldErrorsFrom(parsed.error),
     }
 
   try {
@@ -81,9 +86,15 @@ export async function inviteAffiliateAction(
     return { error: await actionError(error, "affiliateNotAdded") }
   }
 
-  revalidatePath(`/${parsed.data.workspaceSlug}/affiliates`)
+  revalidateAffiliateViews()
   const t = await getTranslations("success")
   return { success: t("affiliateAdded", { name: parsed.data.name, email: parsed.data.email }) }
+}
+
+/** The route patterns that show a participation's status and rate. */
+function revalidateAffiliateViews() {
+  // The overview checklist, program detail and the affiliates list all read this.
+  revalidatePath(DASHBOARD_LAYOUT, "layout")
 }
 
 const statusSchema = z.object({
@@ -92,56 +103,101 @@ const statusSchema = z.object({
   status: z.enum(["approved", "rejected", "suspended"]),
 })
 
-export async function setParticipationStatusAction(formData: FormData): Promise<void> {
+const STATUS_SUCCESS = {
+  approved: "affiliateApproved",
+  rejected: "affiliateRejected",
+  suspended: "affiliateSuspended",
+} as const
+
+export async function setParticipationStatusAction(
+  _prev: AffiliateFormState,
+  formData: FormData,
+): Promise<AffiliateFormState> {
   const user = await requireUser()
-  const parsed = statusSchema.parse({
+  const parsed = statusSchema.safeParse({
     workspaceSlug: formData.get("workspaceSlug"),
     participationId: formData.get("participationId"),
     status: formData.get("status"),
   })
 
-  const workspace = await getWorkspaceForUser(user.id, parsed.workspaceSlug)
-  await setParticipationStatus(user.id, workspace.id, parsed.participationId, parsed.status)
-  revalidatePath(`/${parsed.workspaceSlug}/affiliates`)
-}
-
-const rateSchema = z.object({
-  workspaceSlug: z.string().min(1),
-  participationId: z.string().uuid(),
-  rate: z.coerce.number().min(0).max(100),
-})
-
-export async function setCustomRateAction(
-  _prev: AffiliateFormState,
-  formData: FormData,
-): Promise<AffiliateFormState> {
-  const user = await requireUser()
-  const parsed = rateSchema.safeParse({
-    workspaceSlug: formData.get("workspaceSlug"),
-    participationId: formData.get("participationId"),
-    rate: formData.get("rate"),
-  })
-
-  if (!parsed.success) return {
-      fieldErrors: await translateFieldErrors(z.flattenError(parsed.error).fieldErrors),
-    }
+  // Every field is hidden: a failure here is a tampered or stale form.
+  if (!parsed.success) return { error: await actionError(null, "invalidRequest") }
 
   try {
     const workspace = await getWorkspaceForUser(user.id, parsed.data.workspaceSlug)
-    await setCustomRate(
-      user.id,
-      workspace.id,
-      parsed.data.participationId,
-      parsed.data.rate > 0
-        ? { type: "percentage", value: Math.round(parsed.data.rate * 100) }
-        : null,
-    )
+    await setParticipationStatus(user.id, workspace.id, parsed.data.participationId, parsed.data.status)
   } catch (error) {
-    return { error: await actionError(error, "rateNotUpdated") }
+    return { error: await actionError(error, "affiliateStatusNotUpdated") }
   }
 
-  revalidatePath(`/${parsed.data.workspaceSlug}/affiliates`)
-  return { success: await successMessage("rateUpdated") }
+  revalidateAffiliateViews()
+  return { success: await successMessage(STATUS_SUCCESS[parsed.data.status]) }
+}
+
+const rateSchema = z.discriminatedUnion("intent", [
+  z.object({
+    intent: z.literal("clear"),
+    workspaceSlug: z.string().min(1),
+    participationId: z.string().uuid(),
+  }),
+  z.object({
+    intent: z.literal("set"),
+    workspaceSlug: z.string().min(1),
+    participationId: z.string().uuid(),
+    type: z.enum(["percentage", "fixed"]),
+    value: z.string().max(32),
+    currency: z.string().length(3),
+  }),
+])
+
+/** Echoes the submitted text back, so a failed submission keeps what was typed. */
+export interface CustomRateFormState extends AffiliateFormState {
+  values?: { type?: string; value?: string }
+}
+
+export async function setCustomRateAction(
+  _prev: CustomRateFormState,
+  formData: FormData,
+): Promise<CustomRateFormState> {
+  const user = await requireUser()
+  const text = (key: string) => {
+    const value = formData.get(key)
+    return typeof value === "string" ? value : undefined
+  }
+  const values = { type: text("type"), value: text("value") }
+
+  const parsed = rateSchema.safeParse({
+    intent: text("intent"),
+    workspaceSlug: text("workspaceSlug"),
+    participationId: text("participationId"),
+    type: values.type,
+    value: values.value ?? "",
+    currency: text("currency"),
+  })
+
+  if (!parsed.success) return { error: await actionError(null, "invalidRequest"), values }
+
+  let rate: CustomRate | null = null
+  if (parsed.data.intent === "set") {
+    const result = parseCustomRate(parsed.data)
+    if (!result.ok) {
+      return { fieldErrors: await translateFieldErrors({ value: [result.error] }), values }
+    }
+    rate =
+      result.type === "fixed"
+        ? { type: "fixed", value: result.value, currency: parsed.data.currency }
+        : { type: "percentage", value: result.value }
+  }
+
+  try {
+    const workspace = await getWorkspaceForUser(user.id, parsed.data.workspaceSlug)
+    await setCustomRate(user.id, workspace.id, parsed.data.participationId, rate)
+  } catch (error) {
+    return { error: await actionError(error, "rateNotUpdated"), values }
+  }
+
+  revalidateAffiliateViews()
+  return { success: await successMessage(rate ? "rateUpdated" : "rateRemoved") }
 }
 
 const linkSchema = z.object({
@@ -152,6 +208,7 @@ const linkSchema = z.object({
   destinationUrl: z
     .string("urlRequired")
     .trim()
+    .max(2048, "urlTooLong")
     .url("urlRequired")
     .refine((value) => /^https?:\/\//i.test(value), "urlRequired"),
   campaign: z.string().trim().max(80, "campaignTooLong").optional(),
@@ -200,12 +257,12 @@ export async function createLinkAction(
   })
 
   if (!parsed.success) {
-    const { participationId, ...fieldErrors } = z.flattenError(parsed.error).fieldErrors
+    const { participationId, ...fieldErrors } = await fieldErrorsFrom(parsed.error)
     // A tampered or missing hidden field is not something the reader can fix.
     if (participationId?.length) {
       return { error: await actionError(null, "linkNotCreated"), values }
     }
-    return { fieldErrors: await translateFieldErrors(fieldErrors), values }
+    return { fieldErrors, values }
   }
 
   try {
@@ -223,6 +280,6 @@ export async function createLinkAction(
 
   // The route pattern, not a URL: pages live under a locale segment and a
   // translated pathname, so a literal "/affiliate/links" matches nothing.
-  revalidatePath("/[locale]/(affiliate)/affiliate/links", "page")
+  revalidatePath(AFFILIATE_LAYOUT, "layout")
   return { success: await successMessage("linkCreated") }
 }

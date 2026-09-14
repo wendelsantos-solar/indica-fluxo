@@ -103,3 +103,14 @@ describe("createFormatters", () => {
     expect(norm(f.basisPoints(3000))).toBe("30%")
   })
 })
+
+describe("majorToMinor / minorToMajor", () => {
+  it("uses the currency's minor unit", async () => {
+    const { majorToMinor, minorToMajor } = await import("../money")
+    expect(majorToMinor(14.7, "USD")).toBe(1470)
+    expect(majorToMinor(14.705, "BRL")).toBe(1471)
+    expect(majorToMinor(1500, "JPY")).toBe(1500)
+    expect(minorToMajor(1470, "USD")).toBe(14.7)
+    expect(minorToMajor(1500, "JPY")).toBe(1500)
+  })
+})

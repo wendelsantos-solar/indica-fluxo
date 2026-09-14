@@ -181,14 +181,25 @@ export function ApiKeysPanel({
               </mark>
               {snippetEnd}
             </CodeField>
+            {/* With no key at all, the key section above already offers
+                "Gerar chave pública" as the first step; a second identical
+                button here would compete with it. */}
             <InlineAlert
-              action={action(
-                "publishable",
-                "secondary",
-                activeOf("publishable") ? t("generatePublishable") : t("empty.action"),
-              )}
+              action={
+                active.length === 0
+                  ? undefined
+                  : action(
+                      "publishable",
+                      "secondary",
+                      activeOf("publishable") ? t("generatePublishable") : t("empty.action"),
+                    )
+              }
             >
-              {activeOf("publishable") ? t("snippetLocked") : t("snippetNoKey")}
+              {activeOf("publishable")
+                ? t("snippetLocked")
+                : active.length === 0
+                  ? t("snippetFirstStep")
+                  : t("snippetNoKey")}
             </InlineAlert>
           </div>
         )}

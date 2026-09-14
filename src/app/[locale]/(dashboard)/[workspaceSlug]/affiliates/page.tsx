@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input, Select } from "@/components/ui/input"
 import { Pagination } from "@/components/ui/pagination"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
+import { AffiliateRowActions } from "@/features/affiliates/affiliate-row-actions"
 import { InviteAffiliateDialog } from "@/features/affiliates/invite-affiliate-dialog"
 import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
@@ -88,6 +89,9 @@ export default async function AffiliatesPage({
     }) as const
 
   const statusLabel = (value: ParticipationStatus) => t(`status.${value}`)
+
+  // The row menu's mutations require owner or admin; a member is not offered them.
+  const canManage = workspace.role !== "member"
 
   // Affiliates join through a program: without one there is nothing to invite
   // them into, so the page points at the step that is actually missing.
@@ -216,13 +220,47 @@ export default async function AffiliatesPage({
                   <TH numeric className="max-lg:hidden">{tc("revenue")}</TH>
                   <TH numeric>{tc("commission")}</TH>
                   <TH numeric>{tc("conversion")}</TH>
+                  {canManage ? (
+                    <TH className="w-10">
+                      <span className="sr-only">{tc("actions")}</span>
+                    </TH>
+                  ) : null}
                 </tr>
               </THead>
               <TBody>
                 {result.rows.map((row) => {
                   const rowStatus = row.participationStatus ?? row.status
                   const label = row.participationStatus ? statusLabel(row.participationStatus) : undefined
-                  const commission = f.money(row.commissionMinor, workspace.defaultCurrency)
+                  // A participation earns in its program's currency; the sums
+                  // are in that currency, never the workspace default.
+                  const currency = row.currency ?? workspace.defaultCurrency
+                  const commission = f.money(row.commissionMinor, currency)
+                  const otherCurrencies = row.hasOtherCurrencies ? (
+                    <span className="block whitespace-nowrap text-meta text-muted-foreground">
+                      {t("otherCurrenciesExcluded")}
+                    </span>
+                  ) : null
+                  const actions =
+                    canManage && row.participationId && row.participationStatus && row.programName && row.currency ? (
+                      <AffiliateRowActions
+                        workspaceSlug={workspaceSlug}
+                        participationId={row.participationId}
+                        affiliateName={row.name}
+                        programName={row.programName}
+                        status={row.participationStatus}
+                        currency={row.currency}
+                        programRate={
+                          row.programCommissionType && row.programCommissionValue !== null
+                            ? { type: row.programCommissionType, value: row.programCommissionValue }
+                            : null
+                        }
+                        customRate={
+                          row.customCommissionType && row.customCommissionValue !== null
+                            ? { type: row.customCommissionType, value: row.customCommissionValue }
+                            : null
+                        }
+                      />
+                    ) : null
                   return (
                     <TR key={`${row.affiliateId}-${row.participationId ?? "none"}`}>
                       <TD className="max-md:py-2.5">
@@ -256,14 +294,16 @@ export default async function AffiliatesPage({
                         {f.number(row.customers)}
                       </TD>
                       <TD numeric className="max-lg:hidden">
-                        {f.money(row.revenueMinor, workspace.defaultCurrency)}
+                        {f.money(row.revenueMinor, currency)}
                       </TD>
                       <TD numeric className="text-foreground max-md:hidden">
                         {commission}
+                        {otherCurrencies}
                       </TD>
                       <TD numeric className="max-md:hidden">
                         {f.rate(row.customers, row.clicks)}
                       </TD>
+                      {canManage ? <TD className="w-10 text-right">{actions}</TD> : null}
                     </TR>
                   )
                 })}

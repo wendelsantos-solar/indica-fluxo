@@ -36,11 +36,14 @@ export function StripePanel({
   status,
   providerAccountId,
   webhookUrl,
+  readOnly = false,
 }: {
   workspaceSlug: string
   status: "connected" | "disconnected" | "error" | null
   providerAccountId: string | null
   webhookUrl: string
+  /** A `member`: status and account only — connecting and disconnecting are admin actions. */
+  readOnly?: boolean
 }) {
   const t = useTranslations("forms.stripe")
   const [connectState, connect, connecting] = useActionState(connectStripeAction, INITIAL)
@@ -76,21 +79,38 @@ export function StripePanel({
             </MetricCell>
           </MetricGrid>
 
-          {/* The one destructive action, apart from everything else. */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border-faint pt-4">
-            <p className="max-w-prose text-meta text-muted-foreground">{t("disconnectHint")}</p>
-            <ConfirmDialog
-              trigger={t("disconnect")}
-              title={t("disconnectTitle")}
-              description={t("disconnectBody")}
-              confirmLabel={t("disconnectConfirm")}
-              action={async (formData) => setDisconnectState(await disconnectStripeAction(INITIAL, formData))}
-            >
-              <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
-            </ConfirmDialog>
-          </div>
+          {readOnly ? null : (
+            <>
+              {/* The one destructive action, apart from everything else. */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border-faint pt-4">
+                <p className="max-w-prose text-meta text-muted-foreground">{t("disconnectHint")}</p>
+                <ConfirmDialog
+                  trigger={t("disconnect")}
+                  title={t("disconnectTitle")}
+                  description={t("disconnectBody")}
+                  confirmLabel={t("disconnectConfirm")}
+                  action={async (formData) =>
+                    setDisconnectState(await disconnectStripeAction(INITIAL, formData))
+                  }
+                >
+                  <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
+                </ConfirmDialog>
+              </div>
 
-          {disconnectState.error ? <InlineAlert tone="danger">{disconnectState.error}</InlineAlert> : null}
+              {disconnectState.error ? (
+                <InlineAlert tone="danger">{disconnectState.error}</InlineAlert>
+              ) : null}
+            </>
+          )}
+        </div>
+      ) : readOnly ? (
+        <div className="space-y-4">
+          {status === "error" ? (
+            <InlineAlert tone="danger" title={t("errorTitle")}>
+              {t("errorBody")}
+            </InlineAlert>
+          ) : null}
+          <InlineAlert>{t("adminOnly")}</InlineAlert>
         </div>
       ) : (
         <div className="space-y-4">

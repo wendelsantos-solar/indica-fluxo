@@ -33,6 +33,7 @@ export default async function NewProgramPage({
   const defaultValues: ProgramFormValues = {
     name: "",
     description: "",
+    websiteUrl: "",
     status: "active",
     commissionType: "percentage",
     commissionAmount: "30",

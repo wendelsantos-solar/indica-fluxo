@@ -11,7 +11,8 @@ import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
 import { listLinks, listParticipationsForUser } from "@/server/repositories/affiliates"
 
-import { ParticipationNotice } from "../_components/participation-notice"
+import { DefaultReferralLink } from "../_components/default-link"
+import { linkEarns, ParticipationNotice } from "../_components/participation-notice"
 import { PortalList, PortalListItem } from "../_components/portal-list"
 
 export const dynamic = "force-dynamic"
@@ -43,7 +44,6 @@ export default async function AffiliateLinksPage() {
   const t = await getTranslations("portal.links")
   const f = await getFormatters()
   const user = await requireUser()
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://example.com"
 
   const data = await withUser(user.id, async (tx) => {
     const participations = await listParticipationsForUser(tx, user.id)
@@ -55,8 +55,10 @@ export default async function AffiliateLinksPage() {
     )
   })
 
-  const featuredId = data.find(({ participation }) => participation.status === "approved")
-    ?.participation.participationId
+  // The one amber copy button: the first default link that exists and earns.
+  const featuredId = data.find(
+    ({ participation }) => linkEarns(participation) && participation.programWebsiteUrl,
+  )?.participation.participationId
 
   return (
     <>
@@ -75,12 +77,16 @@ export default async function AffiliateLinksPage() {
               className="mb-0"
             />
 
-            <ParticipationNotice status={participation.status} />
+            <ParticipationNotice
+              status={participation.status}
+              programStatus={participation.programStatus}
+            />
 
             <div className="space-y-2">
               <p className="text-meta font-medium text-muted-foreground">{t("defaultLink")}</p>
-              <ReferralLinkField
-                url={buildReferralUrl(appUrl, participation.code)}
+              <DefaultReferralLink
+                websiteUrl={participation.programWebsiteUrl}
+                code={participation.code}
                 prominent={participation.participationId === featuredId}
               />
             </div>

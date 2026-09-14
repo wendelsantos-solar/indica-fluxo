@@ -5,8 +5,10 @@ import { and, eq, sql } from "drizzle-orm"
 import { slugify } from "@/lib/utils"
 import { withUser } from "@/server/db"
 import { affiliates, programAffiliates, programs, referralLinks } from "@/server/db/schema"
+import { canTransitionParticipation, type ParticipationTarget } from "@/server/domain/participation"
 import { ConflictError, NotFoundError, ValidationError } from "@/server/policies/errors"
 import { requireMembership } from "@/server/policies/workspace"
+import { findParticipationInWorkspace } from "@/server/repositories/affiliates"
 
 import { recordAudit } from "./audit"
 
@@ -141,28 +143,43 @@ async function uniqueCode(
   return `${base}-${Math.random().toString(36).slice(2, 6)}`
 }
 
+/**
+ * Approve, reject or suspend one participation. The participation must belong
+ * to a program of this workspace — an admin of two workspaces cannot reach
+ * across from one to the other through an id — and the move must be one the
+ * founder is offered (`server/domain/participation.ts`).
+ */
 export async function setParticipationStatus(
   userId: string,
   workspaceId: string,
   participationId: string,
-  status: "approved" | "rejected" | "suspended",
+  status: ParticipationTarget,
 ): Promise<void> {
   return withUser(userId, async (tx) => {
     await requireMembership(tx, workspaceId, userId, "admin")
 
-    const updated = await tx
+    const participation = await findParticipationInWorkspace(tx, workspaceId, participationId)
+    if (!participation) {
+      throw new NotFoundError("Affiliate participation not found.", "participationNotFound")
+    }
+
+    if (!canTransitionParticipation(participation.status, status)) {
+      throw new ConflictError(
+        `A ${participation.status} participation cannot become ${status}.`,
+        "participationTransitionInvalid",
+      )
+    }
+
+    await tx
       .update(programAffiliates)
       .set({ status, approvedAt: status === "approved" ? new Date() : null })
       .where(eq(programAffiliates.id, participationId))
-      .returning({ id: programAffiliates.id, affiliateId: programAffiliates.affiliateId })
-
-    if (updated.length === 0) throw new NotFoundError("Affiliate participation not found.", "participationNotFound")
 
     if (status === "approved") {
       await tx
         .update(affiliates)
         .set({ status: "active" })
-        .where(eq(affiliates.id, updated[0]!.affiliateId))
+        .where(eq(affiliates.id, participation.affiliateId))
     }
 
     await recordAudit(tx, {
@@ -170,24 +187,54 @@ export async function setParticipationStatus(
       actorUserId: userId,
       entityType: "program_affiliate",
       entityId: participationId,
-      action: status === "approved" ? "affiliate.approved" : "affiliate.rejected",
-      metadata: { status },
+      action:
+        status === "approved"
+          ? "affiliate.approved"
+          : status === "suspended"
+            ? "affiliate.suspended"
+            : "affiliate.rejected",
+      metadata: { status, previousStatus: participation.status },
     })
   })
 }
 
+export type CustomRate =
+  | { type: "percentage"; value: number }
+  /** Minor units of `currency`, which must be the program's currency. */
+  | { type: "fixed"; value: number; currency: string }
+
+/** Sets or clears (`null`) the affiliate override that beats the program rule. */
 export async function setCustomRate(
   userId: string,
   workspaceId: string,
   participationId: string,
-  rate: { type: "percentage" | "fixed"; value: number } | null,
+  rate: CustomRate | null,
 ): Promise<void> {
-  if (rate && rate.type === "percentage" && rate.value > 10_000) {
-    throw new ValidationError("A percentage commission cannot exceed 100%.", {}, "percentageOver100")
+  if (rate) {
+    if (!Number.isInteger(rate.value) || rate.value <= 0) {
+      throw new ValidationError("A custom rate must be a positive integer.", {}, "customRateIncomplete")
+    }
+    if (rate.type === "percentage" && rate.value > 10_000) {
+      throw new ValidationError("A percentage commission cannot exceed 100%.", {}, "percentageOver100")
+    }
   }
 
   return withUser(userId, async (tx) => {
     await requireMembership(tx, workspaceId, userId, "admin")
+
+    const participation = await findParticipationInWorkspace(tx, workspaceId, participationId)
+    if (!participation) {
+      throw new NotFoundError("Affiliate participation not found.", "participationNotFound")
+    }
+
+    // A fixed amount means nothing without its currency: an amount entered
+    // against a program that has since changed currency must not be stored.
+    if (rate?.type === "fixed" && rate.currency.toUpperCase() !== participation.programCurrency) {
+      throw new ConflictError(
+        `Fixed rate given in ${rate.currency}, program pays in ${participation.programCurrency}.`,
+        "customRateCurrencyChanged",
+      )
+    }
 
     await tx
       .update(programAffiliates)
@@ -203,7 +250,9 @@ export async function setCustomRate(
       entityType: "program_affiliate",
       entityId: participationId,
       action: "affiliate.rate_changed",
-      metadata: rate ? { type: rate.type, value: rate.value } : { cleared: true },
+      metadata: rate
+        ? { type: rate.type, value: rate.value, currency: participation.programCurrency }
+        : { cleared: true },
     })
   })
 }

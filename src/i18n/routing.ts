@@ -88,6 +88,10 @@ export const routing = defineRouting({
       "pt-br": "/[workspaceSlug]/pagamentos",
       en: "/[workspaceSlug]/payouts",
     },
+    "/[workspaceSlug]/payouts/[batchId]": {
+      "pt-br": "/[workspaceSlug]/pagamentos/[batchId]",
+      en: "/[workspaceSlug]/payouts/[batchId]",
+    },
     "/[workspaceSlug]/integrations": {
       "pt-br": "/[workspaceSlug]/integracoes",
       en: "/[workspaceSlug]/integrations",

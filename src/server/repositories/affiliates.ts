@@ -11,7 +11,6 @@ import {
   programs,
   referralClicks,
   referralLinks,
-  transactions,
 } from "@/server/db/schema"
 import type { ParticipationRules } from "@/server/domain/types"
 
@@ -27,10 +26,25 @@ export interface AffiliateListRow {
   code: string | null
   programId: string | null
   programName: string | null
+  /**
+   * The program's currency: what `revenueMinor` and `commissionMinor` are in.
+   * Null only for an affiliate with no participation, whose sums are zero.
+   */
+  currency: string | null
+  programCommissionType: "percentage" | "fixed" | null
+  programCommissionValue: number | null
+  customCommissionType: "percentage" | "fixed" | null
+  customCommissionValue: number | null
   clicks: number
   customers: number
   revenueMinor: number
   commissionMinor: number
+  /**
+   * The participation also has commissions in a currency other than the
+   * program's (the program's currency was changed). Those are left out of the
+   * sums rather than added to them — see DATABASE.md §4.
+   */
+  hasOtherCurrencies: boolean
   joinedAt: Date
 }
 
@@ -82,6 +96,11 @@ export async function listAffiliates(
       code: programAffiliates.code,
       programId: programAffiliates.programId,
       programName: programs.name,
+      currency: programs.currency,
+      programCommissionType: programs.commissionType,
+      programCommissionValue: programs.commissionValue,
+      customCommissionType: programAffiliates.customCommissionType,
+      customCommissionValue: programAffiliates.customCommissionValue,
       joinedAt: affiliates.createdAt,
       clicks: sql<number>`coalesce((
         select count(*)::int from ${referralClicks}
@@ -90,20 +109,30 @@ export async function listAffiliates(
         select count(distinct ${commissions.customerId})::int from ${commissions}
          where ${commissions.programAffiliateId} = ${programAffiliates.id}
            and ${commissions.commissionAmountMinor} > 0), 0)`,
+      // Money sums stay `bigint` (an `int` cast overflows past 2^31 minor
+      // units) and are read back as a JS number, and only ever add up
+      // commissions in the program's own currency.
       revenueMinor: sql<number>`coalesce((
-        select sum(${commissions.baseAmountMinor})::bigint from ${commissions}
+        select sum(${commissions.baseAmountMinor}) from ${commissions}
          where ${commissions.programAffiliateId} = ${programAffiliates.id}
-           and ${commissions.status} <> 'rejected'), 0)::int`,
+           and ${commissions.currency} = ${programs.currency}
+           and ${commissions.status} <> 'rejected'), 0)::bigint`.mapWith(Number),
       commissionMinor: sql<number>`coalesce((
-        select sum(${commissions.commissionAmountMinor})::bigint from ${commissions}
+        select sum(${commissions.commissionAmountMinor}) from ${commissions}
          where ${commissions.programAffiliateId} = ${programAffiliates.id}
-           and ${commissions.status} <> 'rejected'), 0)::int`,
+           and ${commissions.currency} = ${programs.currency}
+           and ${commissions.status} <> 'rejected'), 0)::bigint`.mapWith(Number),
+      hasOtherCurrencies: sql<boolean>`exists (
+        select 1 from ${commissions}
+         where ${commissions.programAffiliateId} = ${programAffiliates.id}
+           and ${commissions.currency} <> ${programs.currency}
+           and ${commissions.status} <> 'rejected')`,
     })
     .from(affiliates)
     .leftJoin(programAffiliates, eq(programAffiliates.affiliateId, affiliates.id))
     .leftJoin(programs, eq(programs.id, programAffiliates.programId))
     .where(where)
-    .orderBy(desc(affiliates.createdAt))
+    .orderBy(desc(affiliates.createdAt), desc(programAffiliates.createdAt), programAffiliates.id)
     .limit(limit)
     .offset(offset)
 
@@ -114,6 +143,31 @@ export async function listAffiliates(
     .where(where)
 
   return { rows, total: totals?.value ?? 0 }
+}
+
+/**
+ * A participation, only if its program belongs to `workspaceId`. RLS lets an
+ * admin of two workspaces see both; this keeps a mutation addressed to one
+ * workspace from landing in the other.
+ */
+export async function findParticipationInWorkspace(
+  tx: DbClient,
+  workspaceId: string,
+  participationId: string,
+) {
+  const [row] = await tx
+    .select({
+      id: programAffiliates.id,
+      status: programAffiliates.status,
+      affiliateId: programAffiliates.affiliateId,
+      programId: programAffiliates.programId,
+      programCurrency: programs.currency,
+    })
+    .from(programAffiliates)
+    .innerJoin(programs, eq(programs.id, programAffiliates.programId))
+    .where(and(eq(programAffiliates.id, participationId), eq(programs.workspaceId, workspaceId)))
+    .limit(1)
+  return row ?? null
 }
 
 export async function findParticipationByCode(
@@ -175,7 +229,14 @@ export function toParticipationRules(row: {
   }
 }
 
-/** Every participation belonging to the signed-in affiliate, with its program. */
+/**
+ * Every participation belonging to the signed-in affiliate, with its program.
+ *
+ * `programStatus` and `programWebsiteUrl` are what the portal needs to say
+ * whether a link earns (`recordClick` credits a click only while the program is
+ * `active`) and where the default link points. Both come through the
+ * `programs_affiliate_select` policy, which exposes the enrolled program's row.
+ */
 export async function listParticipationsForUser(tx: DbClient, userId: string) {
   return tx
     .select({
@@ -187,6 +248,8 @@ export async function listParticipationsForUser(tx: DbClient, userId: string) {
       workspaceId: affiliates.workspaceId,
       programId: programs.id,
       programName: programs.name,
+      programStatus: programs.status,
+      programWebsiteUrl: programs.websiteUrl,
       programCurrency: programs.currency,
       commissionType: programs.commissionType,
       commissionValue: programs.commissionValue,
@@ -219,7 +282,18 @@ export async function listLinks(tx: DbClient, participationId: string) {
     .orderBy(desc(referralLinks.createdAt))
 }
 
-/** Aggregate KPIs for one participation — the affiliate portal home. */
+/**
+ * Aggregate KPIs for one participation — the affiliate portal home. Every money
+ * figure is in the participation's program currency; callers group by it and
+ * never add two participations in different currencies together.
+ *
+ * Sums are `bigint` (an `int` cast overflows past 2 147 483 647 minor units)
+ * and come back from the driver as strings, hence `mapWith(Number)`.
+ *
+ * Revenue is the commissions' `base_amount_minor`, not `transactions`: an
+ * affiliate has no RLS read on transactions (they belong to the workspace), so
+ * a join there silently summed to zero for every affiliate.
+ */
 export async function participationStats(tx: DbClient, participationId: string) {
   const [row] = await tx
     .select({
@@ -231,22 +305,22 @@ export async function participationStats(tx: DbClient, participationId: string) 
          where ${commissions.programAffiliateId} = ${participationId}
            and ${commissions.commissionAmountMinor} > 0), 0)`,
       revenueMinor: sql<number>`coalesce((
-        select sum(${transactions.grossAmountMinor})::bigint from ${commissions}
-          join ${transactions} on ${qualified(transactions.id)} = ${qualified(commissions.transactionId)}
+        select sum(${commissions.baseAmountMinor}) from ${commissions}
          where ${commissions.programAffiliateId} = ${participationId}
-           and ${commissions.commissionAmountMinor} > 0), 0)::int`,
+           and ${commissions.commissionAmountMinor} > 0
+           and ${commissions.status} <> 'rejected'), 0)::bigint`.mapWith(Number),
       commissionMinor: sql<number>`coalesce((
-        select sum(${commissions.commissionAmountMinor})::bigint from ${commissions}
+        select sum(${commissions.commissionAmountMinor}) from ${commissions}
          where ${commissions.programAffiliateId} = ${participationId}
-           and ${commissions.status} <> 'rejected'), 0)::int`,
+           and ${commissions.status} <> 'rejected'), 0)::bigint`.mapWith(Number),
       paidMinor: sql<number>`coalesce((
-        select sum(${commissions.commissionAmountMinor})::bigint from ${commissions}
+        select sum(${commissions.commissionAmountMinor}) from ${commissions}
          where ${commissions.programAffiliateId} = ${participationId}
-           and ${commissions.status} = 'paid'), 0)::int`,
+           and ${commissions.status} = 'paid'), 0)::bigint`.mapWith(Number),
       pendingMinor: sql<number>`coalesce((
-        select sum(${commissions.commissionAmountMinor})::bigint from ${commissions}
+        select sum(${commissions.commissionAmountMinor}) from ${commissions}
          where ${commissions.programAffiliateId} = ${participationId}
-           and ${commissions.status} in ('pending','available','approved')), 0)::int`,
+           and ${commissions.status} in ('pending','available','approved')), 0)::bigint`.mapWith(Number),
     })
     .from(sql`(select 1) as t`)
 

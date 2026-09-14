@@ -10,7 +10,6 @@ import { requireMembership } from "@/server/policies/workspace"
 import { findWorkspaceBySlug, listWorkspacesForUser } from "@/server/repositories/workspaces"
 
 import { recordAudit } from "./audit"
-import { createApiKeyPair } from "./api-keys"
 
 export interface CreateWorkspaceInput {
   name: string
@@ -52,8 +51,10 @@ export async function createWorkspace(
       role: "owner",
     })
 
-    // A workspace without keys cannot install tracking, so mint them up front.
-    await createApiKeyPair(tx, workspace.id, userId)
+    // No API keys are minted here. Only a key's hash is stored and its
+    // plaintext is shown once, so a key issued before anyone can see it is
+    // unusable. The Integrations page generates the first key on request and
+    // reveals it once (UI_UX_FUNCTIONAL_FINDINGS F1).
 
     await recordAudit(tx, {
       workspaceId: workspace.id,

@@ -18,6 +18,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       enableSystem
       disableTransitionOnChange
       storageKey="indica-theme"
+      // React 19 warns about a <script> rendered on the client ("Encountered
+      // a script tag…"). The anti-flash script only matters in the server
+      // HTML, where it runs during parsing; on the client it is inert either
+      // way, so it is marked non-executable there to silence the warning.
+      // The attribute mismatch is covered by next-themes' own
+      // suppressHydrationWarning on that element.
+      scriptProps={typeof window === "undefined" ? undefined : { type: "application/json" }}
     >
       <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
     </NextThemes>

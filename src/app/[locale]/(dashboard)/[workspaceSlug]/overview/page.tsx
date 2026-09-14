@@ -14,6 +14,13 @@ import { StatusBadge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
+import {
+  amountIn,
+  formatMoneyTotals,
+  formatMoneyTotalsInline,
+  hasNonZeroTotal,
+  type MoneyTotal,
+} from "@/lib/money-totals"
 import { ActivationChecklist, ActivationReminder } from "@/features/onboarding/activation-checklist"
 import { activationSignals, getActivation } from "@/features/onboarding/activation"
 import { requireUser } from "@/server/auth/session"
@@ -63,53 +70,65 @@ export default async function OverviewPage({
 async function OverviewContent({ slug, welcome }: { slug: string; welcome: boolean }) {
   const t = await getTranslations("dashboard.overview")
   const tc = await getTranslations("common.table")
+  const tm = await getTranslations("common.money")
   const f = await getFormatters()
   const user = await requireUser()
   const workspace = await getWorkspaceForUser(user.id, slug)
 
-  const [overview, series, funnel, topAffiliates, recent, programs, integrations, affiliates] =
-    await withUser(user.id, (tx) =>
-      Promise.all([
-        getDashboardOverview(tx, workspace.id),
-        getRevenueSeries(tx, workspace.id),
-        getConversionFunnel(tx, workspace.id),
-        getTopAffiliates(tx, workspace.id),
-        getRecentConversions(tx, workspace.id),
-        // Activation checklist: existing read functions only, see
-        // features/onboarding/activation.ts for how each step is derived.
-        listPrograms(tx, workspace.id),
-        listIntegrations(tx, workspace.id),
-        listAffiliates(tx, { workspaceId: workspace.id, limit: 1 }),
-      ]),
-    )
+  const { overview, series, funnel, topAffiliates, recent, programs, integrations, affiliates } =
+    await withUser(user.id, async (tx) => {
+      // The overview decides the lead currency; the chart then draws that one
+      // currency only. Statements in one transaction run serially anyway.
+      const overview = await getDashboardOverview(tx, workspace.id)
+      const [series, funnel, topAffiliates, recent, programs, integrations, affiliates] =
+        await Promise.all([
+          getRevenueSeries(tx, workspace.id, overview.currency),
+          getConversionFunnel(tx, workspace.id),
+          getTopAffiliates(tx, workspace.id),
+          getRecentConversions(tx, workspace.id),
+          // Activation checklist: existing read functions only, see
+          // features/onboarding/activation.ts for how each step is derived.
+          listPrograms(tx, workspace.id),
+          listIntegrations(tx, workspace.id),
+          listAffiliates(tx, { workspaceId: workspace.id, limit: 1 }),
+        ])
+      return { overview, series, funnel, topAffiliates, recent, programs, integrations, affiliates }
+    })
 
   const activation = getActivation(
     activationSignals({ programs, integrations, affiliateTotal: affiliates.total }),
   )
 
-  const delta =
-    overview.revenuePreviousMinor > 0
-      ? ((overview.revenueMinor - overview.revenuePreviousMinor) /
-          overview.revenuePreviousMinor) *
-        100
-      : null
+  const { currency } = overview
+  // Every money figure is per currency: the lead currency is shown as the
+  // value, the others on a compact line beside it — never summed or converted.
+  const money = (totals: MoneyTotal[]) => formatMoneyTotals(f.money, totals, currency)
+  const inline = (totals: MoneyTotal[]) => formatMoneyTotalsInline(f.money, totals, currency)
+  const others = (formatted: { others: string | null }) =>
+    formatted.others ? tm("otherCurrencies", { amounts: formatted.others }) : null
+
+  const revenue = money(overview.revenue)
+  const commission = money(overview.commission)
+  const revenueNow = amountIn(overview.revenue, currency)
+  const revenueBefore = amountIn(overview.revenuePrevious, currency)
+  const delta = revenueBefore > 0 ? ((revenueNow - revenueBefore) / revenueBefore) * 100 : null
 
   const chartSeries = [
     {
       key: "revenue",
       label: t("legendRevenue"),
       color: "var(--chart-1)",
-      values: series.map((point) => point.revenueMinor),
+      values: series.points.map((point) => point.revenueMinor),
     },
     {
       key: "commission",
       label: t("legendCommission"),
       color: "var(--chart-2)",
-      values: series.map((point) => point.commissionMinor),
+      values: series.points.map((point) => point.commissionMinor),
     },
   ]
 
-  const hasData = overview.clicks > 0 || overview.revenueMinor !== 0
+  const hasData = overview.clicks > 0 || hasNonZeroTotal(overview.revenue)
 
   if (!hasData) {
     return (
@@ -124,19 +143,32 @@ async function OverviewContent({ slug, welcome }: { slug: string; welcome: boole
 
   // Axis and tooltip dates in the reader's convention ("14 set."), never ISO.
   const dayLabel = new Intl.DateTimeFormat(f.locale, { day: "numeric", month: "short", timeZone: "UTC" })
-  const labels = series.map((point) => dayLabel.format(new Date(`${point.date}T00:00:00Z`)))
-  const peak = series.reduce<(typeof series)[number] | null>(
+  const labels = series.points.map((point) => dayLabel.format(new Date(`${point.date}T00:00:00Z`)))
+  const peak = series.points.reduce<(typeof series.points)[number] | null>(
     (best, point) => (best === null || point.revenueMinor > best.revenueMinor ? point : best),
     null,
   )
   const chartSummary = t("chartSummary", {
     start: labels[0] ?? "",
     end: labels[labels.length - 1] ?? "",
-    revenue: f.money(overview.revenueMinor, overview.currency),
-    commission: f.money(overview.commissionMinor, overview.currency),
+    revenue: f.money(
+      series.points.reduce((sum, point) => sum + point.revenueMinor, 0),
+      series.currency,
+    ),
+    commission: f.money(
+      series.points.reduce((sum, point) => sum + point.commissionMinor, 0),
+      series.currency,
+    ),
     peakDay: peak ? dayLabel.format(new Date(`${peak.date}T00:00:00Z`)) : "",
-    peakRevenue: f.money(peak?.revenueMinor ?? 0, overview.currency),
+    peakRevenue: f.money(peak?.revenueMinor ?? 0, series.currency),
   })
+  const chartCurrencyNote =
+    series.otherCurrencies.length > 0
+      ? t("chartCurrencyNote", {
+          currency: series.currency,
+          others: new Intl.ListFormat(f.locale, { type: "conjunction" }).format(series.otherCurrencies),
+        })
+      : null
 
   return (
     <div className="space-y-10">
@@ -149,19 +181,25 @@ async function OverviewContent({ slug, welcome }: { slug: string; welcome: boole
           <MetricCell className="col-span-2 sm:col-span-1">
             <Metric
               label={t("metrics.revenue")}
-              value={f.money(overview.revenueMinor, overview.currency)}
+              value={revenue.primary}
+              secondaryValue={others(revenue)}
               delta={delta}
-              comparison={t("metrics.comparison")}
+              comparison={
+                // The delta compares the lead currency only; say so once
+                // another currency is on screen.
+                revenue.others
+                  ? t("metrics.comparisonInCurrency", { currency })
+                  : t("metrics.comparison")
+              }
               size="lg"
             />
           </MetricCell>
           <MetricCell>
             <Metric
               label={t("metrics.commissions")}
-              value={f.money(overview.commissionMinor, overview.currency)}
-              comparison={t("metrics.netRevenueAfter", {
-                amount: f.money(overview.netRevenueMinor, overview.currency),
-              })}
+              value={commission.primary}
+              secondaryValue={others(commission)}
+              comparison={t("metrics.netRevenueAfter", { amount: inline(overview.netRevenue) })}
             />
           </MetricCell>
           <MetricCell>
@@ -179,7 +217,7 @@ async function OverviewContent({ slug, welcome }: { slug: string; welcome: boole
           </MetricCell>
         </MetricGrid>
 
-        {overview.availableCommissionMinor > 0 ? (
+        {overview.availableCommission.some((total) => total.amountMinor > 0) ? (
           <Card>
             <CardContent className="flex flex-wrap items-center justify-between gap-4 py-3">
               <div className="flex min-w-0 items-center gap-3">
@@ -188,15 +226,11 @@ async function OverviewContent({ slug, welcome }: { slug: string; welcome: boole
                 </span>
                 <div className="min-w-0">
                   <p className="text-caption font-medium text-foreground">
-                    {t("readyToPay", {
-                      amount: f.money(overview.availableCommissionMinor, overview.currency),
-                    })}
+                    {t("readyToPay", { amount: inline(overview.availableCommission) })}
                   </p>
-                  {overview.pendingCommissionMinor > 0 ? (
+                  {overview.pendingCommission.some((total) => total.amountMinor > 0) ? (
                     <p className="text-meta text-muted-foreground">
-                      {t("stillOnHold", {
-                        amount: f.money(overview.pendingCommissionMinor, overview.currency),
-                      })}
+                      {t("stillOnHold", { amount: inline(overview.pendingCommission) })}
                     </p>
                   ) : null}
                 </div>
@@ -219,7 +253,10 @@ async function OverviewContent({ slug, welcome }: { slug: string; welcome: boole
             <ChartLegend series={chartSeries} />
           </CardHeader>
           <CardContent>
-            <AreaChart labels={labels} series={chartSeries} currency={overview.currency} summary={chartSummary} />
+            <AreaChart labels={labels} series={chartSeries} currency={series.currency} summary={chartSummary} />
+            {chartCurrencyNote ? (
+              <p className="mt-3 text-meta text-muted-foreground">{chartCurrencyNote}</p>
+            ) : null}
           </CardContent>
         </Card>
 

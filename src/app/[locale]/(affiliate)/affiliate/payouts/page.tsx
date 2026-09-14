@@ -10,7 +10,7 @@ import { getFormatters } from "@/i18n/format"
 import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
 import { listParticipationsForUser } from "@/server/repositories/affiliates"
-import { listPayoutsForAffiliate } from "@/server/repositories/commissions"
+import { listPayoutsForAffiliate, PAYOUT_HISTORY_LIMIT } from "@/server/repositories/commissions"
 
 import { PortalList, PortalListItem } from "../_components/portal-list"
 
@@ -117,6 +117,11 @@ export default async function AffiliatePayoutsPage() {
               />
             ))}
           </PortalList>
+          {rows.length >= PAYOUT_HISTORY_LIMIT ? (
+            <p className="mt-4 text-meta text-muted-foreground">
+              {t("capped", { count: f.number(PAYOUT_HISTORY_LIMIT) })}
+            </p>
+          ) : null}
         </>
       )}
     </>

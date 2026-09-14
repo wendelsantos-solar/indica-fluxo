@@ -376,6 +376,9 @@
       "owner": "Owner",
       "admin": "Admin",
       "member": "Member"
+    },
+    "money": {
+      "otherCurrencies": "+ {amounts}"
     }
   },
   "auth": {
@@ -564,7 +567,8 @@
         "activeAffiliates": "Active affiliates",
         "customers": "Customers acquired",
         "netRevenueAfter": "{amount} net revenue",
-        "conversionOfClicks": "{rate} of {clicks, plural, one {# click} other {# clicks}}"
+        "conversionOfClicks": "{rate} of {clicks, plural, one {# click} other {# clicks}}",
+        "comparisonInCurrency": "In {currency}, vs. previous 30 days"
       },
       "revenueOverTime": "Revenue over time",
       "conversionFunnel": "Conversion funnel",
@@ -625,7 +629,8 @@
       },
       "viewAllAffiliates": "View all",
       "viewAllConversions": "View all",
-      "chartSummary": "From {start} to {end}: {revenue} in affiliate revenue and {commission} in commissions. Highest revenue on {peakDay}, at {peakRevenue}."
+      "chartSummary": "From {start} to {end}: {revenue} in affiliate revenue and {commission} in commissions. Highest revenue on {peakDay}, at {peakRevenue}.",
+      "chartCurrencyNote": "Amounts in {currency}. Activity in {others} is not included in this chart."
     },
     "funnel": {
       "clicks": "Clicks",
@@ -663,7 +668,8 @@
         "title": "Create a program first",
         "description": "Affiliates join through a program, which sets what each of them earns. Create the program, then invite your affiliates.",
         "action": "Create program"
-      }
+      },
+      "otherCurrenciesExcluded": "+ commissions in another currency"
     },
     "commissions": {
       "title": "Commissions",
@@ -698,9 +704,8 @@
         "description": "Once a tracked visitor becomes a paying customer, the payment shows up here with the affiliate that earned it.",
         "descriptionConnected": "Stripe is connected. Once a tracked visitor becomes a paying customer, the payment shows up here."
       },
-      "latest": "Latest {count}",
-      "capped": "Showing the {count} most recent payments.",
-      "viewCommissions": "View commissions"
+      "pagination": "Pagination",
+      "pageOf": "Page {page} of {pages} · {total} conversions"
     },
     "payouts": {
       "title": "Payouts",
@@ -723,13 +728,15 @@
       "clearedAffiliatesLabel": "Affiliates to pay",
       "awaitingPaymentLabel": "Batches awaiting payment",
       "readyToPayDescription": "Choose who goes into the batch. A batch freezes the amounts; once you have transferred the money, mark it as paid.",
-      "otherCurrencies": "Showing commissions in {currency}. Commissions in {others} show up here afterwards, in a batch of their own.",
       "batchStatus": {
         "draft": "Draft",
         "approved": "Awaiting payment",
         "paid": "Paid",
         "cancelled": "Cancelled"
-      }
+      },
+      "availableOtherCurrencies": "+ {amounts}",
+      "readyToPayByCurrency": "A batch holds one currency. Choose the currency, then who goes into the batch; other currencies get a batch of their own.",
+      "currencyTabs": "Currencies to pay"
     },
     "programs": {
       "title": "Programs",
@@ -816,7 +823,6 @@
         "hold": "How many days a commission stays pending before it can be paid, to cover refunds and chargebacks."
       },
       "ofClicks": "{rate} of clicks",
-      "totalsCapped": "Totals of the {shown} most recent affiliates, out of {total}.",
       "affiliatesCapped": "Showing the {shown} most recent affiliates, out of {total}.",
       "commissionsCapped": "Showing the {shown} most recent commissions, out of {total}.",
       "viewAllAffiliates": "View all affiliates",
@@ -833,6 +839,32 @@
       "title": "Page not found",
       "description": "The address may be wrong, or the item was removed from this workspace.",
       "backToOverview": "Back to overview"
+    },
+    "batch": {
+      "metaTitle": "Payout batch",
+      "description": "Who is in this batch and what each affiliate is paid. The amounts were frozen when the batch was created.",
+      "total": "Total",
+      "affiliates": "Affiliates",
+      "commissions": "Commissions",
+      "commissionCount": "{count, plural, one {# commission} other {# commissions}}",
+      "period": "Period",
+      "createdOn": "Created",
+      "paidOn": "Paid",
+      "notPaid": "Not paid yet",
+      "currency": "Currency",
+      "notes": "Notes",
+      "items": "Affiliates in this batch",
+      "itemsCapped": "Showing the {shown} largest amounts of {total} affiliates.",
+      "itemStatus": {
+        "pending": "Awaiting payment",
+        "paid": "Paid",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
+      },
+      "emptyItems": {
+        "title": "No affiliates in this batch",
+        "description": "This batch has no items. Create a new batch from Payouts."
+      }
     }
   },
   "onboarding": {
@@ -873,7 +905,9 @@
       "getStarted": {
         "title": "Share your link to get started",
         "description": "Clicks and customers show up here as soon as someone uses your link."
-      }
+      },
+      "otherCurrencies": "and {amounts}",
+      "chartCurrencyNote": "{currency} programs only"
     },
     "links": {
       "title": "Links",
@@ -906,7 +940,8 @@
         "paid": "The program owner marked it as paid.",
         "reversed": "Cancelled because the customer was refunded or disputed the charge. It is not paid.",
         "rejected": "Rejected by the program. It is not included in any payout."
-      }
+      },
+      "pageOf": "Page {page} of {pages} · {count, plural, one {# commission} other {# commissions}}"
     },
     "conversions": {
       "title": "Conversions",
@@ -917,7 +952,8 @@
         "title": "No conversions yet",
         "description": "A conversion is recorded when someone who clicked your link becomes a paying customer."
       },
-      "commissionOf": "your commission: {amount}"
+      "commissionOf": "your commission: {amount}",
+      "pageOf": "Page {page} of {pages} · {count, plural, one {# conversion} other {# conversions}}"
     },
     "payouts": {
       "title": "Payouts",
@@ -931,7 +967,8 @@
       "paidOn": "Paid on {date}",
       "awaiting": "Awaiting payment",
       "paymentReference": "Payment reference",
-      "paymentReferenceValue": "Reference: <mono>{reference}</mono>"
+      "paymentReferenceValue": "Reference: <mono>{reference}</mono>",
+      "capped": "Showing the {count} most recent payouts."
     },
     "settings": {
       "title": "Settings",
@@ -964,8 +1001,7 @@
     },
     "shared": {
       "viewLinks": "View my links",
-      "latest": "Latest {count}",
-      "cappedNote": "Showing the most recent only."
+      "pagination": "Pagination"
     },
     "error": {
       "title": "This page could not be loaded",
@@ -978,6 +1014,25 @@
       "title": "Page not found",
       "description": "This address does not exist in the affiliate portal.",
       "back": "Back to overview"
+    },
+    "programStatus": {
+      "draft": {
+        "title": "Program not launched yet",
+        "description": "The program owner has not opened referrals yet. Clicks on your link show up here, but they only count as referrals once the program is activated."
+      },
+      "paused": {
+        "title": "Program paused",
+        "description": "While the program is paused, new clicks on your link show up here but do not count as referrals or earn commission. Customers you already referred keep earning commission as usual."
+      },
+      "archived": {
+        "title": "Program closed",
+        "description": "This program has been closed: new clicks on your link no longer count as referrals. Customers you already referred keep earning commission under the program's rule."
+      }
+    },
+    "defaultLink": {
+      "missingTitle": "Default link unavailable",
+      "missingDescription": "The program owner has not set the product website yet. In the meantime, create a link with a destination.",
+      "createLink": "Create link"
     }
   },
   "forms": {
@@ -1028,7 +1083,11 @@
         "description": "Who gets credit for a sale, and how long a commission waits before it can be paid. The defaults suit most programs.",
         "summary": "{model} · {window}-day window · {hold}-day hold",
         "summaryWithStatus": "{status} · {settings}"
-      }
+      },
+      "websiteUrl": "Product website",
+      "websiteUrlHint": "Where the tracking script is installed. Affiliates' default link points here.",
+      "websiteUrlPlaceholder": "https://yourproduct.com",
+      "durationMonthsHint": "2 to 120 months. To pay only once, choose “First payment only”."
     },
     "workspace": {
       "title": "Workspace",
@@ -1110,10 +1169,12 @@
       "confirmSecret": "The current secret key stops working immediately. Calls from your server to /api/identify fail until you update the key.",
       "confirmAction": "Generate new key",
       "empty": {
-        "title": "No active keys",
-        "description": "Generate a public key to install tracking. The secret key, for calls from your server, can be generated later.",
+        "title": "First step: generate your public key",
+        "description": "It completes the tracking code below and is shown only once, when it is generated. The secret key, for calls from your server, can be generated later.",
         "action": "Generate public key"
-      }
+      },
+      "adminOnly": "Only admins can view and generate API keys.",
+      "snippetFirstStep": "Generate the public key above to complete this code."
     },
     "payable": {
       "selectAll": "Select all affiliates",
@@ -1153,7 +1214,36 @@
       "disconnectBody": "New payments from your customers stop creating commissions until you connect again. Commissions already recorded stay as they are.",
       "disconnectConfirm": "Disconnect",
       "errorTitle": "The Stripe connection has an error",
-      "errorBody": "New commissions may not be recorded. Check the webhook URL in your Stripe dashboard and connect the account again below."
+      "errorBody": "New commissions may not be recorded. Check the webhook URL in your Stripe dashboard and connect the account again below.",
+      "adminOnly": "Only admins can connect or disconnect Stripe."
+    },
+    "affiliateActions": {
+      "menuLabel": "Actions for {name}",
+      "approve": "Approve",
+      "suspend": "Suspend",
+      "reject": "Reject",
+      "customRate": "Special rate…",
+      "suspendTitle": "Suspend {name}?",
+      "suspendBody": "While suspended, clicks and sales through {name}'s links stop earning commissions in {program}. Commissions already recorded do not change, and you can approve them again later.",
+      "suspendConfirm": "Yes, suspend",
+      "rejectTitle": "Reject {name}?",
+      "rejectBody": "{name} does not join {program}: their links earn no commissions. You can approve them later if you change your mind.",
+      "rejectConfirm": "Yes, reject"
+    },
+    "customRate": {
+      "title": "Special rate for {name}",
+      "description": "Replaces {program}'s rate ({rate}) for this affiliate only, on future commissions.",
+      "descriptionNoRate": "Replaces {program}'s rate for this affiliate only, on future commissions.",
+      "type": "Type",
+      "typePercentage": "Percentage (%)",
+      "typeFixed": "Fixed amount ({currency})",
+      "valuePercentage": "Percentage",
+      "valueFixed": "Amount per sale ({currency})",
+      "hintPercentage": "From 0.01 to 100, with up to 2 decimal places.",
+      "hintFixed": "In the program's currency, paid per sale.",
+      "current": "Current special rate: {rate}.",
+      "save": "Save rate",
+      "remove": "Remove special rate"
     }
   },
   "errors": {
@@ -1222,7 +1312,27 @@
       "companyNameLength": "Use at most 120 characters.",
       "referralCodeFormat": "Use 2–49 characters: lowercase letters, numbers, - or _, starting with a letter or number.",
       "customRateNumber": "Enter the rate as a number, e.g. 25.",
-      "customRateRange": "The custom rate must be between 0 and 100%."
+      "customRateRange": "The custom rate must be between 0 and 100%.",
+      "generic": {
+        "required": "Fill in this field.",
+        "minLength": "Use at least {min} characters.",
+        "maxLength": "Use at most {max} characters.",
+        "minNumber": "Enter a value of {min} or more.",
+        "maxNumber": "Enter a value of {max} or less.",
+        "minItems": "Select at least {min}.",
+        "maxItems": "Select at most {max}.",
+        "email": "Enter a valid e-mail.",
+        "url": "Enter a full URL, including https://",
+        "number": "Enter a number.",
+        "format": "Invalid format.",
+        "choice": "Choose one of the options.",
+        "invalid": "Invalid value."
+      },
+      "websiteUrlInvalid": "Enter the site's full address, starting with https://",
+      "websiteUrlTooLong": "Use at most 2048 characters for the site address.",
+      "durationMonthsRange": "Enter 2 to 120 months. For a single payment, choose “First payment only”.",
+      "urlTooLong": "Use at most 2048 characters in the URL.",
+      "customFixedAmount": "Enter an amount greater than zero, e.g. 150 or 49.90."
     },
     "programNotCreated": "Could not create the program.",
     "authNetwork": "We couldn’t connect just now. Check your internet connection and try again.",
@@ -1231,7 +1341,13 @@
     "emailUnavailable": "We couldn’t create an account with this email. If it already has one, <login>sign in</login> or <reset>reset the password</reset>.",
     "linkExpired": "This link has expired or was already used. Request a new one.",
     "passwordNotUpdated": "We couldn’t update your password. Try again.",
-    "stripeAccountInvalid": "Enter a Stripe account ID, e.g. acct_1A2b3C4d5E."
+    "stripeAccountInvalid": "Enter a Stripe account ID, e.g. acct_1A2b3C4d5E.",
+    "affiliateStatusNotUpdated": "Could not update the affiliate.",
+    "participationTransitionInvalid": "This affiliate's status changed in the meantime. Refresh the page and try again.",
+    "customRateCurrencyChanged": "The program's currency changed. Refresh the page and enter the amount again.",
+    "payableChanged": "What is payable has changed: a selected affiliate no longer has payable commissions in this currency. Refresh the page and select again.",
+    "batchNotPaid": "Could not mark the batch as paid.",
+    "batchNotCancelled": "Could not cancel the batch."
   },
   "success": {
     "programSaved": "Program saved.",
@@ -1247,7 +1363,11 @@
     "affiliateAdded": "{name} joined the program. When they sign in to IndicaFluxo with {email}, their referral link is waiting.",
     "affiliateUpdated": "Affiliate updated.",
     "batchCreated": "Batch {reference} created. Mark it as paid once you have transferred the money.",
-    "confirmationResent": "Email sent again."
+    "confirmationResent": "Email sent again.",
+    "affiliateApproved": "Affiliate approved. New sales through their links earn commissions straight away.",
+    "affiliateSuspended": "Affiliate suspended. Their links stop earning commissions.",
+    "affiliateRejected": "Affiliate rejected.",
+    "rateRemoved": "Special rate removed. The program's rate applies again."
   },
   "notFound": {
     "title": "Page not found",

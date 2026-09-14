@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
 import { Term } from "@/components/ui/term"
+import { formatMoneyTotals } from "@/lib/money-totals"
 import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
 import { listPrograms } from "@/server/repositories/programs"
@@ -28,6 +29,7 @@ export async function generateMetadata({
 export default async function ProgramsPage({ params }: PageProps<"/[locale]/[workspaceSlug]/programs">) {
   const t = await getTranslations("dashboard.programs")
   const tc = await getTranslations("common.table")
+  const tm = await getTranslations("common.money")
   const f = await getFormatters()
   const { workspaceSlug } = await params
   const user = await requireUser()
@@ -97,7 +99,12 @@ export default async function ProgramsPage({ params }: PageProps<"/[locale]/[wor
                     : program.commissionDurationMonths === 1
                       ? t("firstPayment")
                       : t("nMonths", { count: program.commissionDurationMonths })
-                const earned = f.money(program.commissionTotalMinor, program.currency)
+                // The program's currency leads; anything earned under an earlier
+                // currency setting is listed beside it, never added in.
+                const earned = formatMoneyTotals(f.money, program.commissionTotals, program.currency)
+                const earnedOthers = earned.others
+                  ? tm("otherCurrencies", { amounts: earned.others })
+                  : null
 
                 return (
                   <TR key={program.id} interactive className="relative">
@@ -126,7 +133,12 @@ export default async function ProgramsPage({ params }: PageProps<"/[locale]/[wor
                         <span>
                           {rule} · {duration}
                         </span>
-                        <span className="ml-auto tabular-nums text-foreground-secondary">{earned}</span>
+                        <span className="ml-auto text-right tabular-nums text-foreground-secondary">
+                          {earned.primary}
+                          {earnedOthers ? (
+                            <span className="block text-muted-foreground">{earnedOthers}</span>
+                          ) : null}
+                        </span>
                       </span>
                     </TD>
                     <TD className="max-md:hidden">
@@ -149,7 +161,10 @@ export default async function ProgramsPage({ params }: PageProps<"/[locale]/[wor
                       {f.number(program.clickCount)}
                     </TD>
                     <TD numeric className="text-foreground max-md:hidden">
-                      {earned}
+                      {earned.primary}
+                      {earnedOthers ? (
+                        <span className="block text-meta text-muted-foreground">{earnedOthers}</span>
+                      ) : null}
                     </TD>
                   </TR>
                 )

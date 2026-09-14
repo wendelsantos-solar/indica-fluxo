@@ -3,6 +3,7 @@
 import * as Primitive from "@radix-ui/react-tabs"
 import * as React from "react"
 
+import { Link } from "@/i18n/navigation"
 import { cn } from "@/lib/utils"
 
 export const Tabs = Primitive.Root
@@ -38,15 +39,22 @@ export function TabsTrigger({
   )
 }
 
-/** Link-based tabs for route segments, which Radix cannot own. */
+/**
+ * Link-based tabs for route segments or `?tab=` state, which Radix cannot own.
+ * A locale-aware `Link`, so switching tabs is a client navigation; the scroll
+ * position is kept by default because the tab strip is usually below the fold
+ * of a detail page.
+ */
 export function TabLink({
   active,
   className,
+  scroll = false,
   ...props
-}: React.AnchorHTMLAttributes<HTMLAnchorElement> & { active?: boolean }) {
+}: React.ComponentProps<typeof Link> & { active?: boolean }) {
   return (
-    <a
+    <Link
       aria-current={active ? "page" : undefined}
+      scroll={scroll}
       className={cn(
         "relative -mb-px flex h-9 items-center gap-1.5 text-caption transition-colors duration-[120ms]",
         active

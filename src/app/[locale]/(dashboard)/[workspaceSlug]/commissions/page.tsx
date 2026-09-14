@@ -13,13 +13,10 @@ import { Select } from "@/components/ui/input"
 import { Pagination } from "@/components/ui/pagination"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
 import { Term } from "@/components/ui/term"
+import { formatMoneyTotalsInline } from "@/lib/money-totals"
 import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
-import {
-  listCommissions,
-  promoteEligibleCommissions,
-  type CommissionStatus,
-} from "@/server/repositories/commissions"
+import { listCommissions, type CommissionStatus } from "@/server/repositories/commissions"
 import { listPrograms } from "@/server/repositories/programs"
 import { listIntegrations } from "@/server/services/integrations"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
@@ -67,23 +64,20 @@ export default async function CommissionsPage({
   const user = await requireUser()
   const workspace = await getWorkspaceForUser(user.id, workspaceSlug)
 
-  const { programs, integrations, result } = await withUser(user.id, async (tx) => {
-    // `pending → available` is a pure function of the clock, so promote lazily
-    // on read instead of running a worker. Idempotent by construction.
-    await promoteEligibleCommissions(tx, workspace.id)
-
-    return {
-      programs: await listPrograms(tx, workspace.id),
-      integrations: await listIntegrations(tx, workspace.id),
-      result: await listCommissions(tx, {
-        workspaceId: workspace.id,
-        programId,
-        statuses: status ? [status] : undefined,
-        limit: PAGE_SIZE,
-        offset: (page - 1) * PAGE_SIZE,
-      }),
-    }
-  })
+  // A GET never writes to the ledger: `listCommissions` reports and filters by
+  // the *effective* status, so a matured `pending` commission already reads as
+  // `available` without an UPDATE (and without a write for read-only members).
+  const { programs, integrations, result } = await withUser(user.id, async (tx) => ({
+    programs: await listPrograms(tx, workspace.id),
+    integrations: await listIntegrations(tx, workspace.id),
+    result: await listCommissions(tx, {
+      workspaceId: workspace.id,
+      programId,
+      statuses: status ? [status] : undefined,
+      limit: PAGE_SIZE,
+      offset: (page - 1) * PAGE_SIZE,
+    }),
+  }))
 
   const pages = Math.max(1, Math.ceil(result.total / PAGE_SIZE))
   const filtered = Boolean(status || programId)
@@ -108,7 +102,8 @@ export default async function CommissionsPage({
         meta={
           result.total > 0
             ? t("summary", {
-                amount: f.money(result.totalAmountMinor, workspace.defaultCurrency),
+                // One figure per currency, workspace default first; never summed.
+                amount: formatMoneyTotalsInline(f.money, result.totals, workspace.defaultCurrency),
                 count: result.total,
               })
             : null

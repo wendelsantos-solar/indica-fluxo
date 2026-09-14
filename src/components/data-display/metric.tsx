@@ -14,6 +14,7 @@ export function Metric({
   label,
   value,
   delta,
+  secondaryValue,
   comparison,
   size = "md",
   className,
@@ -22,6 +23,11 @@ export function Metric({
   /** Usually a string; a `Term` when the label is jargon that needs a definition. */
   label: React.ReactNode
   value: string
+  /**
+   * The same measure in other units shown beside the value, never folded into
+   * it — e.g. other currencies: "+ € 120,00 · £ 80,00". See `lib/money-totals`.
+   */
+  secondaryValue?: string | null
   delta?: number | null
   comparison?: string
   size?: "md" | "lg"
@@ -44,6 +50,11 @@ export function Metric({
       >
         {value}
       </p>
+      {secondaryValue ? (
+        <p className="truncate text-meta tabular-nums text-muted-foreground" title={secondaryValue}>
+          {secondaryValue}
+        </p>
+      ) : null}
       {hasDelta || comparison ? (
         <p className="flex items-center gap-1.5 text-meta">
           {hasDelta ? (

@@ -11,13 +11,18 @@ export function Tooltip({
   content,
   children,
   side = "top",
+  open,
+  onOpenChange,
 }: {
   content: React.ReactNode
   children: React.ReactNode
   side?: "top" | "right" | "bottom" | "left"
+  /** Controlled state, for triggers that also open on tap (see `Term`). */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }) {
   return (
-    <Primitive.Root delayDuration={200}>
+    <Primitive.Root delayDuration={200} open={open} onOpenChange={onOpenChange}>
       <Primitive.Trigger asChild>{children}</Primitive.Trigger>
       <Primitive.Portal>
         <Primitive.Content

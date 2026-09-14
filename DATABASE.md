@@ -62,7 +62,7 @@ erDiagram
 
 ### Program configuration
 
-`programs` — `workspace_id`, `name`, `slug`, `description`, `status`
+`programs` — `workspace_id`, `name`, `slug`, `description`, `website_url`, `status`
 (`draft`/`active`/`paused`/`archived`), `commission_type`
 (`percentage`/`fixed`), `commission_value` (bps **or** minor units),
 `commission_duration_months` (`NULL` = lifetime, `1` = first payment only),
@@ -70,6 +70,18 @@ erDiagram
 `commission_hold_days`, `currency`.
 UNIQUE `(workspace_id, slug)`. `CHECK (commission_value > 0)`,
 `CHECK (attribution_window_days BETWEEN 1 AND 365)`.
+
+`website_url` (nullable `text`, migration 0005) is the product's own site —
+where the founder installed the tracker. The affiliate's default referral link
+is `website_url?ref=<code>`; while it is `NULL` the portal offers no default
+link, because a link to any other host never reaches the tracker. Validated at
+the form boundary as an http(s) URL of at most 2048 characters. It needs no
+policy of its own: RLS is row-scoped, so founders write it under
+`programs_admin_write` and enrolled affiliates read it through
+`programs_affiliate_select`, exactly like the program's other columns.
+
+The form never stores `commission_duration_months = 1` for "a number of
+months": that value *is* "first payment only", so the months option starts at 2.
 
 `attribution_window_days` and `commission_duration_months` are different clocks:
 the window is the deadline for a click to become a paying customer, the duration

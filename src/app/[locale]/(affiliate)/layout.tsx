@@ -27,7 +27,7 @@ export default async function AffiliateLayout({ children }: LayoutProps<"/[local
   const workspaces = await listUserWorkspaces(user.id)
 
   return (
-    <AffiliateShell email={user.email} hasWorkspace={workspaces.length > 0}>
+    <AffiliateShell email={user.email} name={user.name} hasWorkspace={workspaces.length > 0}>
       {children}
     </AffiliateShell>
   )

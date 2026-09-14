@@ -3,7 +3,6 @@ import type { Metadata } from "next"
 import { getTranslations } from "next-intl/server"
 
 import { AreaChart, ChartLegend } from "@/components/data-display/area-chart"
-import { ReferralLinkField } from "@/components/data-display/copy-button"
 import { Metric, MetricCell, MetricGrid } from "@/components/data-display/metric"
 import { EmptyState } from "@/components/feedback/empty-state"
 import { PageHeader, SectionHeader } from "@/components/layout/page-header"
@@ -11,7 +10,13 @@ import { StatusBadge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Term } from "@/components/ui/term"
 import { getFormatters } from "@/i18n/format"
-import { buildReferralUrl } from "@/lib/tracking/visitor"
+import {
+  formatMoneyTotals,
+  hasNonZeroTotal,
+  pickPrimaryCurrency,
+  toMoneyTotals,
+  type MoneyTotal,
+} from "@/lib/money-totals"
 import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
 import { getAffiliateSeries } from "@/server/repositories/analytics"
@@ -21,7 +26,8 @@ import {
 } from "@/server/repositories/affiliates"
 import { listPayoutsForAffiliate } from "@/server/repositories/commissions"
 
-import { ParticipationNotice } from "../_components/participation-notice"
+import { DefaultReferralLink } from "../_components/default-link"
+import { linkEarns, ParticipationNotice } from "../_components/participation-notice"
 import { PortalList, PortalListItem } from "../_components/portal-list"
 
 export const dynamic = "force-dynamic"
@@ -46,33 +52,59 @@ export default async function AffiliateOverviewPage() {
   const tc = await getTranslations("common.table")
   const f = await getFormatters()
   const user = await requireUser()
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://example.com"
 
-  const { participations, stats, series, payouts } = await withUser(user.id, async (tx) => {
-    const participations = await listParticipationsForUser(tx, user.id)
-    const ids = participations.map((participation) => participation.participationId)
-    const stats = await Promise.all(ids.map((id) => participationStats(tx, id)))
-    const series = await getAffiliateSeries(tx, ids)
-    const payouts = await listPayoutsForAffiliate(tx, ids)
-    return { participations, stats, series, payouts }
-  })
+  const { participations, stats, series, payouts, money, currency } = await withUser(
+    user.id,
+    async (tx) => {
+      const participations = await listParticipationsForUser(tx, user.id)
+      const ids = participations.map((participation) => participation.participationId)
+      const stats = await Promise.all(ids.map((id) => participationStats(tx, id)))
 
-  // The layout redirects an account with no participation, so there is one.
-  const primary = participations[0]!
-  // Mixed-currency totals are a known open issue (UI_UX_FUNCTIONAL_FINDINGS D1).
-  const currency = primary.programCurrency
+      // Each participation's figures are in its program's currency, and two
+      // currencies are never added (DATABASE.md §4): every money figure is a
+      // list of per-currency totals, led by one primary currency.
+      const byCurrency = (pick: (row: (typeof stats)[number]) => number): MoneyTotal[] =>
+        toMoneyTotals(
+          stats.map((row, index) => ({
+            currency: participations[index]!.programCurrency,
+            amountMinor: pick(row),
+          })),
+        )
+      const money = {
+        pending: byCurrency((row) => row.pendingMinor),
+        paid: byCurrency((row) => row.paidMinor),
+        revenue: byCurrency((row) => row.revenueMinor),
+        commission: byCurrency((row) => row.commissionMinor),
+      }
+      // The layout redirects an account with no participation, so there is one.
+      const currency = pickPrimaryCurrency(
+        participations[0]!.programCurrency,
+        money.pending,
+        money.paid,
+        money.revenue,
+      )
 
-  const totals = stats.reduce(
-    (acc, row) => ({
-      clicks: acc.clicks + row.clicks,
-      customers: acc.customers + row.customers,
-      revenue: acc.revenue + row.revenueMinor,
-      commission: acc.commission + row.commissionMinor,
-      paid: acc.paid + row.paidMinor,
-      pending: acc.pending + row.pendingMinor,
-    }),
-    { clicks: 0, customers: 0, revenue: 0, commission: 0, paid: 0, pending: 0 },
+      // The chart plots one currency: only the participations paid in it.
+      const series = await getAffiliateSeries(
+        tx,
+        ids.filter((_, index) => participations[index]!.programCurrency.toUpperCase() === currency),
+      )
+      const payouts = await listPayoutsForAffiliate(tx, ids)
+      return { participations, stats, series, payouts, money, currency }
+    },
   )
+
+  const primary = participations[0]!
+
+  // Counts add up across programs; money does not.
+  const totals = stats.reduce(
+    (acc, row) => ({ clicks: acc.clicks + row.clicks, customers: acc.customers + row.customers }),
+    { clicks: 0, customers: 0 },
+  )
+  const pending = formatMoneyTotals(f.money, money.pending, currency)
+  const paid = formatMoneyTotals(f.money, money.paid, currency)
+  const revenue = formatMoneyTotals(f.money, money.revenue, currency)
+  const multiCurrency = new Set(participations.map((p) => p.programCurrency.toUpperCase())).size > 1
 
   const lastPaidAt = payouts.reduce<Date | null>(
     (latest, payout) =>
@@ -85,9 +117,9 @@ export default async function AffiliateOverviewPage() {
   const hasActivity =
     totals.clicks > 0 ||
     totals.customers > 0 ||
-    totals.commission !== 0 ||
-    totals.paid !== 0 ||
-    totals.pending !== 0 ||
+    hasNonZeroTotal(money.commission) ||
+    hasNonZeroTotal(money.paid) ||
+    hasNonZeroTotal(money.pending) ||
     payouts.length > 0
 
   const hasChartData = series.some((point) => point.commissionMinor !== 0)
@@ -108,8 +140,9 @@ export default async function AffiliateOverviewPage() {
     timeZone: "UTC",
   })
 
-  // The one amber action: the link of the first participation that earns.
-  const featuredId = participations.find((p) => p.status === "approved")?.participationId
+  // The one amber action: the first default link that exists and earns.
+  const featuredId = participations.find((p) => linkEarns(p) && p.programWebsiteUrl)
+    ?.participationId
 
   function rateLabel(participation: (typeof participations)[number]) {
     const programCurrency = participation.programCurrency
@@ -160,10 +193,15 @@ export default async function AffiliateOverviewPage() {
             className="py-4"
           >
             <div className="space-y-3">
-              <ParticipationNotice status={participation.status} />
-              <ReferralLinkField
-                url={buildReferralUrl(appUrl, participation.code)}
+              <ParticipationNotice
+                status={participation.status}
+                programStatus={participation.programStatus}
+              />
+              <DefaultReferralLink
+                websiteUrl={participation.programWebsiteUrl}
+                code={participation.code}
                 prominent={participation.participationId === featuredId}
+                linkToNamedLinks
               />
             </div>
           </PortalListItem>
@@ -187,19 +225,22 @@ export default async function AffiliateOverviewPage() {
                     <Term definition={t("unpaidDefinition")}>{t("unpaid")}</Term>
                   </p>
                   <p className="whitespace-nowrap text-heading-sm tabular-nums text-foreground">
-                    {f.money(totals.pending, currency)}
+                    {pending.primary}
                   </p>
+                  <OtherCurrencies text={pending.others && t("otherCurrencies", { amounts: pending.others })} />
                 </MetricCell>
                 <MetricCell className="border-t border-border-faint sm:border-t-0">
                   <Metric
                     label={t("received")}
-                    value={f.money(totals.paid, currency)}
+                    value={paid.primary}
                     comparison={
                       lastPaidAt
                         ? t("lastPayout", { date: f.date(lastPaidAt) })
                         : t("noPayoutYet")
                     }
-                  />
+                  >
+                    <OtherCurrencies text={paid.others && t("otherCurrencies", { amounts: paid.others })} />
+                  </Metric>
                 </MetricCell>
               </MetricGrid>
             </section>
@@ -222,7 +263,9 @@ export default async function AffiliateOverviewPage() {
                   />
                 </MetricCell>
                 <MetricCell className="border-t border-border-faint sm:border-t-0">
-                  <Metric label={t("revenueGenerated")} value={f.money(totals.revenue, currency)} />
+                  <Metric label={t("revenueGenerated")} value={revenue.primary}>
+                    <OtherCurrencies text={revenue.others && t("otherCurrencies", { amounts: revenue.others })} />
+                  </Metric>
                 </MetricCell>
               </MetricGrid>
             </section>
@@ -231,6 +274,11 @@ export default async function AffiliateOverviewPage() {
               <Card>
                 <CardHeader bordered className="flex-wrap gap-y-2">
                   <CardTitle>{t("commissionOverTime")}</CardTitle>
+                  {multiCurrency ? (
+                    <span className="text-meta text-muted-foreground">
+                      {t("chartCurrencyNote", { currency })}
+                    </span>
+                  ) : null}
                   <ChartLegend series={chartSeries} />
                 </CardHeader>
                 <CardContent>
@@ -263,4 +311,13 @@ export default async function AffiliateOverviewPage() {
       </div>
     </>
   )
+}
+
+/**
+ * The compact line under a money figure for its other currencies ("e € 120,00
+ * · £ 80,00") — beside the primary figure, never added to it.
+ */
+function OtherCurrencies({ text }: { text: string | null }) {
+  if (!text) return null
+  return <p className="text-meta tabular-nums text-muted-foreground">{text}</p>
 }

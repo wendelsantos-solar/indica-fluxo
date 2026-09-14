@@ -92,7 +92,9 @@ async function createWorkspace(): Promise<Seeded> {
 
   const [program] = await db
     .insert(programs)
-    .values({ workspaceId, ...DEMO_PROGRAM })
+    // The demo SaaS "lives" on the app origin, which is also where named links
+    // point, so the default referral link and named links agree.
+    .values({ workspaceId, ...DEMO_PROGRAM, websiteUrl: APP_URL })
     .returning({ id: programs.id })
 
   const programId = program!.id
