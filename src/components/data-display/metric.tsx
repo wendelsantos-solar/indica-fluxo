@@ -19,7 +19,8 @@ export function Metric({
   className,
   children,
 }: {
-  label: string
+  /** Usually a string; a `Term` when the label is jargon that needs a definition. */
+  label: React.ReactNode
   value: string
   delta?: number | null
   comparison?: string

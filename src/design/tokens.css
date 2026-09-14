@@ -123,12 +123,17 @@
   --danger: var(--color-coral-red-deep);
   --danger-subtle: color-mix(in oklab, var(--color-coral-red) 12%, transparent);
   --danger-foreground: var(--color-coral-red-deep);
+  /* Text on a solid danger fill (the confirm button of a destructive dialog). */
+  --on-danger: var(--color-paper);
 
   --info: var(--color-signal-teal-deep);
   --info-subtle: color-mix(in oklab, var(--color-signal-teal) 14%, transparent);
   --info-foreground: var(--color-signal-teal-deep);
 
   /* Focus brightens toward the foreground; no extra chromatic colour. */
+  /* Native select chevron, drawn in the muted text colour of this theme. */
+  --select-chevron: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%235b5d65' stroke-width='1.5'><path d='M3 4.5 6 7.5 9 4.5'/></svg>");
+
   --ring: var(--color-zinc-950);
   --scrim: rgb(16 17 19 / 0.32);
   --skeleton-shimmer: color-mix(in oklab, var(--color-paper) 70%, transparent);
@@ -196,10 +201,13 @@
   --danger: var(--color-coral-red);
   --danger-subtle: color-mix(in oklab, var(--color-coral-red) 18%, transparent);
   --danger-foreground: var(--color-coral-red);
+  --on-danger: var(--color-void);
 
   --info: var(--color-signal-teal);
   --info-subtle: color-mix(in oklab, var(--color-signal-teal) 18%, transparent);
   --info-foreground: var(--color-signal-teal);
+
+  --select-chevron: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%238a8f98' stroke-width='1.5'><path d='M3 4.5 6 7.5 9 4.5'/></svg>");
 
   /* Focus brightens to Mist, as in the reference. */
   --ring: var(--color-mist);

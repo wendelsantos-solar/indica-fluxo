@@ -1,8 +1,8 @@
 {
   "meta": {
-    "title": "Indica — infraestrutura de indicação para SaaS",
-    "titleTemplate": "%s · Indica",
-    "description": "Acompanhe cada clique, conversão e comissão recorrente sem construir a infraestrutura de afiliados por conta própria."
+    "title": "IndicaFluxo — programa de afiliados para SaaS",
+    "titleTemplate": "%s · IndicaFluxo",
+    "description": "Crie seu programa de afiliados, acompanhe cada indicação e saiba exatamente quanto pagar de comissão. Integra com Stripe. Sem taxa sobre a sua receita."
   },
   "nav": {
     "overview": "Visão geral",
@@ -15,7 +15,6 @@
     "settings": "Configurações",
     "links": "Links",
     "portalHome": "Início do portal do afiliado",
-    "affiliateSections": "Seções do afiliado",
     "open": "Abrir navegação",
     "close": "Fechar navegação",
     "main": "Principal",
@@ -47,7 +46,6 @@
       "actions": "Ações",
       "workspaces": "Workspaces"
     },
-    "goTo": "Ir para {page}",
     "newProgram": "Criar programa",
     "switchWorkspace": "Trocar para {name}",
     "theme": {
@@ -63,60 +61,222 @@
   },
   "marketing": {
     "home": {
-      "eyebrow": "Infraestrutura de indicação para SaaS",
-      "headline": "Transforme indicações em canal de crescimento.",
-      "subhead": "Acompanhe cada clique, conversão e comissão recorrente sem construir a infraestrutura de afiliados por conta própria. Conecte a cobrança, escolha a comissão, instale um snippet — depois convide afiliados e veja o ledger se preencher.",
+      "eyebrow": "Infraestrutura de afiliados para SaaS",
+      "headline": "Transforme indicações em um canal de crescimento.",
+      "subhead": "Crie seu programa de afiliados, acompanhe cada indicação e saiba exatamente quanto pagar de comissão — sem construir tudo do zero.",
       "ctaPrimary": "Começar grátis",
-      "ctaSecondary": "Ver a documentação",
-      "promises": {
-        "noProcessing": "Sem processar pagamento",
-        "stripeStaysYours": "Seu Stripe continua seu",
-        "liveInAnHour": "No ar em menos de uma hora"
+      "ctaSecondary": "Ver como funciona",
+      "trust": {
+        "noCard": "Sem cartão de crédito",
+        "noFee": "Sem taxa sobre a sua receita",
+        "stripe": "Integra com Stripe"
       },
-      "pillars": {
-        "attribution": {
-          "title": "Atribuição que se sustenta",
-          "body": "First-click ou last-click, janela configurável e um resolvedor determinístico testado contra cada caso de borda — inclusive aquele em que dois afiliados reivindicam o mesmo visitante."
+      "flow": {
+        "label": "Do clique à comissão",
+        "click": {
+          "title": "Clique",
+          "detail": "Visitante chega pelo link de um afiliado"
         },
-        "ledger": {
-          "title": "Um ledger, não um contador",
-          "body": "Cada comissão registra a regra que a produziu. Estorno cria uma reversão em vez de apagar histórico, então seus números continuam batendo seis meses depois."
+        "signup": {
+          "title": "Cadastro",
+          "detail": "Seu backend identifica quem se cadastrou"
         },
-        "rails": {
-          "title": "O dinheiro continua com você",
-          "body": "A Indica nunca toca em um pagamento. Ela diz exatamente quanto você deve e para quem; você paga por Wise, Pix, PayPal ou transferência e marca o lote como pago."
-        }
-      },
-      "steps": {
-        "title": "Quatro passos, e depois roda sozinho.",
-        "subtitle": "A maioria dos founders entra no ar na mesma tarde. Nada aqui exige migração ou contrato.",
-        "connect": {
-          "title": "Conecte a cobrança",
-          "body": "Aponte o webhook do Stripe para a Indica. Lemos eventos de pagamento; nunca guardamos suas chaves."
+        "customer": {
+          "title": "Cliente",
+          "detail": "O Stripe confirma o primeiro pagamento"
         },
         "commission": {
-          "title": "Escolha a comissão",
-          "body": "30% por 12 meses, valor fixo, ou uma taxa especial para o seu melhor parceiro."
+          "title": "Comissão",
+          "detail": "A regra do programa calcula e registra o valor"
+        }
+      },
+      "problem": {
+        "eyebrow": "Por que existe",
+        "title": "Seu SaaS não deveria precisar construir um sistema de afiliados.",
+        "body": "Um programa de indicação parece simples até alguém precisar pagar a comissão certa. Por trás de cada link existe uma infraestrutura que ninguém do seu time quer manter.",
+        "listLabel": "O que você teria que construir",
+        "items": {
+          "tracking": "Tracking de cliques e cookies",
+          "attribution": "Atribuição quando dois afiliados indicam o mesmo cliente",
+          "webhooks": "Webhooks do Stripe sem comissão duplicada",
+          "recurring": "Comissão recorrente por meses ou para sempre",
+          "refunds": "Estornos que revertem comissões já calculadas",
+          "payouts": "Conciliação de quanto pagar a cada afiliado"
         },
-        "tracking": {
-          "title": "Instale o tracking",
-          "body": "Uma tag de script grava um cookie first-party e reporta o código de indicação."
+        "resolutionTitle": "O IndicaFluxo cuida dessa infraestrutura.",
+        "resolutionBody": "Você define as regras do programa. Nós registramos cada clique, conversão e comissão — e mostramos exatamente quanto você deve e para quem."
+      },
+      "how": {
+        "eyebrow": "Como funciona",
+        "title": "Do zero ao primeiro afiliado em quatro passos.",
+        "subtitle": "Nada exige migração, contrato ou mudança no seu checkout.",
+        "connect": {
+          "title": "Conecte a cobrança",
+          "body": "Informe sua conta Stripe e aponte o webhook para o IndicaFluxo. Lemos os eventos de pagamento — nunca guardamos sua chave secreta."
+        },
+        "commission": {
+          "title": "Defina a comissão",
+          "body": "Percentual ou valor fixo, só no primeiro pagamento, por alguns meses ou para sempre. Seu melhor parceiro pode ter uma taxa especial."
         },
         "invite": {
           "title": "Convide afiliados",
-          "body": "Eles ganham um link e um portal. Você ganha um ledger e uma lista de pagamentos."
+          "body": "Cada afiliado recebe um link de indicação e um portal próprio para acompanhar cliques, clientes e ganhos."
+        },
+        "track": {
+          "title": "Acompanhe a receita",
+          "body": "Conversões e comissões aparecem sozinhas. Estornos viram reversões, e o saldo a pagar fica sempre atualizado."
         }
       },
+      "features": {
+        "eyebrow": "Produto",
+        "title": "Feito para a parte difícil: acertar o valor.",
+        "attribution": {
+          "title": "Saiba de onde veio cada cliente.",
+          "body": "Primeiro ou último clique, com janela configurável. Quando dois afiliados trazem o mesmo visitante, a regra do programa decide — e a decisão fica registrada."
+        },
+        "recurring": {
+          "title": "Comissões recorrentes, sem conta de cabeça.",
+          "body": "Cada renovação gera a comissão certa até o fim da duração do programa. Um estorno cria uma reversão em vez de apagar o histórico, então os números batem meses depois."
+        },
+        "payouts": {
+          "title": "Saiba exatamente quanto pagar.",
+          "body": "Comissões cumprem a carência e ficam disponíveis. Você agrupa em um lote, paga por Pix ou transferência do seu jeito e marca como pago."
+        }
+      },
+      "sides": {
+        "eyebrow": "Duas experiências",
+        "title": "Uma plataforma. Os dois lados do programa.",
+        "founder": {
+          "label": "Para quem tem o SaaS",
+          "title": "Receita, afiliados, comissões e pagamentos no mesmo lugar.",
+          "items": {
+            "revenue": "Receita gerada por afiliados",
+            "affiliates": "Desempenho de cada parceiro",
+            "commissions": "Comissões por status",
+            "payouts": "Lotes de pagamento"
+          }
+        },
+        "affiliate": {
+          "label": "Para quem indica",
+          "title": "Um portal que mostra quanto ganhou e o que compartilhar.",
+          "items": {
+            "clicks": "Cliques e clientes trazidos",
+            "earnings": "Ganhos a receber e já pagos",
+            "links": "Links de indicação prontos para copiar",
+            "history": "Histórico de pagamentos"
+          }
+        }
+      },
+      "integrations": {
+        "eyebrow": "Integrações",
+        "title": "Conecta com o que você já usa.",
+        "stripe": {
+          "title": "Stripe",
+          "body": "Pagamentos, assinaturas, renovações e estornos."
+        },
+        "tracker": {
+          "title": "Script de tracking",
+          "body": "Uma tag no seu site registra a origem de cada visita."
+        },
+        "api": {
+          "title": "API de identificação",
+          "body": "Seu backend liga o visitante ao cliente com uma chamada."
+        },
+        "available": "Disponível",
+        "more": "Outros provedores de cobrança estão a caminho."
+      },
+      "principles": {
+        "eyebrow": "Transparência",
+        "title": "Confiança vem de números que batem.",
+        "noFee": {
+          "title": "Sem percentual da sua receita",
+          "body": "Você paga pela ferramenta. As comissões e o dinheiro continuam com você."
+        },
+        "money": {
+          "title": "Não tocamos no dinheiro",
+          "body": "O IndicaFluxo calcula e registra. O pagamento aos afiliados sai da sua conta, do seu jeito."
+        },
+        "privacy": {
+          "title": "Dados de clientes protegidos",
+          "body": "E-mails de clientes são guardados como hash, nunca em texto puro."
+        },
+        "ledger": {
+          "title": "Histórico que não se apaga",
+          "body": "Cada comissão guarda a regra que a gerou. Correções viram novos registros."
+        }
+      },
+      "pricing": {
+        "eyebrow": "Preços",
+        "title": "Comece grátis. Cresça quando o canal provar valor.",
+        "cta": "Ver todos os planos",
+        "free": "Grátis"
+      },
       "closing": {
-        "title": "O jeito mais simples de colocar um programa de indicação no ar.",
-        "body": "Conecte a cobrança, escolha a comissão, instale o tracking, convide afiliados. Pronto."
+        "title": "Pronto para transformar indicações em receita?",
+        "body": "Lance seu programa de afiliados sem construir a infraestrutura por conta própria.",
+        "secondary": "Ver planos"
       }
     },
     "preview": {
+      "overview": "Visão geral",
+      "period": "Últimos 30 dias",
       "metrics": {
         "revenue": "Receita de afiliados",
         "commissions": "Comissões",
+        "customers": "Clientes indicados",
         "affiliates": "Afiliados ativos"
+      },
+      "comparison": "vs. 30 dias anteriores",
+      "chart": "Receita por dia",
+      "topAffiliates": "Melhores afiliados",
+      "invite": "Convidar afiliado",
+      "notice": {
+        "title": "Nova conversão",
+        "detail": "{name} trouxe um cliente no plano Pro",
+        "commission": "{amount} de comissão"
+      },
+      "rules": {
+        "commission": "Comissão",
+        "duration": "Duração",
+        "model": "Atribuição",
+        "window": "Janela",
+        "hold": "Carência",
+        "months": "{count} meses",
+        "days": "{count} dias",
+        "lastClick": "Último clique"
+      },
+      "stripe": {
+        "account": "Conta",
+        "webhook": "Webhook"
+      },
+      "invitePanel": {
+        "title": "Afiliados",
+        "link": "Link de indicação",
+        "copy": "Copiar"
+      },
+      "timeline": {
+        "click": "Clique via {link}",
+        "subscribed": "Assinou o plano Pro",
+        "result": "Atribuído a {name}",
+        "rule": "último clique · janela de 60 dias"
+      },
+      "ledger": {
+        "month": "Pagamento {count}",
+        "refund": "Estorno"
+      },
+      "payout": {
+        "title": "Lote de pagamento",
+        "total": "Total",
+        "markPaid": "Marcar como pago",
+        "items": "{count} comissões"
+      },
+      "portal": {
+        "greeting": "Olá, Marina",
+        "unpaid": "A receber",
+        "paid": "Já recebido",
+        "clicks": "Cliques",
+        "customers": "Clientes",
+        "yourLink": "Seu link"
       },
       "columns": {
         "affiliate": "Afiliado",
@@ -125,14 +285,26 @@
       }
     },
     "chrome": {
-      "home": "Início da Indica",
-      "navLabel": "Navegação",
+      "home": "Início do IndicaFluxo",
+      "navLabel": "Navegação principal",
+      "product": "Produto",
+      "howItWorks": "Como funciona",
       "pricing": "Preços",
       "docs": "Documentação",
       "signIn": "Entrar",
       "startFree": "Começar grátis",
-      "footer": "A Indica é a fonte de verdade das suas comissões. Você continua pagando os afiliados do seu jeito.",
-      "tagline": "Infraestrutura de indicação para SaaS."
+      "openMenu": "Abrir menu",
+      "footer": "O IndicaFluxo é a fonte de verdade das suas comissões. Você continua pagando os afiliados do seu jeito.",
+      "tagline": "Infraestrutura de afiliados para SaaS."
+    },
+    "footer": {
+      "product": "Produto",
+      "features": "Recursos",
+      "integrations": "Integrações",
+      "resources": "Materiais",
+      "account": "Conta",
+      "createAccount": "Criar conta",
+      "rights": "© {year} IndicaFluxo"
     }
   },
   "common": {
@@ -169,7 +341,8 @@
       "previous": "Anterior",
       "next": "Próxima",
       "clearFilters": "Limpar filtros",
-      "connectBilling": "Conectar cobrança"
+      "connectBilling": "Conectar cobrança",
+      "viewIntegrations": "Ver integrações"
     },
     "feedback": {
       "errorTitle": "Algo deu errado"
@@ -182,9 +355,7 @@
       "date": "Data",
       "status": "Status",
       "program": "Programa",
-      "base": "Base",
       "rate": "Taxa",
-      "eligible": "Elegível",
       "clicks": "Cliques",
       "customers": "Clientes",
       "conversion": "Conversão",
@@ -197,7 +368,9 @@
       "code": "Código",
       "link": "Link",
       "name": "Nome",
-      "actions": "Ações"
+      "actions": "Ações",
+      "baseAmount": "Valor base",
+      "releasedOn": "Liberada em"
     },
     "roles": {
       "owner": "Dono",
@@ -207,24 +380,79 @@
   },
   "auth": {
     "fields": {
-      "fullName": "Nome completo",
+      "fullName": "Nome",
       "email": "E-mail",
       "password": "Senha",
-      "passwordHint": "Pelo menos 8 caracteres."
+      "newPassword": "Nova senha"
     },
     "signin": {
       "title": "Bem-vindo de volta",
-      "subtitle": "Entre no seu workspace.",
+      "subtitle": "Entre para acompanhar seus afiliados e comissões.",
       "submit": "Entrar",
       "switchPrompt": "Ainda não tem conta?",
-      "switchAction": "Criar uma"
+      "switchAction": "Criar conta",
+      "forgot": "Esqueci minha senha"
     },
     "signup": {
-      "title": "Crie sua conta",
-      "subtitle": "Monte um programa de afiliados em alguns minutos.",
+      "title": "Comece seu programa de afiliados",
+      "subtitle": "Grátis para começar. Sem cartão de crédito.",
       "submit": "Criar conta",
       "switchPrompt": "Já tem uma conta?",
       "switchAction": "Entrar"
+    },
+    "password": {
+      "show": "Mostrar senha",
+      "hide": "Ocultar senha",
+      "capsLock": "Caps Lock está ativado.",
+      "requirementLength": "{count}+ caracteres",
+      "requirementMet": "requisito atendido",
+      "requirementUnmet": "requisito ainda não atendido"
+    },
+    "layout": {
+      "statement": "Cada indicação, do clique à comissão.",
+      "line": "Acompanhe seus afiliados, atribua cada cliente e saiba exatamente quanto deve a cada um."
+    },
+    "proof": {
+      "affiliate": "Marina Costa",
+      "program": "Programa de parceiros",
+      "reference": "?ref=marina",
+      "click": "Clique",
+      "clickDetail": "Link de indicação da Marina",
+      "signup": "Cadastro",
+      "signupDetail": "Atribuído à Marina pelo último clique",
+      "customer": "Cliente",
+      "customerDetail": "Assinou o plano Pro",
+      "commission": "Comissão",
+      "commissionDetail": "{rate} de {amount}"
+    },
+    "checkEmail": {
+      "title": "Confira seu e-mail",
+      "body": "Enviamos um link de confirmação para <strong>{email}</strong>.",
+      "hint": "Abra o link para ativar sua conta. Não encontrou? Dê uma olhada na caixa de spam.",
+      "resend": "Reenviar e-mail",
+      "resendIn": "Reenviar em {seconds}s",
+      "useAnother": "Usar outro e-mail"
+    },
+    "forgot": {
+      "title": "Esqueceu sua senha?",
+      "subtitle": "Informe o e-mail da sua conta e enviaremos um link para criar uma nova.",
+      "submit": "Enviar link",
+      "back": "Voltar para entrar",
+      "sentTitle": "Confira seu e-mail",
+      "sentBody": "Se existir uma conta para <strong>{email}</strong>, enviamos um link para redefinir a senha.",
+      "sentHint": "Não chegou em alguns minutos? Dê uma olhada na caixa de spam."
+    },
+    "reset": {
+      "title": "Crie uma nova senha",
+      "subtitle": "Escolha uma senha que você não use em outros sites.",
+      "submit": "Salvar nova senha",
+      "doneTitle": "Senha atualizada",
+      "doneBody": "Pronto. Da próxima vez, entre com a nova senha.",
+      "doneAction": "Ir para o painel",
+      "expiredTitle": "Link expirado",
+      "expiredBody": "Esse link para redefinir a senha expirou ou já foi usado. Peça um novo para continuar.",
+      "expiredAction": "Pedir um novo link",
+      "backToLogin": "Voltar para entrar"
     }
   },
   "pricing": {
@@ -279,19 +507,19 @@
     "sections": {
       "install": {
         "title": "Instale o tracker",
-        "body": "Cole o snippet antes de </head> no site para onde seus afiliados apontam. Ele lê ?ref= da URL, grava um cookie first-party chamado _referral_id (SameSite=Lax, um ano) e envia o clique para a Indica."
+        "body": "Cole o snippet antes de </head> no site para onde seus afiliados apontam. Ele lê ?ref= da URL, grava um cookie first-party chamado _referral_id (SameSite=Lax, um ano) e envia o clique para o IndicaFluxo."
       },
       "identify": {
         "title": "Identifique o cliente",
         "body": "Um clique sozinho não prova nada. Quando alguém se cadastrar, chame o identify A PARTIR DO SEU SERVIDOR com a sua chave secreta. Nunca do navegador: um id de cliente enviado pelo browser poderia ser usado para redirecionar comissões."
       },
       "webhook": {
-        "title": "Aponte seu webhook para a Indica",
+        "title": "Aponte seu webhook para o IndicaFluxo",
         "body": "Adicione o endpoint no Stripe e assine invoice.payment_succeeded, charge.refunded, charge.dispute.created, customer.subscription.updated e customer.subscription.deleted. Todo evento é verificado e depois reivindicado exatamente uma vez, então uma reentrega nunca cria uma segunda comissão."
       },
       "commission": {
         "title": "Leia a comissão",
-        "body": "Quando o Stripe confirma R$ 49,00 num programa de 30%, a Indica grava uma comissão de R$ 14,70 para o afiliado dono da atribuição, segura pelo período de retenção do programa e então libera para pagamento. Um estorno adiciona uma reversão de −R$ 14,70 e marca a original como revertida; nada é apagado."
+        "body": "Quando o Stripe confirma R$ 49,00 num programa de 30%, o IndicaFluxo grava uma comissão de R$ 14,70 para o afiliado dono da atribuição, segura pelo período de retenção do programa e então libera para pagamento. Um estorno adiciona uma reversão de −R$ 14,70 e marca a original como revertida; nada é apagado."
       }
     }
   },
@@ -320,7 +548,8 @@
     "payment": "Pagamento",
     "trialing": "Em teste",
     "pastdue": "Em atraso",
-    "incomplete": "Incompleta"
+    "incomplete": "Incompleta",
+    "error": "Com erro"
   },
   "dashboard": {
     "overview": {
@@ -328,37 +557,83 @@
       "description": "Desempenho dos afiliados em todos os programas deste workspace.",
       "legendRevenue": "Receita",
       "legendCommission": "Comissão",
-      "empty": {
-        "title": "Nenhuma atividade de afiliado ainda",
-        "description": "Crie um programa, convide seu primeiro afiliado e instale o snippet de tracking. Os números aparecem aqui assim que o primeiro clique chegar.",
-        "action": "Criar um programa"
-      },
       "metrics": {
         "revenue": "Receita de afiliados",
         "comparison": "vs. 30 dias anteriores",
         "commissions": "Comissões",
-        "netRevenue": "Receita líquida",
         "activeAffiliates": "Afiliados ativos",
         "customers": "Clientes conquistados",
-        "conversionRate": "Taxa de conversão",
-        "clicks": "{count} cliques"
+        "netRevenueAfter": "{amount} de receita líquida",
+        "conversionOfClicks": "{rate} de {clicks, plural, one {# clique} other {# cliques}}"
       },
       "revenueOverTime": "Receita ao longo do tempo",
       "conversionFunnel": "Funil de conversão",
       "topAffiliates": "Principais afiliados",
       "recentConversions": "Conversões recentes",
-      "viewAll": "Ver todas",
       "noCommissions": "Nenhuma comissão ainda.",
       "noConversions": "Nenhuma conversão ainda.",
       "readyToPay": "{amount} prontos para pagar",
       "stillOnHold": "{amount} ainda no período de retenção.",
-      "reviewPayouts": "Revisar pagamentos"
+      "reviewPayouts": "Revisar pagamentos",
+      "activation": {
+        "headlineLive": "Seu programa está no ar.",
+        "headlineReady": "Seu programa está pronto. Falta pouco para a primeira indicação.",
+        "headlineNoProgram": "Falta criar seu programa de afiliados.",
+        "descriptionNoProgram": "Com a regra de comissão definida, você já pode convidar afiliados.",
+        "programLine": "{program} · {rule}",
+        "rule": "{type, select, percentage {{recurrence, select, first {{amount} do primeiro pagamento} lifetime {{amount} de cada pagamento, enquanto o cliente pagar} other {{amount} de cada pagamento por {months, plural, one {# mês} other {# meses}}}}} other {{recurrence, select, first {{amount} pelo primeiro pagamento} lifetime {{amount} por pagamento, enquanto o cliente pagar} other {{amount} por pagamento durante {months, plural, one {# mês} other {# meses}}}}}}",
+        "programCount": "{count, plural, one {# programa configurado} other {# programas configurados}}",
+        "checklistTitle": "Primeiros passos",
+        "progress": "{done} de {total}",
+        "reminder": "Configuração {done} de {total}:",
+        "srDone": "(concluído)",
+        "srPending": "(pendente)",
+        "steps": {
+          "workspace": {
+            "titleDone": "Workspace criado",
+            "actionDone": "Configurações"
+          },
+          "program": {
+            "title": "Configurar o programa",
+            "titleDone": "Programa configurado",
+            "description": "Defina quanto o afiliado ganha por cliente indicado.",
+            "action": "Criar programa",
+            "actionDone": "Ver programas"
+          },
+          "stripe": {
+            "title": "Conectar o Stripe",
+            "titleDone": "Stripe conectado",
+            "description": "Os pagamentos dos clientes indicados viram comissões automaticamente.",
+            "action": "Conectar Stripe",
+            "actionDone": "Ver integração"
+          },
+          "affiliate": {
+            "title": "Convidar o primeiro afiliado",
+            "titleDone": "Primeiro afiliado convidado",
+            "description": "O afiliado recebe um código e um link de indicação na hora.",
+            "action": "Convidar afiliado",
+            "actionDone": "Ver afiliados"
+          },
+          "tracking": {
+            "title": "Instalar o tracking",
+            "titleDone": "Tracking instalado",
+            "description": "Cole o snippet no seu site. Este passo é marcado sozinho quando o primeiro clique em um link de indicação chegar.",
+            "action": "Ver snippet",
+            "actionDone": "Ver integração"
+          }
+        }
+      },
+      "viewAllAffiliates": "Ver todos",
+      "viewAllConversions": "Ver todas",
+      "chartSummary": "De {start} a {end}: {revenue} de receita de afiliados e {commission} em comissões. Maior receita em {peakDay}, com {peakRevenue}."
     },
     "funnel": {
       "clicks": "Cliques",
       "signups": "Cadastros",
       "trials": "Testes",
-      "customers": "Clientes"
+      "customers": "Clientes",
+      "fromPrevious": "da etapa anterior",
+      "ofClicks": "{rate} dos cliques"
     },
     "affiliates": {
       "title": "Afiliados",
@@ -372,16 +647,28 @@
       "pageOf": "Página {page} de {pages} · {total} afiliados",
       "empty": {
         "title": "Nenhum afiliado ainda",
-        "description": "Convide seu primeiro afiliado e ele recebe um link de indicação na hora.",
+        "description": "Convide seu primeiro afiliado. Ele recebe um link de indicação na hora.",
         "filteredTitle": "Nenhum afiliado corresponde a esses filtros",
-        "filteredDescription": "Tente outro termo de busca, ou limpe o filtro de status.",
-        "action": "Convidar seu primeiro afiliado"
+        "filteredDescription": "Tente outro termo de busca, ou limpe o filtro de status."
+      },
+      "filterProgram": "Filtrar por programa",
+      "allPrograms": "Todos os programas",
+      "status": {
+        "approved": "Aprovado",
+        "pending": "Pendente",
+        "suspended": "Suspenso",
+        "rejected": "Recusado"
+      },
+      "noProgram": {
+        "title": "Crie um programa primeiro",
+        "description": "Afiliados entram por um programa, que define quanto cada um ganha. Crie o programa e depois convide seus afiliados.",
+        "action": "Criar programa"
       }
     },
     "commissions": {
       "title": "Comissões",
-      "description": "Toda comissão que o engine calculou, com a regra que a produziu.",
-      "summary": "{amount} em {count} lançamentos",
+      "description": "Cada comissão calculada a partir dos pagamentos de clientes indicados, com a regra que a gerou e quando pode ser paga.",
+      "summary": "{amount} em {count, plural, one {# comissão} other {# comissões}}",
       "filterStatus": "Filtrar por status",
       "filterProgram": "Filtrar por programa",
       "allStatuses": "Todos os status",
@@ -389,27 +676,36 @@
       "apply": "Aplicar",
       "fixed": "Fixa",
       "pagination": "Paginação",
-      "pageOf": "Página {page} de {pages}",
+      "pageOf": "Página {page} de {pages} · {total} comissões",
       "empty": {
         "title": "Nenhuma comissão ainda",
-        "description": "As comissões aparecem no momento em que um cliente rastreado paga e o webhook da sua cobrança dispara.",
+        "description": "As comissões aparecem assim que um cliente indicado paga e a sua cobrança avisa o IndicaFluxo.",
         "filteredTitle": "Nenhuma comissão corresponde a esses filtros",
-        "filteredDescription": "Tente outro status ou programa."
+        "filteredDescription": "Tente outro status ou programa.",
+        "descriptionConnected": "O Stripe está conectado. A primeira comissão aparece aqui quando um cliente indicado pagar."
+      },
+      "terms": {
+        "rate": "Percentual aplicado ao valor base: a taxa do programa ou a taxa especial do afiliado. “Fixa” quando a comissão é um valor fixo por pagamento.",
+        "status": "Pendente: ainda na retenção. Disponível: pode entrar num lote de pagamento. Aprovada: está num lote aguardando pagamento. Paga: o lote foi pago. Revertida: o pagamento foi estornado. Rejeitada: não conta.",
+        "releasedOn": "Data em que termina a retenção do programa. A partir dela a comissão pode ser paga, se o pagamento do cliente não for estornado."
       }
     },
     "conversions": {
       "title": "Conversões",
-      "description": "Pagamentos de clientes que seus afiliados trouxeram.",
+      "description": "Cada pagamento de um cliente indicado, com o afiliado que o trouxe. Em Comissões você vê quanto cada pagamento gerou para o afiliado e quando pode ser pago.",
       "empty": {
         "title": "Nenhuma conversão ainda",
-        "description": "Quando um visitante rastreado vira cliente pagante, o pagamento aparece aqui junto do afiliado que o conquistou."
-      }
+        "description": "Quando um visitante rastreado vira cliente pagante, o pagamento aparece aqui junto do afiliado que o conquistou.",
+        "descriptionConnected": "O Stripe está conectado. Quando um visitante rastreado virar cliente pagante, o pagamento aparece aqui."
+      },
+      "latest": "Últimas {count}",
+      "capped": "Mostrando os {count} pagamentos mais recentes.",
+      "viewCommissions": "Ver comissões"
     },
     "payouts": {
       "title": "Pagamentos",
-      "description": "A Indica é a fonte de verdade do que você deve. Você paga os afiliados pelos seus próprios meios e registra aqui.",
+      "description": "O IndicaFluxo é a fonte de verdade do que você deve. Você paga os afiliados pelos seus próprios meios e registra aqui.",
       "availableToPay": "Disponível para pagar",
-      "clearedAffiliates": "{count, plural, =0 {nenhum afiliado} one {# afiliado} other {# afiliados}} com comissões liberadas",
       "readyToPay": "Prontos para pagar",
       "history": "Histórico de pagamentos",
       "batch": "Lote",
@@ -423,6 +719,16 @@
       "emptyHistory": {
         "title": "Nenhum lote de pagamento ainda",
         "description": "Um lote congela os valores devidos num ponto no tempo, para que seus registros batam com o que você de fato transferiu."
+      },
+      "clearedAffiliatesLabel": "Afiliados a pagar",
+      "awaitingPaymentLabel": "Lotes aguardando pagamento",
+      "readyToPayDescription": "Escolha quem entra no lote. O lote congela os valores; depois de transferir o dinheiro, marque-o como pago.",
+      "otherCurrencies": "Mostrando comissões em {currency}. As comissões em {others} aparecem aqui depois, num lote próprio.",
+      "batchStatus": {
+        "draft": "Rascunho",
+        "approved": "Aguardando pagamento",
+        "paid": "Pago",
+        "cancelled": "Cancelado"
       }
     },
     "programs": {
@@ -442,11 +748,18 @@
         "title": "Nenhum programa ainda",
         "description": "Um programa define quanto os afiliados ganham e como as conversões são atribuídas. A maioria dos SaaS começa com um só.",
         "action": "Criar seu primeiro programa"
-      }
+      },
+      "attributionDefinition": "Quem recebe o crédito pela venda (primeiro ou último clique) e por quantos dias depois do clique."
     },
     "newProgram": {
       "title": "Novo programa",
-      "description": "Defina a regra de comissão uma vez — toda conversão passa a ser calculada contra ela."
+      "description": "Defina a regra de comissão uma vez — toda conversão passa a ser calculada contra ela.",
+      "onboarding": {
+        "header": "Primeiros passos",
+        "title": "Crie seu programa de afiliados",
+        "description": "Defina quanto cada afiliado ganha por cliente indicado. Dá para ajustar depois.",
+        "skip": "Fazer depois"
+      }
     },
     "integrations": {
       "title": "Integrações",
@@ -462,20 +775,22 @@
         "role": "Papel",
         "pendingProfile": "Perfil pendente",
         "you": "(você)",
-        "invitedRole": "convidado · {role}"
-      }
+        "invitedRole": "convidado · {role}",
+        "pendingProfileHint": "Ainda sem nome no perfil · conta",
+        "joinedOn": "Entrou em {date}",
+        "invitedOn": "Convite enviado em {date}"
+      },
+      "readOnly": "Só donos e admins podem alterar o workspace. Seu papel aqui é {role}."
     },
     "program": {
       "duration": "Duração",
-      "attribution": "Atribuição",
-      "model": "Modelo",
+      "model": "Modelo de atribuição",
       "hold": "Retenção",
       "sections": "Seções do programa",
       "lifetime": "Vitalícia",
       "firstPayment": "Primeiro pagamento",
       "nMonths": "{count, plural, one {# mês} other {# meses}}",
       "nDays": "{count, plural, one {# dia} other {# dias}}",
-      "windowDays": "Janela de {count, plural, one {# dia} other {# dias}}",
       "lastClick": "Último clique",
       "firstClick": "Primeiro clique",
       "tabs": {
@@ -486,93 +801,183 @@
       },
       "emptyAffiliates": {
         "title": "Nenhum afiliado neste programa",
-        "description": "Convide alguém e ele recebe um código de indicação na hora.",
-        "action": "Convidar o primeiro afiliado"
+        "description": "Convide alguém e a pessoa recebe um código de indicação na hora."
       },
       "emptyCommissions": {
         "title": "Nenhuma comissão neste programa ainda",
         "description": "Elas aparecem assim que um cliente rastreado pagar.",
         "action": "Verificar sua conexão de cobrança"
-      }
+      },
+      "metaTitle": "Programa",
+      "window": "Janela de atribuição",
+      "terms": {
+        "window": "Prazo entre o clique no link e o primeiro pagamento para a venda contar para o afiliado.",
+        "model": "Quando o visitante clicou em links de mais de um afiliado, define quem fica com o crédito: o primeiro ou o último link clicado.",
+        "hold": "Quantos dias a comissão fica pendente antes de poder ser paga, para cobrir estornos e chargebacks."
+      },
+      "ofClicks": "{rate} dos cliques",
+      "totalsCapped": "Somas dos {shown} afiliados mais recentes, de {total}.",
+      "affiliatesCapped": "Mostrando os {shown} afiliados mais recentes, de {total}.",
+      "commissionsCapped": "Mostrando as {shown} comissões mais recentes, de {total}.",
+      "viewAllAffiliates": "Ver todos os afiliados",
+      "viewAllCommissions": "Ver todas as comissões"
+    },
+    "error": {
+      "title": "Não foi possível carregar esta página",
+      "description": "Pode ser uma falha passageira, ou uma área que o seu papel neste workspace não permite ver. Tente de novo; se continuar, fale com o dono do workspace.",
+      "retry": "Tentar de novo",
+      "backToOverview": "Voltar para a visão geral",
+      "reference": "Código do erro:"
+    },
+    "notFound": {
+      "title": "Página não encontrada",
+      "description": "O endereço pode estar errado, ou o item foi removido deste workspace.",
+      "backToOverview": "Voltar para a visão geral"
     }
   },
   "onboarding": {
     "title": "Crie seu workspace",
-    "step": "Passo 1 de 2",
-    "description": "Um workspace guarda seus programas, afiliados e o ledger de comissões. Você pode renomeá-lo depois; a moeda define o padrão para novos programas."
+    "description": "É onde ficam seus programas, afiliados e comissões.",
+    "backToDashboard": "Voltar ao painel",
+    "stepper": {
+      "label": "Etapas da configuração",
+      "workspace": "Workspace",
+      "program": "Programa",
+      "done": "Pronto",
+      "completed": "(concluída)"
+    }
   },
   "portal": {
     "overview": {
       "title": "Visão geral",
-      "subtitle": "Veja como suas indicações estão performando.",
-      "greeting": {
-        "morning": "Bom dia, {name}.",
-        "afternoon": "Boa tarde, {name}.",
-        "evening": "Boa noite, {name}."
-      },
-      "unpaidEarnings": "Ganhos a receber",
-      "paidSoFar": "{amount} pagos até agora",
       "revenueGenerated": "Receita gerada",
       "yourLinks": "Seus links de indicação",
-      "commissionOverTime": "Comissão ao longo do tempo",
+      "commissionOverTime": "Comissões nos últimos 30 dias",
       "customRate": "{rate} — sua taxa especial",
       "percentageRate": "{rate} de comissão",
       "fixedRate": "{amount} por conversão",
       "lifetime": "vitalícia",
       "firstPayment": "primeiro pagamento",
-      "nMonths": "{count, plural, one {# mês} other {# meses}}"
+      "nMonths": "{count, plural, one {# mês} other {# meses}}",
+      "hello": "Olá, {name}.",
+      "earnings": "Seus ganhos",
+      "unpaid": "A receber",
+      "unpaidDefinition": "Tudo o que você ganhou e ainda não foi pago: comissões em retenção (pendentes), liberadas para pagamento (disponíveis) e já incluídas em um pagamento que o dono do programa ainda vai fazer (aprovadas).",
+      "received": "Já recebido",
+      "lastPayout": "Último pagamento em {date}",
+      "noPayoutYet": "Nenhum pagamento recebido ainda",
+      "yourLink": "Seu link de indicação",
+      "linkDescription": "Compartilhe onde seu público está. Quando alguém entra pelo link e vira cliente pagante, você ganha comissão.",
+      "performance": "Desempenho",
+      "customFixedRate": "{amount} por conversão — sua taxa especial",
+      "getStarted": {
+        "title": "Compartilhe seu link para começar",
+        "description": "Cliques e clientes aparecem aqui assim que alguém usar seu link."
+      }
     },
     "links": {
       "title": "Links",
-      "description": "Seu link padrão funciona em qualquer lugar. Crie links nomeados para ver qual canal converte.",
+      "description": "Seu link padrão funciona em qualquer lugar. Para saber qual canal traz mais clientes, crie um link com nome para cada um.",
       "defaultLink": "Link padrão",
-      "destination": "Destino",
-      "campaign": "Campanha"
+      "campaign": "Campanha",
+      "namedLinks": "Links com nome",
+      "namedLinksEmpty": "Nenhum link com nome ainda. Crie um para cada canal (YouTube, newsletter, Instagram) e compare os cliques.",
+      "clicks": "{count, plural, =0 {nenhum clique} one {# clique} other {# cliques}}",
+      "campaignLabel": "Campanha: {campaign}",
+      "copyLink": "Copiar link {name}"
     },
     "commissions": {
       "title": "Comissões",
-      "description": "Tudo que você ganhou, e em que ponto do ciclo de pagamento cada comissão está.",
+      "description": "O que você ganhou com cada pagamento dos clientes que indicou, e quando cada valor pode ser pago.",
       "sale": "Venda",
       "fixed": "Fixa",
-      "mobileSummary": "{date} · venda de {amount}",
       "empty": {
         "title": "Nenhuma comissão ainda",
-        "description": "Compartilhe seu link de indicação. As comissões aparecem aqui no momento em que um cliente indicado pagar."
+        "description": "Compartilhe seu link de indicação. As comissões aparecem aqui assim que um cliente indicado pagar."
+      },
+      "saleOf": "venda de {amount}",
+      "releasesOn": "Disponível em {date}",
+      "reversal": "Estorno",
+      "legendTitle": "O que significa cada status",
+      "statusHelp": {
+        "pending": "Em período de retenção. Fica disponível na data indicada, se o cliente não pedir reembolso.",
+        "available": "Liberada para pagamento. Entra no próximo pagamento que o dono do programa fizer.",
+        "approved": "Incluída em um pagamento que o dono do programa já preparou e ainda vai fazer.",
+        "paid": "O dono do programa marcou como paga.",
+        "reversed": "Cancelada porque o cliente foi reembolsado ou contestou a cobrança. Não é paga.",
+        "rejected": "Recusada pelo programa. Não entra em nenhum pagamento."
       }
     },
     "conversions": {
       "title": "Conversões",
-      "description": "Clientes que se cadastraram pelo seu link e pagaram.",
-      "sale": "Venda",
+      "description": "Pagamentos feitos pelos clientes que você indicou. Quanto você ganhou com cada um aparece em Comissões.",
+      "sale": "Valor pago",
       "yourCommission": "Sua comissão",
       "empty": {
         "title": "Nenhuma conversão ainda",
         "description": "Uma conversão é registrada quando alguém que clicou no seu link vira cliente pagante."
-      }
+      },
+      "commissionOf": "sua comissão: {amount}"
     },
     "payouts": {
-      "title": "Histórico de pagamentos",
-      "description": "Os pagamentos são enviados pelo dono do programa fora da Indica. Este é o registro do que ele marcou como pago.",
+      "title": "Pagamentos",
+      "description": "Os pagamentos são feitos pelo dono do programa, fora do IndicaFluxo. Aqui fica o registro do que ele marcou como pago.",
       "batch": "Lote",
       "paid": "Pago em",
       "empty": {
         "title": "Nenhum pagamento ainda",
-        "description": "Quando suas comissões passarem o período de retenção e o dono do programa rodar um pagamento, ele aparece aqui."
-      }
+        "description": "Quando suas comissões saírem do período de retenção e o dono do programa registrar um pagamento, ele aparece aqui."
+      },
+      "paidOn": "Pago em {date}",
+      "awaiting": "Aguardando pagamento",
+      "paymentReference": "Referência do pagamento",
+      "paymentReferenceValue": "Referência: <mono>{reference}</mono>"
     },
     "settings": {
       "title": "Configurações",
-      "description": "Seu perfil de afiliado e os programas de que participa.",
+      "description": "Seus dados de afiliado e os programas de que você participa.",
       "account": {
         "title": "Conta",
-        "description": "Guardamos o mínimo necessário para te pagar: um nome, um e-mail e seu histórico de comissões.",
+        "description": "É assim que o dono do programa identifica você. Para mudar seu nome ou combinar como você recebe, fale diretamente com ele.",
         "name": "Nome",
         "email": "E-mail"
       },
       "programs": {
         "title": "Programas",
-        "description": "Programas em que você está inscrito e seu código de indicação."
+        "description": "Programas de que você participa e o seu código de indicação em cada um.",
+        "code": "Código <mono>{code}</mono>"
       }
+    },
+    "participation": {
+      "pending": {
+        "title": "Aguardando aprovação do programa",
+        "description": "Seu link fica ativo quando o programa aprovar sua participação. Até lá, os cliques aparecem aqui, mas não geram comissão."
+      },
+      "suspended": {
+        "title": "Participação suspensa",
+        "description": "Enquanto sua participação estiver suspensa, este link não gera comissão. Fale com o dono do programa para entender o motivo."
+      },
+      "rejected": {
+        "title": "Participação não aprovada",
+        "description": "O programa não aprovou sua participação, então este link não gera comissão. Fale com o dono do programa se achar que é um engano."
+      }
+    },
+    "shared": {
+      "viewLinks": "Ver meus links",
+      "latest": "Últimas {count}",
+      "cappedNote": "Mostrando apenas as mais recentes."
+    },
+    "error": {
+      "title": "Não foi possível carregar esta página",
+      "description": "Pode ser uma falha passageira. Tente de novo; se continuar, volte à visão geral.",
+      "retry": "Tentar de novo",
+      "back": "Voltar à visão geral",
+      "digest": "Código do erro: {digest}"
+    },
+    "notFound": {
+      "title": "Página não encontrada",
+      "description": "Este endereço não existe no portal do afiliado.",
+      "back": "Voltar à visão geral"
     }
   },
   "forms": {
@@ -582,7 +987,7 @@
         "description": "O que os afiliados veem ao entrar."
       },
       "name": "Nome do programa",
-      "namePlaceholder": "Acme Partners",
+      "namePlaceholder": "Programa de parceiros",
       "status": "Status",
       "description": "Descrição",
       "descriptionHint": "Opcional. Exibida aos afiliados no portal deles.",
@@ -599,20 +1004,31 @@
       "recurrence": "Recorrência",
       "recurrenceFirst": "Somente o primeiro pagamento",
       "recurrenceMonths": "Por um número de meses",
-      "recurrenceLifetime": "Vitalícia",
+      "recurrenceLifetime": "Enquanto o cliente pagar",
       "durationMonths": "Duração (meses)",
-      "holdDays": "Período de retenção (dias)",
-      "holdDaysHint": "As comissões ficam pendentes por esse tempo antes de poderem ser pagas — a sua janela de estorno.",
+      "holdDays": "Retenção (dias)",
+      "holdDaysHint": "A comissão fica pendente por esse tempo antes de poder ser paga, para cobrir estornos.",
       "attribution": {
         "title": "Atribuição",
         "description": "Qual afiliado recebe o crédito quando um visitante converte."
       },
-      "model": "Modelo",
+      "model": "Modelo de atribuição",
       "lastClick": "Último clique",
       "firstClick": "Primeiro clique",
       "windowDays": "Janela de atribuição (dias)",
       "submitCreate": "Criar programa",
-      "submitSave": "Salvar alterações"
+      "submitSave": "Salvar alterações",
+      "amountIn": "Valor ({currency})",
+      "recurrenceHint": "Por quanto tempo o afiliado ganha sobre as renovações do mesmo cliente.",
+      "lastClickHint": "O crédito vai para o último afiliado cujo link o visitante clicou.",
+      "firstClickHint": "O crédito fica com o primeiro afiliado cujo link o visitante clicou.",
+      "windowDaysHint": "Prazo entre o clique no link e o primeiro pagamento para a venda contar para o afiliado.",
+      "advanced": {
+        "title": "Configurações avançadas",
+        "description": "Quem recebe o crédito por uma venda e quanto tempo a comissão espera antes de poder ser paga. Os padrões servem para a maioria dos programas.",
+        "summary": "{model} · janela de {window, plural, one {# dia} other {# dias}} · retenção de {hold, plural, one {# dia} other {# dias}}",
+        "summaryWithStatus": "{status} · {settings}"
+      }
     },
     "workspace": {
       "title": "Workspace",
@@ -629,23 +1045,33 @@
       "submit": "Enviar convite"
     },
     "createWorkspace": {
-      "name": "Nome do workspace",
-      "nameHint": "Normalmente o nome da sua empresa ou produto.",
-      "namePlaceholder": "Acme SaaS",
+      "name": "Nome da empresa ou produto",
+      "nameHint": "Seus afiliados veem esse nome. Dá para mudar depois.",
+      "namePlaceholder": "Acme",
       "currency": "Moeda padrão",
       "timezone": "Fuso horário",
-      "submit": "Continuar"
+      "submit": "Continuar",
+      "preferences": "Preferências",
+      "currencyHint": "Usada como padrão nos novos programas."
     },
     "createLink": {
       "name": "Nome do link",
       "namePlaceholder": "Review no YouTube",
-      "destination": "Destino",
+      "destination": "Página de destino",
       "destinationPlaceholder": "https://acme.com/precos",
-      "submit": "Criar link"
+      "submit": "Criar link",
+      "open": "Criar link",
+      "title": "Novo link com nome",
+      "nameHint": "Por exemplo, o canal onde você vai divulgar. Aparece no endereço do link.",
+      "destinationHint": "Uma página do site do programa, começando com https://",
+      "options": "Opções",
+      "campaign": "Campanha",
+      "campaignHint": "Opcional. Serve para você agrupar links, como “black-friday”.",
+      "campaignPlaceholder": "black-friday"
     },
     "inviteAffiliate": {
-      "title": "Convidar um afiliado",
-      "description": "Ele ainda não precisa de conta. O registro é reivindicado automaticamente no primeiro login com esse e-mail.",
+      "title": "Convidar afiliado",
+      "description": "A pessoa não precisa ter conta. Quando entrar no IndicaFluxo com este e-mail, encontra o link de indicação pronto para usar.",
       "program": "Programa",
       "name": "Nome",
       "email": "E-mail",
@@ -656,49 +1082,78 @@
       "customRateHint": "Opcional. Sobrepõe a taxa do programa.",
       "company": "Empresa",
       "optional": "Opcional.",
-      "submit": "Adicionar afiliado"
+      "submit": "Convidar afiliado"
     },
     "apiKeys": {
       "title": "Chaves de API",
-      "description": "A chave publicável vai no seu snippet de tracking. A chave secreta é só para chamadas server-to-server a <code>/api/identify</code>.",
-      "revealWarning": "Copie esta chave agora — ela nunca mais será exibida.",
+      "description": "A chave pública vai no código de tracking do seu site. A chave secreta é só para chamadas do seu servidor a <code>/api/identify</code>.",
+      "revealWarning": "Copie agora — ela não será exibida de novo.",
       "key": "Chave",
       "type": "Tipo",
       "lastUsed": "Último uso",
-      "rotate": "Rotacionar",
-      "snippet": "Snippet de tracking",
+      "rotate": "Gerar nova chave",
+      "snippet": "Código de tracking",
       "typeSecret": "Secreta",
-      "typePublishable": "Publicável",
+      "typePublishable": "Pública",
       "neverUsed": "Nunca",
-      "snippetHint": "Cole antes de <code>{head}</code> no site para onde seus afiliados apontam. Ele define um cookie próprio e informa o código de indicação."
+      "snippetHint": "Cole antes de <code>{head}</code> no site para onde seus afiliados apontam. Ele grava um cookie do próprio site e informa o código de indicação.",
+      "revealTitle": "{type, select, secret {Nova chave secreta gerada} other {Nova chave pública gerada}}",
+      "generate": "Gerar chave",
+      "generatePublishable": "Gerar nova chave pública",
+      "noKey": "Nenhuma chave ativa",
+      "keyPlaceholder": "SUA_CHAVE_PUBLICA",
+      "snippetLocked": "A chave completa só aparece quando é gerada. Gere uma nova chave para instalar o tracking.",
+      "snippetNoKey": "Gere uma chave pública para completar o código e instalar o tracking.",
+      "snippetReady": "Este código já contém a nova chave. Cole no seu site no lugar do código anterior, se houver.",
+      "confirmTitle": "{type, select, secret {Gerar nova chave secreta?} other {Gerar nova chave pública?}}",
+      "confirmPublishable": "A chave pública atual para de funcionar na hora. O código de tracking instalado no seu site deixa de registrar cliques até você trocá-lo pelo código com a nova chave.",
+      "confirmSecret": "A chave secreta atual para de funcionar na hora. As chamadas do seu servidor a /api/identify falham até você atualizar a chave.",
+      "confirmAction": "Gerar nova chave",
+      "empty": {
+        "title": "Nenhuma chave ativa",
+        "description": "Gere uma chave pública para instalar o tracking. A chave secreta, para chamadas do seu servidor, pode ser gerada depois.",
+        "action": "Gerar chave pública"
+      }
     },
     "payable": {
       "selectAll": "Selecionar todos os afiliados",
       "commissions": "Comissões",
       "submit": "Criar lote de pagamento",
-      "include": "Incluir {name}",
-      "selection": "{selected} de {total} selecionados"
+      "selection": "{selected} de {total} selecionados",
+      "selectAllShort": "Selecionar todos",
+      "clearSelection": "Limpar seleção",
+      "commissionCount": "{count, plural, one {# comissão} other {# comissões}}"
     },
     "batch": {
       "markPaid": "Marcar como pago",
       "confirmTitle": "Marcar {reference} como pago?",
       "confirmBody": "Isto registra que você pagou {count, plural, one {# afiliado} other {# afiliados}} um total de {amount} fora da plataforma. As comissões deste lote passam a <strong>pagas</strong> e isso não pode ser desfeito.",
       "reference": "Referência do pagamento",
-      "referenceHint": "Opcional. Um id de transferência Wise, referência bancária ou número de nota.",
+      "referenceHint": "Opcional. O ID da transferência, a referência bancária ou o número da nota.",
       "confirmAction": "Sim, marcar como pago",
-      "cancelBatch": "Cancelar"
+      "cancelBatch": "Cancelar lote",
+      "cancelTitle": "Cancelar o lote {reference}?",
+      "cancelBody": "As comissões deste lote voltam para “Disponível” e podem entrar em outro lote. Nenhum dinheiro é movimentado, e um lote cancelado não pode ser reaberto.",
+      "cancelConfirm": "Sim, cancelar lote"
     },
     "stripe": {
-      "description": "A Indica lê eventos de pagamento para calcular comissões. Ela nunca move dinheiro e nunca guarda sua chave secreta do Stripe.",
-      "accountId": "Id da conta Stripe",
-      "accountIdHint": "Encontrado no painel do Stripe em Settings → Account details.",
+      "description": "O IndicaFluxo lê os eventos de pagamento para calcular comissões. Ele nunca movimenta dinheiro e nunca guarda sua chave secreta do Stripe.",
+      "accountId": "ID da conta Stripe",
+      "accountIdHint": "Fica no painel do Stripe, em Settings → Account details.",
       "accountIdPlaceholder": "acct_1A2b3C4d5E",
-      "account": "Conta",
-      "webhook": "Endpoint de webhook",
+      "account": "ID da conta",
+      "webhook": "URL do webhook",
       "disconnect": "Desconectar Stripe",
-      "thenAdd": "Depois adicione este endpoint de webhook no Stripe:",
+      "thenAdd": "Depois adicione esta URL de webhook no Stripe:",
       "connect": "Conectar Stripe",
-      "events": "Eventos: {events}"
+      "events": "Eventos: {events}",
+      "title": "Stripe",
+      "disconnectHint": "Desconectar interrompe o registro de novas comissões.",
+      "disconnectTitle": "Desconectar o Stripe?",
+      "disconnectBody": "Novos pagamentos dos seus clientes deixam de gerar comissões até você conectar de novo. As comissões já registradas continuam como estão.",
+      "disconnectConfirm": "Desconectar",
+      "errorTitle": "A conexão com o Stripe está com erro",
+      "errorBody": "Novas comissões podem não estar sendo registradas. Confira a URL do webhook no painel do Stripe e conecte a conta de novo abaixo."
     }
   },
   "errors": {
@@ -710,7 +1165,7 @@
     "conflict": "Essa operação conflita com o estado atual.",
     "rateLimited": "Requisições demais. Aguarde um instante.",
     "invalidRequest": "Requisição inválida.",
-    "badCredentials": "Essas credenciais não funcionaram. Tente de novo.",
+    "badCredentials": "E-mail ou senha incorretos.",
     "missingProgram": "Referência de programa ausente.",
     "participationNotFound": "Participação do afiliado não encontrada.",
     "percentageOver100": "Uma comissão percentual não pode passar de 100%.",
@@ -740,7 +1195,7 @@
     "inviteNotSent": "Não foi possível enviar o convite.",
     "stripeNotConnected": "Não foi possível conectar o Stripe.",
     "stripeNotDisconnected": "Não foi possível desconectar o Stripe.",
-    "keyNotRotated": "Não foi possível rotacionar a chave.",
+    "keyNotRotated": "Não foi possível gerar a nova chave.",
     "affiliateNotAdded": "Não foi possível adicionar o afiliado.",
     "rateNotUpdated": "Não foi possível atualizar a taxa.",
     "batchNotCreated": "Não foi possível criar o lote.",
@@ -751,29 +1206,53 @@
       "affiliateName": "Informe o nome do afiliado.",
       "programName": "Dê um nome ao programa.",
       "workspaceName": "Dê um nome ao seu workspace.",
-      "linkName": "Nomeie o link.",
-      "selectAffiliate": "Selecione ao menos um afiliado.",
+      "linkName": "Dê um nome ao link, com pelo menos 2 caracteres.",
       "fullName": "Diga seu nome.",
       "passwordLength": "Use pelo menos 8 caracteres.",
       "commissionPositive": "A comissão precisa ser maior que zero.",
       "percentageOver100": "Uma comissão percentual não pode passar de 100%.",
-      "customRatePositive": "Uma taxa especial precisa ser maior que zero."
-    }
+      "customRatePositive": "Uma taxa especial precisa ser maior que zero.",
+      "passwordRequired": "Informe sua senha.",
+      "samePassword": "A nova senha precisa ser diferente da atual.",
+      "linkNameTooLong": "Use no máximo 80 caracteres no nome.",
+      "linkNameTaken": "Você já tem um link com esse nome neste programa. Escolha outro.",
+      "campaignTooLong": "Use no máximo 80 caracteres na campanha.",
+      "programRequired": "Escolha um programa.",
+      "affiliateNameLength": "Use no máximo 120 caracteres no nome.",
+      "companyNameLength": "Use no máximo 120 caracteres.",
+      "referralCodeFormat": "Use de 2 a 49 caracteres: letras minúsculas, números, - ou _, começando por letra ou número.",
+      "customRateNumber": "Informe a taxa como número, por exemplo 25.",
+      "customRateRange": "A taxa especial vai de 0 a 100%."
+    },
+    "programNotCreated": "Não foi possível criar o programa.",
+    "authNetwork": "Não conseguimos nos conectar agora. Confira sua internet e tente de novo.",
+    "authRateLimited": "Muitas tentativas em pouco tempo. Aguarde um minuto e tente de novo.",
+    "emailNotConfirmed": "Falta confirmar seu e-mail. Abra o link que enviamos e depois entre.",
+    "emailUnavailable": "Não foi possível criar a conta com esse e-mail. Se ele já tem conta, <login>entre</login> ou <reset>redefina a senha</reset>.",
+    "linkExpired": "Esse link expirou ou já foi usado. Peça um novo.",
+    "passwordNotUpdated": "Não foi possível atualizar a senha. Tente de novo.",
+    "stripeAccountInvalid": "Informe o ID da conta Stripe, por exemplo acct_1A2b3C4d5E."
   },
   "success": {
     "programSaved": "Programa salvo.",
     "workspaceUpdated": "Workspace atualizado.",
     "rateUpdated": "Taxa atualizada.",
-    "linkCreated": "Link criado.",
-    "stripeConnected": "Stripe conectado. Aponte seu webhook para /api/webhooks/stripe.",
-    "stripeDisconnected": "Stripe desconectado.",
-    "keyRotated": "Chave rotacionada. Copie agora — ela não será exibida de novo.",
+    "linkCreated": "Link criado. Ele já está na lista, pronto para copiar.",
+    "stripeConnected": "Stripe conectado. Para concluir, adicione a URL do webhook abaixo no painel do Stripe.",
+    "stripeDisconnected": "Stripe desconectado. Novos pagamentos não geram comissões até você conectar de novo.",
+    "keyRotated": "Nova chave gerada.",
     "batchPaid": "Lote marcado como pago.",
-    "batchCancelled": "Lote cancelado; comissões voltaram para disponível.",
-    "inviteSent": "Convite enviado.",
-    "affiliateAdded": "Afiliado adicionado.",
+    "batchCancelled": "Lote cancelado. As comissões voltaram para “Disponível”.",
+    "inviteSent": "Convite enviado para {email}. A pessoa entra no workspace ao fazer login com esse e-mail.",
+    "affiliateAdded": "{name} entrou no programa. Ao entrar no IndicaFluxo com {email}, a pessoa já encontra o link de indicação.",
     "affiliateUpdated": "Afiliado atualizado.",
-    "batchCreated": "Lote de pagamento criado.",
-    "confirmEmail": "Confira sua caixa de entrada para confirmar o e-mail e depois entre."
+    "batchCreated": "Lote {reference} criado. Marque como pago depois de transferir o dinheiro.",
+    "confirmationResent": "E-mail reenviado."
+  },
+  "notFound": {
+    "title": "Página não encontrada",
+    "description": "O endereço pode ter mudado ou você não tem acesso a ele.",
+    "dashboard": "Ir para o painel",
+    "home": "Página inicial"
   }
 }

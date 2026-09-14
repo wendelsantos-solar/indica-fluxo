@@ -1,7 +1,7 @@
 "use server"
 
 import { actionError, successMessage, translateFieldErrors } from "@/i18n/errors"
-import { getLocale } from "next-intl/server"
+import { getLocale, getTranslations } from "next-intl/server"
 
 import { redirect } from "@/i18n/navigation"
 import { revalidatePath } from "next/cache"
@@ -122,5 +122,6 @@ export async function inviteMemberAction(
   }
 
   revalidatePath("/", "layout")
-  return { success: `${parsed.data.email} will join when they sign in.` }
+  const t = await getTranslations("success")
+  return { success: t("inviteSent", { email: parsed.data.email }) }
 }

@@ -1,12 +1,15 @@
+import { MousePointerClick } from "lucide-react"
 import type { Metadata } from "next"
 import { getTranslations } from "next-intl/server"
 
 import { AreaChart, ChartLegend } from "@/components/data-display/area-chart"
 import { ReferralLinkField } from "@/components/data-display/copy-button"
 import { Metric, MetricCell, MetricGrid } from "@/components/data-display/metric"
+import { EmptyState } from "@/components/feedback/empty-state"
 import { PageHeader, SectionHeader } from "@/components/layout/page-header"
 import { StatusBadge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Term } from "@/components/ui/term"
 import { getFormatters } from "@/i18n/format"
 import { buildReferralUrl } from "@/lib/tracking/visitor"
 import { requireUser } from "@/server/auth/session"
@@ -16,6 +19,10 @@ import {
   listParticipationsForUser,
   participationStats,
 } from "@/server/repositories/affiliates"
+import { listPayoutsForAffiliate } from "@/server/repositories/commissions"
+
+import { ParticipationNotice } from "../_components/participation-notice"
+import { PortalList, PortalListItem } from "../_components/portal-list"
 
 export const dynamic = "force-dynamic"
 
@@ -25,21 +32,14 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * Bucketed in UTC, which is wrong for an affiliate in São Paulo before 09:00
- * local. Fixing it needs a timezone on the affiliate record, which does not
- * exist yet; the bucket is cosmetic, so it is not worth a schema change today.
- */
-function greetingKey(now = new Date()): "morning" | "afternoon" | "evening" {
-  const hour = now.getUTCHours()
-  if (hour < 12) return "morning"
-  if (hour < 18) return "afternoon"
-  return "evening"
-}
-
-/**
- * The affiliate's home, read on a phone first: what they are owed, how their
- * links perform, and the link itself with a thumb-sized copy button. Earnings
- * and totals are one hairline strip, never a grid of tiles.
+ * The affiliate's home, read on a phone first. It answers, in order: how much
+ * is still owed to me, how much I have already received and when, and which
+ * link to share. Clicks and customers come after, and a brand-new affiliate
+ * sees what to do instead of a row of zeros.
+ *
+ * The greeting is neutral ("Olá, Marina") rather than time-of-day: the
+ * affiliate has no timezone on record, and a UTC "Boa tarde" at 10:00 in São
+ * Paulo reads as a bug.
  */
 export default async function AffiliateOverviewPage() {
   const t = await getTranslations("portal.overview")
@@ -48,21 +48,18 @@ export default async function AffiliateOverviewPage() {
   const user = await requireUser()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://example.com"
 
-  const { participations, stats, series } = await withUser(user.id, async (tx) => {
+  const { participations, stats, series, payouts } = await withUser(user.id, async (tx) => {
     const participations = await listParticipationsForUser(tx, user.id)
-    const stats = await Promise.all(
-      participations.map((participation) =>
-        participationStats(tx, participation.participationId),
-      ),
-    )
-    const series = await getAffiliateSeries(
-      tx,
-      participations.map((participation) => participation.participationId),
-    )
-    return { participations, stats, series }
+    const ids = participations.map((participation) => participation.participationId)
+    const stats = await Promise.all(ids.map((id) => participationStats(tx, id)))
+    const series = await getAffiliateSeries(tx, ids)
+    const payouts = await listPayoutsForAffiliate(tx, ids)
+    return { participations, stats, series, payouts }
   })
 
+  // The layout redirects an account with no participation, so there is one.
   const primary = participations[0]!
+  // Mixed-currency totals are a known open issue (UI_UX_FUNCTIONAL_FINDINGS D1).
   const currency = primary.programCurrency
 
   const totals = stats.reduce(
@@ -77,6 +74,24 @@ export default async function AffiliateOverviewPage() {
     { clicks: 0, customers: 0, revenue: 0, commission: 0, paid: 0, pending: 0 },
   )
 
+  const lastPaidAt = payouts.reduce<Date | null>(
+    (latest, payout) =>
+      payout.status === "paid" && payout.paidAt && (!latest || payout.paidAt > latest)
+        ? payout.paidAt
+        : latest,
+    null,
+  )
+
+  const hasActivity =
+    totals.clicks > 0 ||
+    totals.customers > 0 ||
+    totals.commission !== 0 ||
+    totals.paid !== 0 ||
+    totals.pending !== 0 ||
+    payouts.length > 0
+
+  const hasChartData = series.some((point) => point.commissionMinor !== 0)
+
   const chartSeries = [
     {
       key: "commission",
@@ -86,15 +101,27 @@ export default async function AffiliateOverviewPage() {
     },
   ]
 
+  // Series days are UTC calendar dates (`YYYY-MM-DD`); label them the reader's way.
+  const dayLabel = new Intl.DateTimeFormat(f.locale, {
+    day: "2-digit",
+    month: "short",
+    timeZone: "UTC",
+  })
+
+  // The one amber action: the link of the first participation that earns.
+  const featuredId = participations.find((p) => p.status === "approved")?.participationId
+
   function rateLabel(participation: (typeof participations)[number]) {
+    const programCurrency = participation.programCurrency
+    const customValue = participation.customCommissionValue
     const rate =
-      participation.customCommissionType && participation.customCommissionValue
-        ? t("customRate", { rate: f.basisPoints(participation.customCommissionValue) })
+      participation.customCommissionType && customValue !== null
+        ? participation.customCommissionType === "fixed"
+          ? t("customFixedRate", { amount: f.money(customValue, programCurrency) })
+          : t("customRate", { rate: f.basisPoints(customValue) })
         : participation.commissionType === "percentage"
           ? t("percentageRate", { rate: f.basisPoints(participation.commissionValue) })
-          : t("fixedRate", {
-              amount: f.money(participation.commissionValue, participation.programCurrency),
-            })
+          : t("fixedRate", { amount: f.money(participation.commissionValue, programCurrency) })
     const duration =
       participation.commissionDurationMonths === null
         ? t("lifetime")
@@ -104,88 +131,135 @@ export default async function AffiliateOverviewPage() {
     return `${rate} · ${duration}`
   }
 
+  const firstName = primary.affiliateName.trim().split(/\s+/)[0] ?? primary.affiliateName
+  const single = participations.length === 1
+
+  const greeting = (
+    <p className="text-ui text-foreground-secondary">{t("hello", { name: firstName })}</p>
+  )
+
+  const linkSection = (
+    <section>
+      <SectionHeader
+        title={single ? t("yourLink") : t("yourLinks")}
+        count={single ? undefined : f.number(participations.length)}
+        description={t("linkDescription")}
+        className="mb-3"
+      />
+      <PortalList>
+        {participations.map((participation) => (
+          <PortalListItem
+            key={participation.participationId}
+            title={participation.programName}
+            status={
+              participation.status === "approved" ? undefined : (
+                <StatusBadge status={participation.status} />
+              )
+            }
+            details={rateLabel(participation)}
+            className="py-4"
+          >
+            <div className="space-y-3">
+              <ParticipationNotice status={participation.status} />
+              <ReferralLinkField
+                url={buildReferralUrl(appUrl, participation.code)}
+                prominent={participation.participationId === featuredId}
+              />
+            </div>
+          </PortalListItem>
+        ))}
+      </PortalList>
+    </section>
+  )
+
   return (
     <>
       <PageHeader title={t("title")} />
 
       <div className="space-y-10">
-        <section className="space-y-5">
-          <div className="space-y-1">
-            <h2 className="text-title text-foreground">
-              {t(`greeting.${greetingKey()}`, { name: primary.affiliateName.split(" ")[0] })}
-            </h2>
-            <p className="text-caption text-muted-foreground">{t("subtitle")}</p>
-          </div>
-
-          <MetricGrid className="sm:grid-cols-4">
-            <MetricCell className="col-span-full border-b border-border-faint">
-              <Metric
-                label={t("unpaidEarnings")}
-                value={f.money(totals.pending, currency)}
-                comparison={t("paidSoFar", { amount: f.money(totals.paid, currency) })}
-                size="lg"
-              />
-            </MetricCell>
-            <MetricCell>
-              <Metric label={tc("clicks")} value={f.number(totals.clicks)} />
-            </MetricCell>
-            <MetricCell>
-              <Metric label={tc("customers")} value={f.number(totals.customers)} />
-            </MetricCell>
-            <MetricCell>
-              <Metric label={tc("conversion")} value={f.rate(totals.customers, totals.clicks)} />
-            </MetricCell>
-            <MetricCell>
-              <Metric label={t("revenueGenerated")} value={f.money(totals.revenue, currency)} />
-            </MetricCell>
-          </MetricGrid>
-        </section>
-
-        <section>
-          <SectionHeader
-            title={t("yourLinks")}
-            count={participations.length > 1 ? f.number(participations.length) : undefined}
-            className="mb-2"
-          />
-          <Card>
-            <ul className="divide-y divide-border">
-              {participations.map((participation, index) => (
-                <li key={participation.participationId} className="space-y-3 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-ui font-medium text-foreground">
-                        {participation.programName}
-                      </p>
-                      <p className="text-meta text-muted-foreground">{rateLabel(participation)}</p>
-                    </div>
-                    <StatusBadge status={participation.status} className="mt-0.5" />
-                  </div>
-                  <ReferralLinkField
-                    url={buildReferralUrl(appUrl, participation.code)}
-                    prominent={index === 0}
+        {hasActivity ? (
+          <>
+            <section aria-label={t("earnings")} className="space-y-3">
+              {greeting}
+              <MetricGrid className="grid-cols-1 sm:grid-cols-2">
+                <MetricCell className="space-y-1">
+                  <p className="text-caption text-muted-foreground">
+                    <Term definition={t("unpaidDefinition")}>{t("unpaid")}</Term>
+                  </p>
+                  <p className="whitespace-nowrap text-heading-sm tabular-nums text-foreground">
+                    {f.money(totals.pending, currency)}
+                  </p>
+                </MetricCell>
+                <MetricCell className="border-t border-border-faint sm:border-t-0">
+                  <Metric
+                    label={t("received")}
+                    value={f.money(totals.paid, currency)}
+                    comparison={
+                      lastPaidAt
+                        ? t("lastPayout", { date: f.date(lastPaidAt) })
+                        : t("noPayoutYet")
+                    }
                   />
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </section>
+                </MetricCell>
+              </MetricGrid>
+            </section>
 
-        {series.length > 0 ? (
-          <Card>
-            <CardHeader bordered className="flex-wrap gap-y-2">
-              <CardTitle>{t("commissionOverTime")}</CardTitle>
-              <ChartLegend series={chartSeries} />
-            </CardHeader>
-            <CardContent>
-              <AreaChart
-                labels={series.map((point) => point.date.slice(5))}
-                series={chartSeries}
-                currency={currency}
-                height={180}
-              />
-            </CardContent>
-          </Card>
-        ) : null}
+            {linkSection}
+
+            <section>
+              <SectionHeader title={t("performance")} />
+              <MetricGrid className="sm:grid-cols-4">
+                <MetricCell>
+                  <Metric label={tc("clicks")} value={f.number(totals.clicks)} />
+                </MetricCell>
+                <MetricCell>
+                  <Metric label={tc("customers")} value={f.number(totals.customers)} />
+                </MetricCell>
+                <MetricCell className="border-t border-border-faint sm:border-t-0">
+                  <Metric
+                    label={tc("conversion")}
+                    value={f.rate(totals.customers, totals.clicks)}
+                  />
+                </MetricCell>
+                <MetricCell className="border-t border-border-faint sm:border-t-0">
+                  <Metric label={t("revenueGenerated")} value={f.money(totals.revenue, currency)} />
+                </MetricCell>
+              </MetricGrid>
+            </section>
+
+            {hasChartData ? (
+              <Card>
+                <CardHeader bordered className="flex-wrap gap-y-2">
+                  <CardTitle>{t("commissionOverTime")}</CardTitle>
+                  <ChartLegend series={chartSeries} />
+                </CardHeader>
+                <CardContent>
+                  <AreaChart
+                    labels={series.map((point) =>
+                      dayLabel.format(new Date(`${point.date}T00:00:00Z`)),
+                    )}
+                    series={chartSeries}
+                    currency={currency}
+                    height={180}
+                  />
+                </CardContent>
+              </Card>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <div className="space-y-6">
+              {greeting}
+              {linkSection}
+            </div>
+            <EmptyState
+              icon={MousePointerClick}
+              title={t("getStarted.title")}
+              description={t("getStarted.description")}
+              className="py-10"
+            />
+          </>
+        )}
       </div>
     </>
   )

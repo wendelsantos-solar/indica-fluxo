@@ -14,7 +14,8 @@ import { useSwitchLocale } from "@/components/layout/locale-switcher"
 const THEME_ICON = { light: Sun, dark: Moon, system: Monitor } as const
 
 /** Palette commands every signed-in surface shares: theme, language, portal, sign out. */
-export function useShellCommands({ portal }: { portal: "affiliate" | "dashboard" }): Command[] {
+/** `portal` is the other surface this person can open, or null when they have no role there. */
+export function useShellCommands({ portal }: { portal: "affiliate" | "dashboard" | null }): Command[] {
   const t = useTranslations("palette")
   const router = useRouter()
   const { theme, setTheme } = useTheme()
@@ -41,24 +42,16 @@ export function useShellCommands({ portal }: { portal: "affiliate" | "dashboard"
         keywords: "language idioma",
         run: () => select(value),
       }))
+    const portalCommand: Command[] =
+      portal === "affiliate"
+        ? [{ id: "portal", group: "actions", label: t("affiliatePortal"), icon: User, run: () => router.push("/affiliate/overview") }]
+        : portal === "dashboard"
+          ? [{ id: "portal", group: "actions", label: t("dashboard"), icon: LayoutDashboard, run: () => router.push("/app") }]
+          : []
     return [
       ...themes,
       ...languages,
-      portal === "affiliate"
-        ? {
-            id: "portal",
-            group: "actions",
-            label: t("affiliatePortal"),
-            icon: User,
-            run: () => router.push("/affiliate/overview"),
-          }
-        : {
-            id: "portal",
-            group: "actions",
-            label: t("dashboard"),
-            icon: LayoutDashboard,
-            run: () => router.push("/app"),
-          },
+      ...portalCommand,
       {
         id: "sign-out",
         group: "actions",

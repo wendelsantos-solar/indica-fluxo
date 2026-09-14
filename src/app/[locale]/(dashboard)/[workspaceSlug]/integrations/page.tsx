@@ -36,9 +36,6 @@ export default async function IntegrationsPage({
 
   const stripe = integrations.find((integration) => integration.provider === "stripe") ?? null
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
-  const publishable = keys.find((key) => key.type === "publishable" && !key.revokedAt)
-
-  const snippet = `<script defer src="${appUrl}${TRACKER_PATH}" data-key="${publishable?.keyPrefix ?? "pk_live_…"}…"></script>`
 
   return (
     <>
@@ -55,7 +52,9 @@ export default async function IntegrationsPage({
             webhookUrl={`${appUrl}/api/webhooks/stripe`}
           />
 
-          <ApiKeysPanel workspaceSlug={workspaceSlug} keys={keys} snippet={snippet} />
+          {/* Only a key prefix is stored, so the panel builds the tracking code
+              itself — complete only right after a key is generated. */}
+          <ApiKeysPanel workspaceSlug={workspaceSlug} keys={keys} trackerUrl={`${appUrl}${TRACKER_PATH}`} />
         </div>
       </div>
     </>

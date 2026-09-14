@@ -1,12 +1,15 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import { useActionState } from "react"
+import { useActionState, useState } from "react"
 
-import { CopyButton } from "@/components/data-display/copy-button"
+import { MetricCell, MetricGrid } from "@/components/data-display/metric"
+import { InlineAlert } from "@/components/feedback/inline-alert"
+import { SectionHeader } from "@/components/layout/page-header"
 import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Field } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
@@ -15,6 +18,7 @@ import {
   disconnectStripeAction,
   type IntegrationFormState,
 } from "./actions"
+import { CodeField } from "./code-field"
 
 const INITIAL: IntegrationFormState = {}
 
@@ -40,109 +44,104 @@ export function StripePanel({
 }) {
   const t = useTranslations("forms.stripe")
   const [connectState, connect, connecting] = useActionState(connectStripeAction, INITIAL)
-  const [disconnectState, disconnect, disconnecting] = useActionState(
-    disconnectStripeAction,
-    INITIAL,
-  )
+  // Called from a confirmation dialog, which closes when the action settles;
+  // the result then shows inline in whichever view the page re-renders into.
+  const [disconnectState, setDisconnectState] = useState<IntegrationFormState>(INITIAL)
 
   const connected = status === "connected"
+  // Only the most recent outcome is worth showing.
+  const lastSuccess = connected ? connectState.success : disconnectState.success
 
   return (
-    <section className="space-y-4">
-      <div>
-        <h2 className="flex items-center gap-2 text-caption font-medium text-foreground">
-          Stripe
-          {status ? <StatusBadge status={status} /> : null}
-        </h2>
-        <p className="mt-0.5 max-w-[68ch] text-caption text-muted-foreground">{t("description")}</p>
-      </div>
+    <section>
+      <SectionHeader
+        title={t("title")}
+        count={status ? <StatusBadge status={status} /> : undefined}
+        description={t("description")}
+        className="mb-3"
+      />
 
       {connected ? (
-        <>
-          <dl className="grid gap-x-6 border-y border-border sm:grid-cols-2">
-            <div className="min-w-0 py-3">
-              <dt className="text-caption text-muted-foreground">{t("account")}</dt>
-              <dd className="mt-0.5 truncate font-mono text-meta text-foreground">
-                {providerAccountId}
-              </dd>
-            </div>
-            <div className="min-w-0 py-3 max-sm:border-t max-sm:border-border-faint">
-              <dt className="text-caption text-muted-foreground">{t("webhook")}</dt>
-              <dd className="mt-0.5 flex items-center gap-2">
-                <code className="min-w-0 flex-1 break-all font-mono text-meta text-foreground-secondary">
-                  {webhookUrl}
-                </code>
-                <CopyButton value={webhookUrl} size="sm" />
-              </dd>
-            </div>
-          </dl>
+        <div className="space-y-4">
+          {lastSuccess ? <InlineAlert tone="success">{lastSuccess}</InlineAlert> : null}
 
-          <div className="flex flex-wrap items-center gap-3">
-            <form action={disconnect}>
+          <MetricGrid>
+            <MetricCell className="min-w-0">
+              <p className="text-caption text-muted-foreground">{t("account")}</p>
+              <p className="mt-1 truncate font-mono text-meta text-foreground">{providerAccountId}</p>
+            </MetricCell>
+            <MetricCell className="col-span-2 min-w-0 max-sm:border-t max-sm:border-border-faint">
+              <p className="mb-1 text-caption text-muted-foreground">{t("webhook")}</p>
+              <CodeField copyValue={webhookUrl}>{webhookUrl}</CodeField>
+            </MetricCell>
+          </MetricGrid>
+
+          {/* The one destructive action, apart from everything else. */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border-faint pt-4">
+            <p className="max-w-prose text-meta text-muted-foreground">{t("disconnectHint")}</p>
+            <ConfirmDialog
+              trigger={t("disconnect")}
+              title={t("disconnectTitle")}
+              description={t("disconnectBody")}
+              confirmLabel={t("disconnectConfirm")}
+              action={async (formData) => setDisconnectState(await disconnectStripeAction(INITIAL, formData))}
+            >
               <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
-              <Button type="submit" variant="danger" size="sm" loading={disconnecting}>
-                {t("disconnect")}
-              </Button>
-            </form>
-
-            {disconnectState.error ? (
-              <p role="alert" className="text-meta text-danger-foreground">
-                {disconnectState.error}
-              </p>
-            ) : connectState.success ? (
-              <p role="status" className="text-meta text-success-foreground">
-                {connectState.success}
-              </p>
-            ) : null}
+            </ConfirmDialog>
           </div>
-        </>
+
+          {disconnectState.error ? <InlineAlert tone="danger">{disconnectState.error}</InlineAlert> : null}
+        </div>
       ) : (
-        <Card>
-          <form action={connect}>
-            <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
-            <div className="space-y-4 p-4">
-              <Field
-                label={t("accountId")}
-                htmlFor="providerAccountId"
-                required
-                hint={t("accountIdHint")}
-                error={connectState.error}
-              >
-                <Input
-                  id="providerAccountId"
-                  name="providerAccountId"
-                  placeholder={t("accountIdPlaceholder")}
-                  className="font-mono sm:max-w-80"
+        <div className="space-y-4">
+          {status === "error" ? (
+            <InlineAlert tone="danger" title={t("errorTitle")}>
+              {t("errorBody")}
+            </InlineAlert>
+          ) : null}
+          {lastSuccess ? <InlineAlert tone="success">{lastSuccess}</InlineAlert> : null}
+
+          <Card>
+            <form action={connect} noValidate>
+              <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
+              <div className="space-y-4 p-4">
+                <Field
+                  label={t("accountId")}
+                  htmlFor="providerAccountId"
                   required
-                />
-              </Field>
+                  hint={t("accountIdHint")}
+                  error={connectState.error}
+                >
+                  <Input
+                    id="providerAccountId"
+                    name="providerAccountId"
+                    placeholder={t("accountIdPlaceholder")}
+                    className="font-mono sm:max-w-80"
+                    autoComplete="off"
+                    spellCheck={false}
+                    required
+                    aria-describedby={connectState.error ? "providerAccountId-error" : "providerAccountId-hint"}
+                    invalid={Boolean(connectState.error)}
+                  />
+                </Field>
 
-              <div className="space-y-1.5">
-                <p className="text-meta font-medium text-muted-foreground">{t("thenAdd")}</p>
-                <div className="flex items-center gap-2 rounded-control border border-border bg-fill-subtle py-1.5 pl-2.5 pr-1.5">
-                  <code className="min-w-0 flex-1 break-all font-mono text-meta text-foreground">
-                    {webhookUrl}
-                  </code>
-                  <CopyButton value={webhookUrl} size="sm" />
+                <div className="space-y-1.5">
+                  <p className="text-meta font-medium text-muted-foreground">{t("thenAdd")}</p>
+                  <CodeField copyValue={webhookUrl}>{webhookUrl}</CodeField>
+                  <p className="text-meta text-faint-foreground">
+                    {t("events", { events: STRIPE_EVENTS.join(", ") })}
+                  </p>
                 </div>
-                <p className="text-meta text-faint-foreground">
-                  {t("events", { events: STRIPE_EVENTS.join(", ") })}
-                </p>
               </div>
-            </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border px-4 py-3">
-              {connectState.success ? (
-                <p role="status" className="mr-auto text-meta text-success-foreground">
-                  {connectState.success}
-                </p>
-              ) : null}
-              <Button type="submit" variant="primary" loading={connecting}>
-                {t("connect")}
-              </Button>
-            </div>
-          </form>
-        </Card>
+              <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border px-4 py-3">
+                <Button type="submit" variant="primary" loading={connecting}>
+                  {t("connect")}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
       )}
     </section>
   )

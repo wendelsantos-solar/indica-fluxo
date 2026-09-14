@@ -1,4 +1,7 @@
 import type { Metadata } from "next"
+
+import { getPathname } from "@/i18n/navigation"
+import { localeAlternates } from "@/lib/site"
 import { getTranslations, setRequestLocale } from "next-intl/server"
 
 export async function generateMetadata({
@@ -6,7 +9,10 @@ export async function generateMetadata({
 }: PageProps<"/[locale]/docs">): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: "docs" })
-  return { title: t("metaTitle") }
+  const { canonical, languages } = localeAlternates("/docs", locale, (target) =>
+    getPathname({ href: "/docs", locale: target }),
+  )
+  return { title: t("metaTitle"), alternates: { canonical, languages } }
 }
 
 /**

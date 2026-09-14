@@ -14,17 +14,27 @@ import { withUser } from "@/server/db"
 import { listParticipationsForUser } from "@/server/repositories/affiliates"
 import { listCommissionsForAffiliate } from "@/server/repositories/commissions"
 
+import { joinDetails, PortalList, PortalListItem } from "../_components/portal-list"
+
 export const dynamic = "force-dynamic"
+
+/** `listCommissionsForAffiliate` returns at most this many rows, newest first. */
+const LIST_LIMIT = 100
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("portal.conversions")
   return { title: t("title") }
 }
 
+/**
+ * The payments made by customers this affiliate referred — the customer's
+ * side. Commissions is the affiliate's side of the same events, so this page
+ * leads with the payment amount and only marks a payment that was refunded;
+ * the commission's own lifecycle lives on the Commissions page.
+ */
 export default async function AffiliateConversionsPage() {
   const t = await getTranslations("portal.conversions")
-  const tcm = await getTranslations("portal.commissions")
-  const to = await getTranslations("portal.overview")
+  const tp = await getTranslations("portal.shared")
   const tc = await getTranslations("common.table")
   const f = await getFormatters()
   const user = await requireUser()
@@ -34,16 +44,26 @@ export default async function AffiliateConversionsPage() {
     return listCommissionsForAffiliate(
       tx,
       participations.map((participation) => participation.participationId),
+      LIST_LIMIT,
     )
   })
 
+  // Reversal rows (negative amounts) are the commission side of a refund, not
+  // a payment of their own; the refunded payment keeps its `reversed` status.
   const conversions = rows.filter((row) => row.commissionAmountMinor > 0)
+  const capped = rows.length >= LIST_LIMIT
 
   return (
     <>
       <PageHeader
         title={t("title")}
-        meta={conversions.length > 0 ? <span>{f.number(conversions.length)}</span> : undefined}
+        meta={
+          conversions.length > 0 ? (
+            <span>
+              {capped ? tp("latest", { count: conversions.length }) : f.number(conversions.length)}
+            </span>
+          ) : undefined
+        }
         description={t("description")}
       />
 
@@ -53,13 +73,13 @@ export default async function AffiliateConversionsPage() {
           title={t("empty.title")}
           description={t("empty.description")}
           action={
-            <Button asChild variant="secondary">
-              <Link href="/affiliate/links">{to("yourLinks")}</Link>
+            <Button asChild variant="secondary" className="max-sm:h-11">
+              <Link href="/affiliate/links">{tp("viewLinks")}</Link>
             </Button>
           }
         />
       ) : (
-        <div>
+        <div className="space-y-4">
           <TableContainer scrollable className="hidden md:block">
             <Table>
               <THead>
@@ -69,7 +89,9 @@ export default async function AffiliateConversionsPage() {
                   <TH>{tc("customer")}</TH>
                   <TH numeric>{t("sale")}</TH>
                   <TH numeric>{t("yourCommission")}</TH>
-                  <TH>{tc("status")}</TH>
+                  <TH>
+                    <span className="sr-only">{tc("status")}</span>
+                  </TH>
                 </tr>
               </THead>
               <TBody>
@@ -80,43 +102,36 @@ export default async function AffiliateConversionsPage() {
                     </TD>
                     <TD>{row.programName}</TD>
                     <TD mono>{row.customerRef}</TD>
-                    <TD numeric>{f.money(row.baseAmountMinor, row.currency)}</TD>
                     <TD numeric className="font-medium text-foreground">
-                      {f.money(row.commissionAmountMinor, row.currency)}
+                      {f.money(row.baseAmountMinor, row.currency)}
                     </TD>
-                    <TD>
-                      <StatusBadge status={row.status} />
-                    </TD>
+                    <TD numeric>{f.money(row.commissionAmountMinor, row.currency)}</TD>
+                    <TD>{row.status === "reversed" ? <StatusBadge status="reversed" /> : null}</TD>
                   </TR>
                 ))}
               </TBody>
             </Table>
           </TableContainer>
 
-          <ul className="divide-y divide-border-faint border-y border-border md:hidden">
+          <PortalList className="md:hidden">
             {conversions.map((row) => (
-              <li key={row.id} className="flex items-start justify-between gap-4 px-1 py-3">
-                <div className="min-w-0 space-y-0.5">
-                  <p className="truncate font-mono text-meta text-foreground">{row.customerRef}</p>
-                  <p className="truncate text-meta text-muted-foreground">
-                    {row.programName}
-                  </p>
-                  <p className="text-meta text-muted-foreground">
-                    {tcm("mobileSummary", {
-                      date: f.date(row.createdAt),
-                      amount: f.money(row.baseAmountMinor, row.currency),
-                    })}
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1.5">
-                  <span className="text-ui font-medium tabular-nums text-foreground">
-                    {f.money(row.commissionAmountMinor, row.currency)}
-                  </span>
-                  <StatusBadge status={row.status} />
-                </div>
-              </li>
+              <PortalListItem
+                key={row.id}
+                title={<span className="font-mono text-caption">{row.customerRef}</span>}
+                status={row.status === "reversed" ? <StatusBadge status="reversed" /> : undefined}
+                amount={f.money(row.baseAmountMinor, row.currency)}
+                details={joinDetails([
+                  f.date(row.createdAt),
+                  row.programName,
+                  t("commissionOf", { amount: f.money(row.commissionAmountMinor, row.currency) }),
+                ])}
+              />
             ))}
-          </ul>
+          </PortalList>
+
+          {capped ? (
+            <p className="text-meta text-faint-foreground">{tp("cappedNote")}</p>
+          ) : null}
         </div>
       )}
     </>

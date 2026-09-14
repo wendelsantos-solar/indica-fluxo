@@ -103,6 +103,21 @@ export async function createProgramAction(
   }
 
   revalidatePath(`/${parsed.data.workspaceSlug}/programs`)
+
+  // The last onboarding step is the overview's activation checklist, not the
+  // program's settings: the founder has to see what is left before a first
+  // referral can land.
+  if (formData.get("onboarding") === "1") {
+    return redirect({
+      href: {
+        pathname: "/[workspaceSlug]/overview",
+        params: { workspaceSlug: parsed.data.workspaceSlug },
+        query: { welcome: "1" },
+      },
+      locale: await getLocale(),
+    })
+  }
+
   return redirect({
     href: {
       pathname: "/[workspaceSlug]/programs/[programSlug]",

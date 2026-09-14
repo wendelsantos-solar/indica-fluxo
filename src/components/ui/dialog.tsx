@@ -14,8 +14,12 @@ export const DialogClose = DialogPrimitive.Close
 export function DialogContent({
   className,
   children,
+  size = "default",
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content>) {
+}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  /** `form` widens to 560px for dialogs holding a multi-field form. */
+  size?: "default" | "form"
+}) {
   const t = useTranslations("common.actions")
 
   return (
@@ -28,7 +32,8 @@ export function DialogContent({
       />
       <DialogPrimitive.Content
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 w-[calc(100vw-1rem)] max-w-[480px] outline-none",
+          "fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-1rem)] flex-col outline-none",
+          size === "form" ? "max-w-xl" : "max-w-md",
           "-translate-x-1/2 -translate-y-1/2",
           "rounded-panel bg-surface-3 shadow-overlay",
           "data-[state=open]:animate-[dialog-in_180ms_var(--ease-out-quint)]",
@@ -77,7 +82,7 @@ export function DialogDescription({
 }
 
 export function DialogBody({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("space-y-4 p-4", className)} {...props} />
+  return <div className={cn("min-h-0 flex-1 space-y-4 overflow-y-auto p-4", className)} {...props} />
 }
 
 export function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

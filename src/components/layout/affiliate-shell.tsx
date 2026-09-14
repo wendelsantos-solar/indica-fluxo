@@ -21,10 +21,13 @@ type AffiliatePage = "overview" | "links" | "conversions" | "commissions" | "pay
 export function AffiliateShell({
   email,
   name,
+  hasWorkspace = false,
   children,
 }: {
   email: string
   name?: string | null
+  /** Whether this person also belongs to a workspace, so the dashboard link is real. */
+  hasWorkspace?: boolean
   children: React.ReactNode
 }) {
   const t = useTranslations("nav")
@@ -53,7 +56,7 @@ export function AffiliateShell({
     return { sections, footer: [item("settings", Settings2, "s")] }
   }, [t])
 
-  const commands = useShellCommands({ portal: "dashboard" })
+  const commands = useShellCommands({ portal: hasWorkspace ? "dashboard" : null })
 
   return (
     <AppShell
@@ -68,7 +71,7 @@ export function AffiliateShell({
       }
       sections={sections}
       footer={footer}
-      account={<AccountMenu email={email} name={name} portal="dashboard" />}
+      account={<AccountMenu email={email} name={name} portal={hasWorkspace ? "dashboard" : null} />}
       commands={commands}
     >
       {children}

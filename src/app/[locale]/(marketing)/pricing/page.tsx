@@ -2,8 +2,11 @@ import { ArrowRight, Check } from "lucide-react"
 import type { Metadata } from "next"
 import { getLocale, getTranslations, setRequestLocale } from "next-intl/server"
 
-import { Link } from "@/i18n/navigation"
+import { getPathname, Link } from "@/i18n/navigation"
+import { localeAlternates } from "@/lib/site"
 import { getFormatters } from "@/i18n/format"
+
+import { PLANS, PRICE_MINOR } from "../_lib/plans"
 import { DEFAULT_CURRENCY, type Locale } from "@/i18n/routing"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -14,33 +17,18 @@ export async function generateMetadata({
 }: PageProps<"/[locale]/pricing">): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: "pricing" })
-  return { title: t("metaTitle") }
+  const { canonical, languages } = localeAlternates("/pricing", locale, (target) =>
+    getPathname({ href: "/pricing", locale: target }),
+  )
+  return { title: t("metaTitle"), alternates: { canonical, languages } }
 }
-
-/**
- * Prices are per-locale amounts in minor units, not one number converted at
- * render time: a Brazilian plan is priced in reais as a commercial decision,
- * not as today's exchange rate applied to a dollar figure.
- *
- * The featured plan carries the page's one amber action; the header's
- * "Start free" goes to the same place, so the two never ask different things.
- */
-const PRICE_MINOR: Record<Locale, Record<string, number>> = {
-  "pt-br": { starter: 0, growth: 19700, scale: 59700 },
-  en: { starter: 0, growth: 4900, scale: 14900 },
-}
-
-const PLANS = [
-  { key: "starter", featured: false, features: ["programs", "affiliates", "tracking", "ledger", "payouts"] },
-  { key: "growth", featured: true, features: ["programs", "affiliates", "rates", "batches", "team"] },
-  { key: "scale", featured: false, features: ["everything", "workspaces", "support", "retention", "onboarding"] },
-] as const
 
 export default async function PricingPage({ params }: PageProps<"/[locale]/pricing">) {
   const { locale } = await params
   setRequestLocale(locale)
 
   const t = await getTranslations("pricing")
+  const tf = await getTranslations("marketing.home.pricing")
   const f = await getFormatters()
   const currency = DEFAULT_CURRENCY[(await getLocale()) as Locale]
   const prices = PRICE_MINOR[locale as Locale]
@@ -76,7 +64,7 @@ export default async function PricingPage({ params }: PageProps<"/[locale]/prici
 
             <p className="mt-6 flex flex-wrap items-baseline gap-x-2 gap-y-1">
               <span className="whitespace-nowrap text-heading-sm tabular-nums text-foreground">
-                {f.money(prices[plan.key] ?? 0, currency)}
+                {prices[plan.key] === 0 ? tf("free") : f.money(prices[plan.key], currency)}
               </span>
               <span className="text-caption text-muted-foreground">
                 {t(`plans.${plan.key}.cadence`)}

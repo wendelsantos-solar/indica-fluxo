@@ -53,7 +53,7 @@ export function Select({
       className={cn(
         control,
         "h-8 appearance-none px-2.5 pr-8 max-sm:h-10 touch:h-10",
-        "bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 fill=%22none%22 stroke=%22%238a8f98%22 stroke-width=%221.5%22><path d=%22M3 4.5 6 7.5 9 4.5%22/></svg>')]",
+        "bg-(image:--select-chevron)",
         "bg-[length:12px_12px] bg-[right_10px_center] bg-no-repeat",
         className,
       )}

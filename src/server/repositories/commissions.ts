@@ -196,7 +196,15 @@ export interface AffiliateCommissionRow {
   createdAt: Date
 }
 
-/** The affiliate's own ledger. RLS already limits this to their rows. */
+/**
+ * The affiliate's own ledger. RLS already limits this to their rows.
+ *
+ * `customers` is a left join on purpose: affiliates have no RLS read on the
+ * customers table (a customer belongs to the workspace, not to the partner who
+ * referred them), so an inner join silently returned zero rows for every
+ * affiliate. The reference falls back to a short id of the commission's
+ * customer, which is all the portal shows anyway.
+ */
 export async function listCommissionsForAffiliate(
   tx: DbClient,
   participationIds: string[],
@@ -208,7 +216,7 @@ export async function listCommissionsForAffiliate(
     .select({
       id: commissions.id,
       programName: programs.name,
-      customerRef: sql<string>`coalesce(${customers.externalId}, ${customers.providerCustomerId}, left(${customers.id}::text, 8))`,
+      customerRef: sql<string>`coalesce(${customers.externalId}, ${customers.providerCustomerId}, left(${commissions.customerId}::text, 8))`,
       currency: commissions.currency,
       baseAmountMinor: commissions.baseAmountMinor,
       commissionRate: commissions.commissionRate,
@@ -219,7 +227,7 @@ export async function listCommissionsForAffiliate(
     })
     .from(commissions)
     .innerJoin(programs, eq(programs.id, commissions.programId))
-    .innerJoin(customers, eq(customers.id, commissions.customerId))
+    .leftJoin(customers, eq(customers.id, commissions.customerId))
     .where(inArray(commissions.programAffiliateId, participationIds))
     .orderBy(desc(commissions.createdAt))
     .limit(limit)

@@ -1,33 +1,98 @@
 import {
   ArrowRight,
-  ArrowUp,
-  ChartNoAxesColumn,
   Check,
-  ChevronsUpDown,
-  Coins,
+  CircleDollarSign,
+  Code2,
   CreditCard,
-  Layers,
-  type LucideIcon,
-  Receipt,
-  Search,
-  Settings2,
-  Users,
+  FileClock,
+  Lock,
+  Minus,
+  ShieldCheck,
 } from "lucide-react"
+import type { Metadata } from "next"
 import { getLocale, getTranslations, setRequestLocale } from "next-intl/server"
+import type * as React from "react"
 
-import { Link } from "@/i18n/navigation"
 import { getFormatters } from "@/i18n/format"
+import { getPathname, Link } from "@/i18n/navigation"
 import { DEFAULT_CURRENCY, type Locale } from "@/i18n/routing"
-import { Button, buttonVariants } from "@/components/ui/button"
-import { StatusBadge } from "@/components/ui/badge"
-import { Kbd } from "@/components/ui/kbd"
-import { TBody, TD, TH, THead, TR, Table } from "@/components/ui/table"
-import { cn, initials } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { localeAlternates, siteUrl } from "@/lib/site"
+import { cn } from "@/lib/utils"
+
+import { PLANS, PRICE_MINOR } from "./_lib/plans"
+import {
+  AffiliateVisual,
+  AttributionVisual,
+  FounderVisual,
+  HeroPreview,
+  InviteVisual,
+  LedgerVisual,
+  PayoutVisual,
+  RevenueVisual,
+  RulesVisual,
+  StripeVisual,
+} from "./_components/visuals"
+
+export async function generateMetadata({ params }: PageProps<"/[locale]">): Promise<Metadata> {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: "meta" })
+  const url = (target: Locale) => new URL(getPathname({ href: "/", locale: target }), siteUrl()).toString()
+  const { languages } = localeAlternates("/", locale, (target) => getPathname({ href: "/", locale: target }))
+
+  return {
+    title: { absolute: t("title") },
+    description: t("description"),
+    alternates: {
+      canonical: url(locale as Locale),
+      languages,
+    },
+    openGraph: {
+      type: "website",
+      siteName: "IndicaFluxo",
+      title: t("title"),
+      description: t("description"),
+      url: url(locale as Locale),
+      locale: locale === "pt-br" ? "pt_BR" : "en_US",
+    },
+    twitter: { card: "summary_large_image", title: t("title"), description: t("description") },
+  }
+}
+
+/** Section rhythm: one container, one vertical cadence, used by every block. */
+function Section({
+  id,
+  className,
+  children,
+  bordered = true,
+}: {
+  id?: string
+  className?: string
+  children: React.ReactNode
+  bordered?: boolean
+}) {
+  return (
+    <section id={id} className={cn("scroll-mt-16", bordered && "border-t border-border")}>
+      <div className={cn("mx-auto w-full max-w-page px-4 py-20 sm:px-6 sm:py-28", className)}>{children}</div>
+    </section>
+  )
+}
+
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return <p className="mb-4 text-caption text-muted-foreground">{children}</p>
+}
+
+function Heading({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <h2 className={cn("text-balance text-heading-sm text-foreground sm:text-heading", className)}>{children}</h2>
+  )
+}
 
 /**
- * The product is the hero — DESIGN.md §1. No illustrations, no gradient blobs:
- * a mock of the real product shell built from the same tokens as the app, so
- * the page cannot drift from what a founder sees after signing up.
+ * The landing is a sales page, told in order: what it is → how a referral
+ * becomes money → why you should not build it → how to start → what makes it
+ * right → both sides of the program → what it connects to → why to trust it →
+ * what it costs → start. The product is the only imagery (DESIGN.md §1).
  */
 export default async function MarketingHomePage({ params }: PageProps<"/[locale]">) {
   const { locale } = await params
@@ -35,320 +100,411 @@ export default async function MarketingHomePage({ params }: PageProps<"/[locale]
 
   const t = await getTranslations("marketing.home")
 
-  const promises = ["noProcessing", "stripeStaysYours", "liveInAnHour"] as const
-  const pillars = ["attribution", "ledger", "rails"] as const
-  const steps = ["connect", "commission", "tracking", "invite"] as const
-
   return (
     <>
-      <section className="mx-auto w-full max-w-page px-4 pt-20 sm:px-6 sm:pt-28 lg:pt-32">
-        <div className="max-w-4xl">
-          <p className="mb-6 flex items-center gap-2 text-caption text-muted-foreground">
+      <Hero />
+      <FlowProof />
+
+      <Section>
+        <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+          <div className="lg:col-span-5">
+            <Eyebrow>{t("problem.eyebrow")}</Eyebrow>
+            <Heading>{t("problem.title")}</Heading>
+            <p className="mt-6 max-w-md text-pretty text-body text-muted-foreground">{t("problem.body")}</p>
+          </div>
+          <div className="lg:col-span-7">
+            <div className="overflow-hidden rounded-panel border border-border bg-surface-1">
+              <p className="border-b border-border px-5 py-3 text-caption text-muted-foreground">
+                {t("problem.listLabel")}
+              </p>
+              <ul className="px-5">
+                {(["tracking", "attribution", "webhooks", "recurring", "refunds", "payouts"] as const).map((key) => (
+                  <li key={key} className="flex items-center gap-3 border-b border-border-faint py-3 text-ui text-foreground-secondary last:border-0">
+                    <Minus className="size-4 shrink-0 text-faint-foreground" aria-hidden="true" />
+                    {t(`problem.items.${key}`)}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex gap-3 border-t border-border bg-surface-2 px-5 py-5">
+                <Check className="mt-0.5 size-4.5 shrink-0 text-primary-text" aria-hidden="true" />
+                <div>
+                  <p className="text-ui font-medium text-foreground">{t("problem.resolutionTitle")}</p>
+                  <p className="mt-1 text-pretty text-caption text-muted-foreground">{t("problem.resolutionBody")}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <HowItWorks />
+      <Features />
+      <TwoSides />
+      <Integrations />
+      <Principles />
+      <PricingPreview />
+      <Closing />
+    </>
+  )
+}
+
+async function Hero() {
+  const t = await getTranslations("marketing.home")
+  return (
+    <section className="overflow-hidden">
+      <div className="mx-auto w-full max-w-page px-4 pb-20 pt-16 sm:px-6 sm:pb-28 sm:pt-24 lg:pt-28">
+        <div className="max-w-3xl">
+          <p className="mb-6 inline-flex items-center gap-2 rounded-badge border border-border px-2 py-1 text-meta text-muted-foreground">
             <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
             {t("eyebrow")}
           </p>
-
           <h1 className="text-balance text-heading-sm text-foreground sm:text-heading lg:text-heading-lg">
             {t("headline")}
           </h1>
-
-          <p className="mt-6 max-w-2xl text-pretty text-body text-muted-foreground">
+          <p className="mt-6 max-w-xl text-pretty text-body text-muted-foreground">
             {t("subhead")}
           </p>
-
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Button asChild variant="primary" size="lg">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Button asChild variant="primary" size="lg" className="h-11 px-5 sm:h-10">
               <Link href="/signup">
                 {t("ctaPrimary")}
                 <ArrowRight aria-hidden="true" />
               </Link>
             </Button>
-            <Button asChild variant="ghost" size="lg">
-              <Link href="/docs">{t("ctaSecondary")}</Link>
+            <Button asChild variant="secondary" size="lg" className="h-11 px-5 sm:h-10">
+              <Link href={{ pathname: "/", hash: "como-funciona" }}>{t("ctaSecondary")}</Link>
             </Button>
           </div>
-
-          <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-caption text-muted-foreground">
-            {promises.map((key) => (
+          <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-caption text-muted-foreground">
+            {(["noCard", "noFee", "stripe"] as const).map((key) => (
               <li key={key} className="flex items-center gap-1.5">
                 <Check className="size-3.5 text-faint-foreground" aria-hidden="true" />
-                {t(`promises.${key}`)}
+                {t(`trust.${key}`)}
               </li>
             ))}
           </ul>
         </div>
 
-        <ProductPreview />
-      </section>
-
-      <section className="mx-auto w-full max-w-page px-4 py-24 sm:px-6 sm:py-32">
-        <ul className="grid gap-10 md:grid-cols-3 md:gap-8">
-          {pillars.map((key) => (
-            <li key={key} className="border-t border-border pt-6">
-              <h2 className="text-body font-medium text-foreground">
-                {t(`pillars.${key}.title`)}
-              </h2>
-              <p className="mt-2 text-pretty text-body-sm text-muted-foreground">
-                {t(`pillars.${key}.body`)}
-              </p>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="border-t border-border">
-        <div className="mx-auto grid w-full max-w-page gap-12 px-4 py-24 sm:px-6 sm:py-32 lg:grid-cols-12 lg:gap-16">
-          <div className="lg:sticky lg:top-24 lg:col-span-5 lg:self-start">
-            <h2 className="text-balance text-heading-sm text-foreground sm:text-heading">
-              {t("steps.title")}
-            </h2>
-            <p className="mt-5 max-w-md text-pretty text-body text-muted-foreground">
-              {t("steps.subtitle")}
-            </p>
-          </div>
-
-          <ol className="border-b border-border lg:col-span-7">
-            {steps.map((key, index) => (
-              <li
-                key={key}
-                className="flex gap-4 border-t border-border py-6 sm:py-8"
-              >
-                <span className="w-10 shrink-0 pt-1 font-mono text-meta text-faint-foreground">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <div className="min-w-0">
-                  <h3 className="text-title text-foreground">{t(`steps.${key}.title`)}</h3>
-                  <p className="mt-1.5 text-pretty text-body-sm text-muted-foreground">
-                    {t(`steps.${key}.body`)}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
+        <div className="mt-14 sm:mt-20">
+          <HeroPreview />
         </div>
-      </section>
-
-      <section className="border-t border-border">
-        <div className="mx-auto flex w-full max-w-page flex-col items-start gap-8 px-4 py-24 sm:px-6 sm:py-32 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
-            <h2 className="text-balance text-heading-sm text-foreground sm:text-heading">
-              {t("closing.title")}
-            </h2>
-            <p className="mt-5 text-pretty text-body text-muted-foreground">{t("closing.body")}</p>
-          </div>
-          <Button asChild variant="primary" size="lg">
-            <Link href="/signup">
-              {t("ctaPrimary")}
-              <ArrowRight aria-hidden="true" />
-            </Link>
-          </Button>
-        </div>
-      </section>
-    </>
+      </div>
+    </section>
   )
 }
 
-/** Illustrative ledger rows. Names and codes are data, not interface copy. */
-const ROWS = [
-  { name: "Marina Costa", code: "MARINA30", base: 49700, commission: 14910, status: "approved", day: 12 },
-  { name: "Agency Labs", code: "AGENCYLABS", base: 149700, commission: 44910, status: "pending", day: 12 },
-  { name: "João Pereira", code: "JOAO20", base: 19700, commission: 3940, status: "hold", day: 11 },
-  { name: "Studio Norte", code: "NORTE", base: 59700, commission: 17910, status: "paid", day: 9 },
-  { name: "Lucas Almeida", code: "LUCAS30", base: 19700, commission: 5910, status: "reversed", day: 8 },
-] as const
-
-/**
- * A static, token-built mock of the founder dashboard: sidebar on the canvas
- * plane, the page inside one inset content panel — the same frame as
- * `AppShell`. Decorative, so it is hidden from assistive technology and holds
- * no focusable element (the "button" is a styled span).
- *
- * Figures are formatted for the reader's locale and denominated in the
- * currency they are most likely to be paid in, so a Brazilian visitor is not
- * asked to picture their business in dollars.
- */
-async function ProductPreview() {
-  const t = await getTranslations("marketing.preview")
-  const nav = await getTranslations("nav")
-  const dash = await getTranslations("dashboard")
-  const table = await getTranslations("common.table")
-  const f = await getFormatters()
-  const locale = (await getLocale()) as Locale
-  const currency = DEFAULT_CURRENCY[locale]
-
-  // Formatted, not typed out: "+23.4%" and "+23,4%" are the same number and
-  // the mock must not contradict the locale it is rendered in.
-  const percent = (value: number) =>
-    new Intl.NumberFormat(locale, {
-      style: "percent",
-      signDisplay: "always",
-      maximumFractionDigits: 1,
-    }).format(value)
-  const signed = (value: number) =>
-    new Intl.NumberFormat(locale, { signDisplay: "always" }).format(value)
-
-  const metrics = [
-    { key: "revenue", value: f.money(1843020, currency), delta: percent(0.234) },
-    { key: "commissions", value: f.money(552906, currency), delta: percent(0.191) },
-    { key: "affiliates", value: f.number(34), delta: signed(6) },
+/** Micro proof: the four states a referral passes through, in one line. */
+async function FlowProof() {
+  const t = await getTranslations("marketing.home.flow")
+  const { money, currency } = await formatting()
+  const steps = [
+    { key: "click", sample: "?ref=marina" },
+    { key: "signup", sample: "user_8f2c" },
+    { key: "customer", sample: money(49700, currency) },
+    { key: "commission", sample: `+${money(14910, currency)}` },
   ] as const
 
-  const sections: { key: string; label?: string; items: { label: string; icon: LucideIcon; active?: boolean }[] }[] = [
-    { key: "home", items: [{ label: nav("overview"), icon: ChartNoAxesColumn }] },
-    {
-      key: "growth",
-      label: nav("sections.growth"),
-      items: [
-        { label: nav("programs"), icon: Layers },
-        { label: nav("affiliates"), icon: Users },
-      ],
-    },
-    {
-      key: "ledger",
-      label: nav("sections.ledger"),
-      items: [
-        { label: nav("conversions"), icon: Receipt },
-        { label: nav("commissions"), icon: Coins, active: true },
-        { label: nav("payouts"), icon: CreditCard },
-      ],
-    },
-  ]
-
-  const workspace = "Acme"
-
   return (
-    <div
-      aria-hidden="true"
-      className="mt-16 flex select-none overflow-hidden rounded-panel border border-border bg-background p-1.5 sm:mt-20 sm:p-2"
-    >
-      {/* Sidebar — the canvas plane. */}
-      <div className="hidden w-52 shrink-0 flex-col pr-2 md:flex lg:w-56">
-        <div className="flex h-12 items-center gap-2 px-1.5">
-          <span className="flex size-5 shrink-0 items-center justify-center rounded-badge bg-inverse text-micro text-inverse-foreground">
-            {initials(workspace)}
-          </span>
-          <span className="min-w-0 flex-1 truncate text-caption font-semibold text-foreground">
-            {workspace}
-          </span>
-          <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
-        </div>
-
-        <div className="pb-2">
-          <div className="flex h-8 items-center gap-2.5 rounded-control border border-border bg-fill-subtle px-2 text-caption text-faint-foreground">
-            <Search className="size-3.5 shrink-0" />
-            <span className="flex-1">{nav("search")}</span>
-            <Kbd>⌘K</Kbd>
-          </div>
-        </div>
-
-        <div className="flex flex-1 flex-col gap-5 pt-2">
-          {sections.map((section) => (
-            <div key={section.key} className="flex flex-col gap-px">
-              {section.label ? (
-                <p className="px-2 pb-1 text-meta text-faint-foreground">{section.label}</p>
-              ) : null}
-              {section.items.map((item) => (
+    <section aria-labelledby="flow-title" className="border-t border-border">
+      <div className="mx-auto w-full max-w-page px-4 py-14 sm:px-6 sm:py-16">
+        <h2 id="flow-title" className="mb-8 text-caption text-muted-foreground">
+          {t("label")}
+        </h2>
+        <ol className="grid gap-px overflow-hidden rounded-panel border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
+          {steps.map((step, index) => (
+            <li key={step.key} className="relative bg-surface-1 p-5">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-mono text-meta text-faint-foreground">{String(index + 1).padStart(2, "0")}</span>
                 <span
-                  key={item.label}
                   className={cn(
-                    "flex h-8 items-center gap-2.5 rounded-control px-2 text-caption font-medium",
-                    item.active ? "bg-selected text-foreground" : "text-muted-foreground",
+                    "truncate rounded-badge border px-1.5 py-0.5 font-mono text-meta tabular-nums",
+                    index === 3 ? "border-primary/40 text-primary-text" : "border-border text-foreground-secondary",
                   )}
                 >
-                  <item.icon className="size-4 shrink-0" />
-                  <span className="truncate">{item.label}</span>
+                  {step.sample}
                 </span>
-              ))}
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-6 border-t border-border-faint pt-2">
-          <span className="flex h-8 items-center gap-2.5 rounded-control px-2 text-caption font-medium text-muted-foreground">
-            <Settings2 className="size-4 shrink-0" />
-            <span className="truncate">{nav("settings")}</span>
-          </span>
-        </div>
-      </div>
-
-      {/* Content panel — inset, hairline-bordered. */}
-      <div className="min-w-0 flex-1 overflow-hidden rounded-panel border border-border bg-surface-1">
-        <div className="flex h-12 items-center gap-3 border-b border-border px-4 sm:px-6">
-          <span className="truncate text-caption font-medium text-foreground">
-            {dash("commissions.title")}
-          </span>
-          <span className="text-caption tabular-nums text-muted-foreground">{f.number(128)}</span>
-          <span className={cn(buttonVariants({ variant: "primary", size: "sm" }), "ml-auto")}>
-            {dash("overview.reviewPayouts")}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-x-6 border-b border-border px-4 sm:grid-cols-3 sm:px-6">
-          {metrics.map((metric, index) => (
-            <div key={metric.key} className={cn("min-w-0 space-y-1 py-4", index === 2 && "hidden sm:block")}>
-              <p className="truncate text-caption text-muted-foreground">{t(`metrics.${metric.key}`)}</p>
-              <p className="whitespace-nowrap text-title tabular-nums text-foreground">{metric.value}</p>
-              <p className="flex items-center gap-1.5 text-meta">
-                <span className="inline-flex items-center gap-0.5 font-medium tabular-nums text-success-foreground">
-                  <ArrowUp className="size-3" />
-                  {metric.delta}
-                </span>
-                <span className="hidden truncate text-muted-foreground lg:inline">
-                  {dash("overview.metrics.comparison")}
-                </span>
+              </div>
+              <p className="mt-6 flex items-center gap-2 text-title text-foreground">
+                {t(`${step.key}.title`)}
+                {index < 3 ? <ArrowRight className="size-4 text-faint-foreground max-lg:hidden" aria-hidden="true" /> : null}
               </p>
-            </div>
+              <p className="mt-1 text-pretty text-caption text-muted-foreground">{t(`${step.key}.detail`)}</p>
+            </li>
           ))}
-        </div>
+        </ol>
+      </div>
+    </section>
+  )
+}
 
-        <div className="px-3 sm:px-5">
-          <Table>
-            <THead>
-              <tr>
-                <TH>{t("columns.affiliate")}</TH>
-                <TH className="hidden sm:table-cell">{table("code")}</TH>
-                <TH numeric className="hidden md:table-cell">
-                  {t("columns.revenue")}
-                </TH>
-                <TH numeric>{t("columns.commission")}</TH>
-                <TH>{table("status")}</TH>
-                <TH numeric className="hidden lg:table-cell">
-                  {table("date")}
-                </TH>
-              </tr>
-            </THead>
-            <TBody>
-              {ROWS.map((row) => (
-                <TR key={row.code}>
-                  <TD>
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span className="hidden size-5 shrink-0 items-center justify-center rounded-full bg-fill-strong sm:flex text-micro text-foreground-secondary">
-                        {initials(row.name)}
-                      </span>
-                      <span className="truncate text-foreground">{row.name}</span>
-                    </span>
-                  </TD>
-                  <TD mono className="hidden text-muted-foreground sm:table-cell">
-                    {row.code}
-                  </TD>
-                  <TD numeric className="hidden md:table-cell">
-                    {f.money(row.base, currency)}
-                  </TD>
-                  <TD numeric className="text-foreground">
-                    {f.money(row.commission, currency)}
-                  </TD>
-                  <TD>
-                    <StatusBadge status={row.status} />
-                  </TD>
-                  <TD numeric className="hidden text-muted-foreground lg:table-cell">
-                    {f.date(new Date(Date.UTC(2026, 8, row.day)))}
-                  </TD>
-                </TR>
+async function formatting() {
+  const f = await getFormatters()
+  const currency = DEFAULT_CURRENCY[(await getLocale()) as Locale]
+  return { money: f.money, currency }
+}
+
+/** Editorial rows: text and the piece of product that step produces, alternating. */
+async function HowItWorks() {
+  const t = await getTranslations("marketing.home.how")
+  const steps = [
+    { key: "connect", visual: <StripeVisual /> },
+    { key: "commission", visual: <RulesVisual /> },
+    { key: "invite", visual: <InviteVisual /> },
+    { key: "track", visual: <RevenueVisual /> },
+  ] as const
+
+  return (
+    <Section id="como-funciona">
+      <div className="max-w-2xl">
+        <Eyebrow>{t("eyebrow")}</Eyebrow>
+        <Heading>{t("title")}</Heading>
+        <p className="mt-5 text-pretty text-body text-muted-foreground">{t("subtitle")}</p>
+      </div>
+
+      <ol className="mt-16 space-y-16 sm:mt-20 sm:space-y-24">
+        {steps.map((step, index) => (
+          <li key={step.key} className="grid items-center gap-8 lg:grid-cols-2 lg:gap-16">
+            <div className={cn("max-w-md", index % 2 === 1 && "lg:order-2 lg:justify-self-end")}>
+              <span className="font-mono text-meta text-faint-foreground">{String(index + 1).padStart(2, "0")}</span>
+              <h3 className="mt-3 text-subheading text-foreground">{t(`${step.key}.title`)}</h3>
+              <p className="mt-3 text-pretty text-body-sm text-muted-foreground">{t(`${step.key}.body`)}</p>
+            </div>
+            <div className={cn("w-full max-w-lg", index % 2 === 1 ? "lg:order-1" : "lg:justify-self-end")}>
+              {step.visual}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </Section>
+  )
+}
+
+/** Three stories under one sticky heading — a different rhythm from the steps above. */
+async function Features() {
+  const t = await getTranslations("marketing.home.features")
+  const stories = [
+    { key: "attribution", visual: <AttributionVisual /> },
+    { key: "recurring", visual: <LedgerVisual /> },
+    { key: "payouts", visual: <PayoutVisual /> },
+  ] as const
+
+  return (
+    <Section id="produto">
+      <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+        <div className="lg:col-span-4">
+          <div className="lg:sticky lg:top-24">
+            <Eyebrow>{t("eyebrow")}</Eyebrow>
+            <Heading className="sm:text-heading-sm">{t("title")}</Heading>
+          </div>
+        </div>
+        <ol className="lg:col-span-8">
+          {stories.map((story, index) => (
+            <li
+              key={story.key}
+              className="grid gap-8 border-t border-border py-10 first:border-0 first:pt-0 sm:py-14 md:grid-cols-[1fr_1.15fr] md:gap-10"
+            >
+              <div>
+                <span className="font-mono text-meta text-faint-foreground">{String(index + 1).padStart(2, "0")}</span>
+                <h3 className="mt-3 text-title text-foreground">{t(`${story.key}.title`)}</h3>
+                <p className="mt-2 text-pretty text-body-sm text-muted-foreground">{t(`${story.key}.body`)}</p>
+              </div>
+              <div>{story.visual}</div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </Section>
+  )
+}
+
+async function TwoSides() {
+  const t = await getTranslations("marketing.home.sides")
+  const sides = [
+    { key: "founder", items: ["revenue", "affiliates", "commissions", "payouts"], visual: <FounderVisual /> },
+    { key: "affiliate", items: ["clicks", "earnings", "links", "history"], visual: <AffiliateVisual /> },
+  ] as const
+
+  return (
+    <Section>
+      <div className="mx-auto max-w-2xl text-center">
+        <Eyebrow>{t("eyebrow")}</Eyebrow>
+        <Heading>{t("title")}</Heading>
+      </div>
+      <div className="mt-14 grid gap-px overflow-hidden rounded-panel border border-border bg-border lg:grid-cols-2">
+        {sides.map((side) => (
+          <div key={side.key} className="flex flex-col bg-background p-6 sm:p-10">
+            <p className="text-caption text-muted-foreground">{t(`${side.key}.label`)}</p>
+            <h3 className="mt-3 max-w-sm text-balance text-subheading text-foreground">{t(`${side.key}.title`)}</h3>
+            <ul className="mt-6 grid gap-2.5 sm:grid-cols-2">
+              {side.items.map((item) => (
+                <li key={item} className="flex items-center gap-2 text-caption text-foreground-secondary">
+                  <Check className="size-3.5 shrink-0 text-faint-foreground" aria-hidden="true" />
+                  {t(`${side.key}.items.${item}`)}
+                </li>
               ))}
-            </TBody>
-          </Table>
+            </ul>
+            <div className="mt-10 flex flex-1 items-end">
+              <div className="w-full">{side.visual}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Section>
+  )
+}
+
+async function Integrations() {
+  const t = await getTranslations("marketing.home.integrations")
+  const items = [
+    { key: "stripe", icon: CreditCard, available: true },
+    { key: "tracker", icon: Code2, available: false },
+    { key: "api", icon: Lock, available: false },
+  ] as const
+
+  return (
+    <Section id="integracoes">
+      <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+        <div className="lg:col-span-4">
+          <Eyebrow>{t("eyebrow")}</Eyebrow>
+          <Heading className="sm:text-heading-sm">{t("title")}</Heading>
+        </div>
+        <div className="lg:col-span-8">
+          <ul className="grid gap-px overflow-hidden rounded-panel border border-border bg-border sm:grid-cols-3">
+            {items.map((item) => (
+              <li key={item.key} className="bg-surface-1 p-5">
+                <div className="flex items-center justify-between">
+                  <span className="flex size-9 items-center justify-center rounded-control border border-border bg-surface-2 text-foreground-secondary">
+                    <item.icon className="size-4" aria-hidden="true" />
+                  </span>
+                  {item.available ? (
+                    <span className="inline-flex h-5 items-center gap-1.5 rounded-badge border border-border px-1.5 text-meta font-medium text-foreground-secondary">
+                      <span className="size-1.5 rounded-full bg-success" aria-hidden="true" />
+                      {t("available")}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-5 text-ui font-medium text-foreground">{t(`${item.key}.title`)}</p>
+                <p className="mt-1 text-pretty text-caption text-muted-foreground">{t(`${item.key}.body`)}</p>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-caption text-faint-foreground">{t("more")}</p>
         </div>
       </div>
-    </div>
+    </Section>
+  )
+}
+
+/** Product-based trust. Nothing here is a claim the code does not keep. */
+async function Principles() {
+  const t = await getTranslations("marketing.home.principles")
+  const items = [
+    { key: "noFee", icon: CircleDollarSign },
+    { key: "money", icon: ShieldCheck },
+    { key: "privacy", icon: Lock },
+    { key: "ledger", icon: FileClock },
+  ] as const
+
+  return (
+    <Section>
+      <div className="max-w-2xl">
+        <Eyebrow>{t("eyebrow")}</Eyebrow>
+        <Heading>{t("title")}</Heading>
+      </div>
+      <ul className="mt-14 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+        {items.map((item) => (
+          <li key={item.key} className="border-t border-border pt-5">
+            <item.icon className="size-4.5 text-muted-foreground" aria-hidden="true" />
+            <p className="mt-4 text-ui font-medium text-foreground">{t(`${item.key}.title`)}</p>
+            <p className="mt-1.5 text-pretty text-caption text-muted-foreground">{t(`${item.key}.body`)}</p>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  )
+}
+
+async function PricingPreview() {
+  const t = await getTranslations("marketing.home.pricing")
+  const tp = await getTranslations("pricing")
+  const locale = (await getLocale()) as Locale
+  const { money, currency } = await formatting()
+
+  return (
+    <Section>
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-xl">
+          <Eyebrow>{t("eyebrow")}</Eyebrow>
+          <Heading className="sm:text-heading-sm">{t("title")}</Heading>
+        </div>
+        <Button asChild variant="secondary" className="self-start sm:self-auto">
+          <Link href="/pricing">
+            {t("cta")}
+            <ArrowRight aria-hidden="true" />
+          </Link>
+        </Button>
+      </div>
+      <ul className="mt-12 grid gap-px overflow-hidden rounded-panel border border-border bg-border md:grid-cols-3">
+        {PLANS.map((plan) => {
+          const price = PRICE_MINOR[locale][plan.key]
+          return (
+            <li key={plan.key} className="bg-surface-1 p-6">
+              <p className="flex items-center gap-2 text-ui font-medium text-foreground">
+                {tp(`plans.${plan.key}.name`)}
+                {plan.featured ? (
+                  <span className="rounded-badge border border-primary/40 px-1.5 text-meta text-primary-text">
+                    {tp("mostPopular")}
+                  </span>
+                ) : null}
+              </p>
+              <p className="mt-4 flex items-baseline gap-1.5">
+                <span className="text-heading-sm tabular-nums text-foreground">
+                  {price === 0 ? t("free") : money(price, currency)}
+                </span>
+                {price === 0 ? null : (
+                  <span className="text-caption text-muted-foreground">{tp(`plans.${plan.key}.cadence`)}</span>
+                )}
+              </p>
+              <p className="mt-3 text-pretty text-caption text-muted-foreground">{tp(`plans.${plan.key}.description`)}</p>
+            </li>
+          )
+        })}
+      </ul>
+    </Section>
+  )
+}
+
+async function Closing() {
+  const t = await getTranslations("marketing.home")
+  return (
+    <section className="border-t border-border">
+      <div className="mx-auto w-full max-w-page px-4 py-20 sm:px-6 sm:py-28">
+        <div className="rounded-panel border border-border bg-surface-1 px-6 py-14 text-center sm:px-12 sm:py-20">
+          <h2 className="mx-auto max-w-2xl text-balance text-heading-sm text-foreground sm:text-heading">
+            {t("closing.title")}
+          </h2>
+          <p className="mx-auto mt-5 max-w-lg text-pretty text-body text-muted-foreground">{t("closing.body")}</p>
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <Button asChild variant="primary" size="lg" className="h-11 px-5 sm:h-10">
+              <Link href="/signup">
+                {t("ctaPrimary")}
+                <ArrowRight aria-hidden="true" />
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="lg" className="h-11 px-5 sm:h-10">
+              <Link href="/pricing">{t("closing.secondary")}</Link>
+            </Button>
+          </div>
+          <ul className="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 text-caption text-muted-foreground">
+            {(["noCard", "noFee"] as const).map((key) => (
+              <li key={key} className="flex items-center gap-1.5">
+                <Check className="size-3.5 text-faint-foreground" aria-hidden="true" />
+                {t(`trust.${key}`)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
   )
 }

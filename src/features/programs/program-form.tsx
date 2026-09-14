@@ -4,11 +4,13 @@ import { useTranslations } from "next-intl"
 import type * as React from "react"
 import { useActionState, useState } from "react"
 
+import { InlineAlert } from "@/components/feedback/inline-alert"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Field } from "@/components/ui/field"
 import { Input, Select, Textarea } from "@/components/ui/input"
-import { CURRENCIES } from "@/features/workspaces/options"
+import { SettingsDisclosure } from "@/features/onboarding/settings-disclosure"
+import { CURRENCY_CODES } from "@/features/workspaces/options"
 
 import { createProgramAction, updateProgramAction, type ProgramFormState } from "./actions"
 
@@ -29,14 +31,34 @@ export interface ProgramFormValues {
   currency: string
 }
 
+/** Fields behind "Advanced settings", per variant; an error in one reveals it. */
+const ADVANCED_FIELDS = {
+  full: ["attributionModel", "attributionWindowDays", "commissionHoldDays"],
+  onboarding: ["status", "currency", "attributionModel", "attributionWindowDays", "commissionHoldDays"],
+} as const
+
+/**
+ * One form, two shapes.
+ *
+ * `full` is the dashboard form (create and edit): every group visible except
+ * attribution and hold, which sit in a disclosure — collapsed when creating,
+ * open when editing, because someone on a settings tab came to change them.
+ *
+ * `onboarding` asks only what a founder must decide — name, commission and
+ * recurrence — and keeps status, currency, attribution and hold behind a
+ * collapsed disclosure that echoes their defaults. Every field still submits,
+ * so the action's schema receives exactly what it did before.
+ */
 export function ProgramForm({
   workspaceSlug,
   defaultValues,
   mode,
+  variant = "full",
 }: {
   workspaceSlug: string
   defaultValues: ProgramFormValues
   mode: "create" | "edit"
+  variant?: "full" | "onboarding"
 }) {
   const t = useTranslations("forms.program")
   const ts = useTranslations("status")
@@ -45,192 +67,367 @@ export function ProgramForm({
     INITIAL,
   )
 
-  const [commissionType, setCommissionType] = useState(defaultValues.commissionType)
-  const [recurrence, setRecurrence] = useState(defaultValues.recurrence)
+  // Controlled, so a failed submission keeps what was typed instead of
+  // snapping back to the defaults when React resets the form.
+  const [values, setValues] = useState(defaultValues)
+  const set =
+    <K extends keyof ProgramFormValues>(key: K) =>
+    (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+      setValues((current) => ({ ...current, [key]: event.target.value as ProgramFormValues[K] }))
+
+  const errors = state.fieldErrors ?? {}
+  const error = (field: string) => errors[field]?.[0]
+  /** Binds a control to its error, or to its hint when it has one. */
+  const describedBy = (field: string, hasHint = false) =>
+    errors[field] ? `${field}-error` : hasHint ? `${field}-hint` : undefined
+
+  const isOnboarding = variant === "onboarding"
+  const advancedError = ADVANCED_FIELDS[variant].some((field) => errors[field])
+
+  const settingsSummary = t("advanced.summary", {
+    model: values.attributionModel === "last_click" ? t("lastClick") : t("firstClick"),
+    window: Number(values.attributionWindowDays) || 0,
+    hold: Number(values.commissionHoldDays) || 0,
+  })
+
+  const nameField = (
+    <Field label={t("name")} htmlFor="name" required={!isOnboarding} error={error("name")}>
+      <Input
+        id="name"
+        name="name"
+        value={values.name}
+        onChange={set("name")}
+        placeholder={t("namePlaceholder")}
+        required
+        aria-describedby={describedBy("name")}
+        invalid={Boolean(errors.name)}
+      />
+    </Field>
+  )
+
+  const statusField = (
+    <Field label={t("status")} htmlFor="status" error={error("status")}>
+      <Select
+        id="status"
+        name="status"
+        value={values.status}
+        onChange={set("status")}
+        aria-invalid={errors.status ? true : undefined}
+        aria-describedby={describedBy("status")}
+      >
+        <option value="draft">{ts("draft")}</option>
+        <option value="active">{ts("active")}</option>
+        <option value="paused">{ts("paused")}</option>
+        <option value="archived">{ts("archived")}</option>
+      </Select>
+    </Field>
+  )
+
+  const typeField = (
+    <Field label={t("type")} htmlFor="commissionType" error={error("commissionType")}>
+      <Select
+        id="commissionType"
+        name="commissionType"
+        value={values.commissionType}
+        onChange={set("commissionType")}
+        aria-invalid={errors.commissionType ? true : undefined}
+        aria-describedby={describedBy("commissionType")}
+      >
+        <option value="percentage">{t("typePercentage")}</option>
+        <option value="fixed">{t("typeFixed")}</option>
+      </Select>
+    </Field>
+  )
+
+  const amountField = (
+    <Field
+      label={
+        values.commissionType === "percentage"
+          ? t("rate")
+          : t("amountIn", { currency: values.currency })
+      }
+      htmlFor="commissionAmount"
+      required={!isOnboarding}
+      error={error("commissionAmount")}
+    >
+      <Input
+        id="commissionAmount"
+        name="commissionAmount"
+        type="number"
+        inputMode="decimal"
+        step="0.01"
+        min="0.01"
+        max={values.commissionType === "percentage" ? "100" : undefined}
+        value={values.commissionAmount}
+        onChange={set("commissionAmount")}
+        required
+        aria-describedby={describedBy("commissionAmount")}
+        invalid={Boolean(errors.commissionAmount)}
+        className="tabular-nums"
+      />
+    </Field>
+  )
+
+  const currencyField = (
+    <Field label={t("currency")} htmlFor="currency" error={error("currency")}>
+      <Select
+        id="currency"
+        name="currency"
+        value={values.currency}
+        onChange={set("currency")}
+        aria-invalid={errors.currency ? true : undefined}
+        aria-describedby={describedBy("currency")}
+      >
+        {CURRENCY_CODES.map((code) => (
+          <option key={code} value={code}>
+            {code}
+          </option>
+        ))}
+      </Select>
+    </Field>
+  )
+
+  const recurrenceField = (className?: string) => (
+    <Field
+      label={t("recurrence")}
+      htmlFor="recurrence"
+      hint={t("recurrenceHint")}
+      error={error("recurrence")}
+      className={className}
+    >
+      <Select
+        id="recurrence"
+        name="recurrence"
+        value={values.recurrence}
+        onChange={set("recurrence")}
+        aria-invalid={errors.recurrence ? true : undefined}
+        aria-describedby={describedBy("recurrence", true)}
+      >
+        <option value="lifetime">{t("recurrenceLifetime")}</option>
+        <option value="first_only">{t("recurrenceFirst")}</option>
+        <option value="months">{t("recurrenceMonths")}</option>
+      </Select>
+    </Field>
+  )
+
+  const durationField =
+    values.recurrence === "months" ? (
+      <Field label={t("durationMonths")} htmlFor="durationMonths" error={error("durationMonths")}>
+        <Input
+          id="durationMonths"
+          name="durationMonths"
+          type="number"
+          inputMode="numeric"
+          min="1"
+          max="120"
+          value={values.durationMonths}
+          onChange={set("durationMonths")}
+          aria-describedby={describedBy("durationMonths")}
+          invalid={Boolean(errors.durationMonths)}
+          className="tabular-nums"
+        />
+      </Field>
+    ) : null
+
+  // Jargon gets a one-line explanation right under the control: a tooltip
+  // cannot be read on a phone and hides the answer behind a hover.
+  const modelField = (
+    <Field
+      label={t("model")}
+      htmlFor="attributionModel"
+      hint={values.attributionModel === "last_click" ? t("lastClickHint") : t("firstClickHint")}
+      error={error("attributionModel")}
+    >
+      <Select
+        id="attributionModel"
+        name="attributionModel"
+        value={values.attributionModel}
+        onChange={set("attributionModel")}
+        aria-invalid={errors.attributionModel ? true : undefined}
+        aria-describedby={describedBy("attributionModel", true)}
+      >
+        <option value="last_click">{t("lastClick")}</option>
+        <option value="first_click">{t("firstClick")}</option>
+      </Select>
+    </Field>
+  )
+
+  const windowField = (
+    <Field
+      label={t("windowDays")}
+      htmlFor="attributionWindowDays"
+      hint={t("windowDaysHint")}
+      error={error("attributionWindowDays")}
+    >
+      <Input
+        id="attributionWindowDays"
+        name="attributionWindowDays"
+        type="number"
+        inputMode="numeric"
+        min="1"
+        max="365"
+        value={values.attributionWindowDays}
+        onChange={set("attributionWindowDays")}
+        aria-describedby={describedBy("attributionWindowDays", true)}
+        invalid={Boolean(errors.attributionWindowDays)}
+        className="tabular-nums"
+      />
+    </Field>
+  )
+
+  const holdField = (
+    <Field
+      label={t("holdDays")}
+      htmlFor="commissionHoldDays"
+      hint={t("holdDaysHint")}
+      error={error("commissionHoldDays")}
+    >
+      <Input
+        id="commissionHoldDays"
+        name="commissionHoldDays"
+        type="number"
+        inputMode="numeric"
+        min="0"
+        max="180"
+        value={values.commissionHoldDays}
+        onChange={set("commissionHoldDays")}
+        aria-describedby={describedBy("commissionHoldDays", true)}
+        invalid={Boolean(errors.commissionHoldDays)}
+        className="tabular-nums"
+      />
+    </Field>
+  )
+
+  const feedback = state.error ? (
+    <InlineAlert tone="danger">{state.error}</InlineAlert>
+  ) : state.success ? (
+    <InlineAlert tone="success">{state.success}</InlineAlert>
+  ) : null
+
+  const hiddenFields = (
+    <>
+      <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
+      {defaultValues.id ? <input type="hidden" name="programId" value={defaultValues.id} /> : null}
+    </>
+  )
+
+  if (isOnboarding) {
+    return (
+      <form action={action} noValidate>
+        {hiddenFields}
+        <input type="hidden" name="onboarding" value="1" />
+
+        <Card className="space-y-4 p-4 sm:p-6">
+          {nameField}
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {typeField}
+            {amountField}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {recurrenceField(durationField ? undefined : "sm:col-span-2")}
+            {durationField}
+          </div>
+
+          <SettingsDisclosure
+            title={t("advanced.title")}
+            summary={t("advanced.summaryWithStatus", {
+              status: ts(values.status),
+              settings: settingsSummary,
+            })}
+            forceOpen={advancedError}
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              {statusField}
+              {currencyField}
+            </div>
+            {modelField}
+            {windowField}
+            {holdField}
+          </SettingsDisclosure>
+
+          {feedback}
+
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            className="w-full max-sm:h-11"
+            loading={pending}
+          >
+            {t("submitCreate")}
+          </Button>
+        </Card>
+      </form>
+    )
+  }
 
   return (
     <form action={action} noValidate>
-      <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
-      {defaultValues.id ? <input type="hidden" name="programId" value={defaultValues.id} /> : null}
+      {hiddenFields}
 
       {/* One container for the whole form; its sections are divided by
           hairlines rather than stacked as separate cards. */}
       <Card className="divide-y divide-border">
         <FormSection title={t("basics.title")} description={t("basics.description")}>
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field
-              label={t("name")}
-              htmlFor="name"
-              required
-              error={state.fieldErrors?.name?.[0]}
-              className="sm:col-span-2"
-            >
-              <Input
-                id="name"
-                name="name"
-                defaultValue={defaultValues.name}
-                placeholder={t("namePlaceholder")}
-                required
-                invalid={Boolean(state.fieldErrors?.name)}
-              />
-            </Field>
-
-            <Field label={t("status")} htmlFor="status">
-              <Select id="status" name="status" defaultValue={defaultValues.status}>
-                <option value="draft">{ts("draft")}</option>
-                <option value="active">{ts("active")}</option>
-                <option value="paused">{ts("paused")}</option>
-                <option value="archived">{ts("archived")}</option>
-              </Select>
-            </Field>
+            <div className="sm:col-span-2">{nameField}</div>
+            {statusField}
           </div>
 
-          <Field label={t("description")} htmlFor="description" hint={t("descriptionHint")}>
+          <Field
+            label={t("description")}
+            htmlFor="description"
+            hint={t("descriptionHint")}
+            error={error("description")}
+          >
             <Textarea
               id="description"
               name="description"
               rows={3}
-              defaultValue={defaultValues.description}
+              value={values.description}
+              onChange={set("description")}
+              aria-describedby={describedBy("description", true)}
+              invalid={Boolean(errors.description)}
             />
           </Field>
         </FormSection>
 
         <FormSection title={t("commission.title")} description={t("commission.description")}>
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field label={t("type")} htmlFor="commissionType">
-              <Select
-                id="commissionType"
-                name="commissionType"
-                value={commissionType}
-                onChange={(event) =>
-                  setCommissionType(event.target.value as ProgramFormValues["commissionType"])
-                }
-              >
-                <option value="percentage">{t("typePercentage")}</option>
-                <option value="fixed">{t("typeFixed")}</option>
-              </Select>
-            </Field>
-
-            <Field
-              label={commissionType === "percentage" ? t("rate") : t("amount")}
-              htmlFor="commissionAmount"
-              required
-              error={state.fieldErrors?.commissionAmount?.[0]}
-            >
-              <Input
-                id="commissionAmount"
-                name="commissionAmount"
-                type="number"
-                step="0.01"
-                min="0.01"
-                max={commissionType === "percentage" ? "100" : undefined}
-                defaultValue={defaultValues.commissionAmount}
-                required
-                invalid={Boolean(state.fieldErrors?.commissionAmount)}
-                className="tabular-nums"
-              />
-            </Field>
-
-            <Field label={t("currency")} htmlFor="currency">
-              <Select id="currency" name="currency" defaultValue={defaultValues.currency}>
-                {CURRENCIES.map((currency) => (
-                  <option key={currency.code} value={currency.code}>
-                    {currency.code}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+            {typeField}
+            {amountField}
+            {currencyField}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field label={t("recurrence")} htmlFor="recurrence" className="sm:col-span-2">
-              <Select
-                id="recurrence"
-                name="recurrence"
-                value={recurrence}
-                onChange={(event) =>
-                  setRecurrence(event.target.value as ProgramFormValues["recurrence"])
-                }
-              >
-                <option value="first_only">{t("recurrenceFirst")}</option>
-                <option value="months">{t("recurrenceMonths")}</option>
-                <option value="lifetime">{t("recurrenceLifetime")}</option>
-              </Select>
-            </Field>
-
-            {recurrence === "months" ? (
-              <Field
-                label={t("durationMonths")}
-                htmlFor="durationMonths"
-                error={state.fieldErrors?.durationMonths?.[0]}
-              >
-                <Input
-                  id="durationMonths"
-                  name="durationMonths"
-                  type="number"
-                  min="1"
-                  max="120"
-                  defaultValue={defaultValues.durationMonths}
-                  className="tabular-nums"
-                />
-              </Field>
-            ) : null}
-          </div>
-
-          <Field label={t("holdDays")} htmlFor="commissionHoldDays" hint={t("holdDaysHint")}>
-            <Input
-              id="commissionHoldDays"
-              name="commissionHoldDays"
-              type="number"
-              min="0"
-              max="180"
-              defaultValue={defaultValues.commissionHoldDays}
-              className="tabular-nums sm:max-w-40"
-            />
-          </Field>
-        </FormSection>
-
-        <FormSection title={t("attribution.title")} description={t("attribution.description")}>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field label={t("model")} htmlFor="attributionModel" className="sm:col-span-2">
-              <Select
-                id="attributionModel"
-                name="attributionModel"
-                defaultValue={defaultValues.attributionModel}
-              >
-                <option value="last_click">{t("lastClick")}</option>
-                <option value="first_click">{t("firstClick")}</option>
-              </Select>
-            </Field>
-
-            <Field
-              label={t("windowDays")}
-              htmlFor="attributionWindowDays"
-              error={state.fieldErrors?.attributionWindowDays?.[0]}
-            >
-              <Input
-                id="attributionWindowDays"
-                name="attributionWindowDays"
-                type="number"
-                min="1"
-                max="365"
-                defaultValue={defaultValues.attributionWindowDays}
-                className="tabular-nums"
-              />
-            </Field>
+            {recurrenceField("sm:col-span-2")}
+            {durationField}
           </div>
         </FormSection>
+
+        <SettingsDisclosure
+          framed={false}
+          title={t("advanced.title")}
+          summary={settingsSummary}
+          defaultOpen={mode === "edit"}
+          forceOpen={advancedError}
+        >
+          <div className="grid gap-4 md:grid-cols-3 md:gap-8">
+            <p className="text-caption text-muted-foreground">{t("advanced.description")}</p>
+            <div className="space-y-4 md:col-span-2">
+              {modelField}
+              <div className="grid gap-4 sm:grid-cols-2">
+                {windowField}
+                {holdField}
+              </div>
+            </div>
+          </div>
+        </SettingsDisclosure>
 
         <div className="flex flex-wrap items-center justify-end gap-3 px-4 py-3">
-          {state.error ? (
-            <p role="alert" className="mr-auto text-caption text-danger-foreground">
-              {state.error}
-            </p>
-          ) : state.success ? (
-            <p role="status" className="mr-auto text-caption text-success-foreground">
-              {state.success}
-            </p>
-          ) : null}
+          {feedback ? <div className="mr-auto">{feedback}</div> : null}
           <Button type="submit" variant="primary" loading={pending}>
             {mode === "create" ? t("submitCreate") : t("submitSave")}
           </Button>

@@ -89,6 +89,7 @@ const TONES = {
   rejected: "danger",
   cancelled: "danger",
   failed: "danger",
+  error: "danger",
   suspended: "danger",
   chargeback: "danger",
   refund: "danger",
@@ -106,14 +107,27 @@ export type KnownStatus = keyof typeof TONES
  * database value: "reversed" is a word a reader sees, and it has to be a word
  * in their language.
  */
-export function StatusBadge({ status, className }: { status: string; className?: string }) {
+export function StatusBadge({
+  status,
+  label,
+  className,
+}: {
+  status: string
+  /**
+   * Overrides the catalogue label when the same status word needs a different
+   * noun agreement — a participation "approved" is a person, a commission
+   * "approved" is a ledger row. The tone still comes from `status`.
+   */
+  label?: string
+  className?: string
+}) {
   const t = useTranslations("status")
   const tone = (TONES[status as KnownStatus] ?? "info") as NonNullable<BadgeProps["tone"]>
   const key = status.replace(/_/g, "")
 
   return (
     <Badge tone={tone} className={className}>
-      {t.has(key) ? t(key) : status}
+      {label ?? (t.has(key) ? t(key) : status)}
     </Badge>
   )
 }

@@ -1,4 +1,4 @@
-import { Search, Users, X } from "lucide-react"
+import { Layers, Search, Users, X } from "lucide-react"
 import type { Metadata } from "next"
 import { getTranslations } from "next-intl/server"
 
@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { StatusBadge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input, Select } from "@/components/ui/input"
+import { Pagination } from "@/components/ui/pagination"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
 import { InviteAffiliateDialog } from "@/features/affiliates/invite-affiliate-dialog"
 import { requireUser } from "@/server/auth/session"
@@ -29,6 +30,8 @@ export async function generateMetadata({
 }
 
 const PAGE_SIZE = 25
+const STATUSES = ["approved", "pending", "suspended", "rejected"] as const
+type ParticipationStatus = (typeof STATUSES)[number]
 
 export default async function AffiliatesPage({
   params,
@@ -36,45 +39,77 @@ export default async function AffiliatesPage({
 }: PageProps<"/[locale]/[workspaceSlug]/affiliates">) {
   const t = await getTranslations("dashboard.affiliates")
   const tc = await getTranslations("common.table")
-  const ts = await getTranslations("status")
   const ta = await getTranslations("common.actions")
   const f = await getFormatters()
   const { workspaceSlug } = await params
   const query = await searchParams
 
-  const search = typeof query.q === "string" ? query.q : undefined
+  const search = typeof query.q === "string" && query.q.trim() !== "" ? query.q : undefined
   const status =
-    typeof query.status === "string" &&
-    ["pending", "approved", "rejected", "suspended"].includes(query.status)
-      ? (query.status as "pending" | "approved" | "rejected" | "suspended")
+    typeof query.status === "string" && STATUSES.includes(query.status as ParticipationStatus)
+      ? (query.status as ParticipationStatus)
       : undefined
   const page = Math.max(1, Number(query.page ?? 1) || 1)
 
   const user = await requireUser()
   const workspace = await getWorkspaceForUser(user.id, workspaceSlug)
+  const programs = await withUser(user.id, (tx) => listPrograms(tx, workspace.id))
 
-  const [programs, result] = await withUser(user.id, (tx) =>
-    Promise.all([
-      listPrograms(tx, workspace.id),
-      listAffiliates(tx, {
-        workspaceId: workspace.id,
-        search,
-        status,
-        limit: PAGE_SIZE,
-        offset: (page - 1) * PAGE_SIZE,
-      }),
-    ]),
+  // Only a program of this workspace narrows the list; anything else is ignored.
+  const programId =
+    typeof query.program === "string" && programs.some((program) => program.id === query.program)
+      ? query.program
+      : undefined
+
+  const result = await withUser(user.id, (tx) =>
+    listAffiliates(tx, {
+      workspaceId: workspace.id,
+      programId,
+      search,
+      status,
+      limit: PAGE_SIZE,
+      offset: (page - 1) * PAGE_SIZE,
+    }),
   )
 
   const pages = Math.max(1, Math.ceil(result.total / PAGE_SIZE))
-  const filtered = Boolean(search || status)
+  const filtered = Boolean(search || status || programId)
   const programOptions = programs.map((program) => ({ id: program.id, name: program.name }))
+  const listHref = { pathname: "/[workspaceSlug]/affiliates", params: { workspaceSlug } } as const
   const pageHref = (target: number) =>
     ({
-      pathname: "/[workspaceSlug]/affiliates",
-      params: { workspaceSlug },
-      query: { ...(search ? { q: search } : {}), ...(status ? { status } : {}), page: target },
+      ...listHref,
+      query: {
+        ...(search ? { q: search } : {}),
+        ...(status ? { status } : {}),
+        ...(programId ? { program: programId } : {}),
+        page: target,
+      },
     }) as const
+
+  const statusLabel = (value: ParticipationStatus) => t(`status.${value}`)
+
+  // Affiliates join through a program: without one there is nothing to invite
+  // them into, so the page points at the step that is actually missing.
+  if (programs.length === 0) {
+    return (
+      <>
+        <PageHeader title={t("title")} description={t("description")} />
+        <EmptyState
+          icon={Layers}
+          title={t("noProgram.title")}
+          description={t("noProgram.description")}
+          action={
+            <Button asChild variant="primary">
+              <Link href={{ pathname: "/[workspaceSlug]/programs/new", params: { workspaceSlug } }}>
+                {t("noProgram.action")}
+              </Link>
+            </Button>
+          }
+        />
+      </>
+    )
+  }
 
   return (
     <>
@@ -85,7 +120,11 @@ export default async function AffiliatesPage({
         actions={
           // On a first run the empty state carries the one primary action.
           result.total > 0 || filtered ? (
-            <InviteAffiliateDialog workspaceSlug={workspaceSlug} programs={programOptions} />
+            <InviteAffiliateDialog
+              workspaceSlug={workspaceSlug}
+              programs={programOptions}
+              defaultProgramId={programId}
+            />
           ) : null
         }
       />
@@ -113,17 +152,33 @@ export default async function AffiliatesPage({
             className="w-auto min-w-40"
           >
             <option value="">{t("allStatuses")}</option>
-            <option value="approved">{ts("approved")}</option>
-            <option value="pending">{ts("pending")}</option>
-            <option value="suspended">{ts("suspended")}</option>
-            <option value="rejected">{ts("rejected")}</option>
+            {STATUSES.map((value) => (
+              <option key={value} value={value}>
+                {statusLabel(value)}
+              </option>
+            ))}
           </Select>
+          {programs.length > 1 || programId ? (
+            <Select
+              name="program"
+              defaultValue={programId ?? ""}
+              aria-label={t("filterProgram")}
+              className="w-auto min-w-44 max-w-full"
+            >
+              <option value="">{t("allPrograms")}</option>
+              {programs.map((program) => (
+                <option key={program.id} value={program.id}>
+                  {program.name}
+                </option>
+              ))}
+            </Select>
+          ) : null}
           <Button type="submit" variant="secondary" size="sm">
             {t("apply")}
           </Button>
           {filtered ? (
             <Button asChild variant="ghost" size="sm">
-              <Link href={{ pathname: "/[workspaceSlug]/affiliates", params: { workspaceSlug } }}>
+              <Link href={listHref}>
                 <X aria-hidden="true" />
                 {ta("clearFilters")}
               </Link>
@@ -140,17 +195,10 @@ export default async function AffiliatesPage({
           action={
             filtered ? (
               <Button asChild variant="secondary">
-                <Link href={{ pathname: "/[workspaceSlug]/affiliates", params: { workspaceSlug } }}>
-                  {ta("clearFilters")}
-                </Link>
+                <Link href={listHref}>{ta("clearFilters")}</Link>
               </Button>
             ) : (
-              <InviteAffiliateDialog
-                workspaceSlug={workspaceSlug}
-                programs={programOptions}
-                triggerLabel={t("empty.action")}
-                triggerSize="md"
-              />
+              <InviteAffiliateDialog workspaceSlug={workspaceSlug} programs={programOptions} triggerSize="md" />
             )
           }
         />
@@ -173,15 +221,16 @@ export default async function AffiliatesPage({
               <TBody>
                 {result.rows.map((row) => {
                   const rowStatus = row.participationStatus ?? row.status
+                  const label = row.participationStatus ? statusLabel(row.participationStatus) : undefined
                   const commission = f.money(row.commissionMinor, workspace.defaultCurrency)
                   return (
                     <TR key={`${row.affiliateId}-${row.participationId ?? "none"}`}>
                       <TD className="max-md:py-2.5">
                         <div className="flex items-center justify-between gap-3">
                           <span className="truncate font-medium text-foreground">{row.name}</span>
-                          <StatusBadge status={rowStatus} className="md:hidden" />
+                          <StatusBadge status={rowStatus} label={label} className="md:hidden" />
                         </div>
-                        <span className="block truncate font-mono text-label text-muted-foreground max-md:hidden">
+                        <span className="block truncate font-mono text-meta text-muted-foreground max-md:hidden">
                           {row.code ?? row.email}
                         </span>
                         <span className="mt-0.5 flex gap-3 text-meta text-muted-foreground md:hidden">
@@ -193,14 +242,12 @@ export default async function AffiliatesPage({
                               {f.number(row.clicks)}
                             </span>
                           </span>
-                          <span className="ml-auto shrink-0 tabular-nums text-foreground-secondary">
-                            {commission}
-                          </span>
+                          <span className="ml-auto shrink-0 tabular-nums text-foreground">{commission}</span>
                         </span>
                       </TD>
                       <TD className="max-lg:hidden">{row.programName ?? "—"}</TD>
                       <TD className="max-md:hidden">
-                        <StatusBadge status={rowStatus} />
+                        <StatusBadge status={rowStatus} label={label} />
                       </TD>
                       <TD numeric className="max-md:hidden">
                         {f.number(row.clicks)}
@@ -225,32 +272,14 @@ export default async function AffiliatesPage({
           </TableContainer>
 
           {pages > 1 ? (
-            <nav
-              aria-label={t("pagination")}
-              className="flex h-12 items-center justify-between gap-3 text-meta tabular-nums text-muted-foreground"
-            >
-              <span>{t("pageOf", { page, pages, total: f.number(result.total) })}</span>
-              <span className="flex gap-2">
-                {page <= 1 ? (
-                  <Button variant="secondary" size="sm" disabled>
-                    {ta("previous")}
-                  </Button>
-                ) : (
-                  <Button asChild variant="secondary" size="sm">
-                    <Link href={pageHref(page - 1)}>{ta("previous")}</Link>
-                  </Button>
-                )}
-                {page >= pages ? (
-                  <Button variant="secondary" size="sm" disabled>
-                    {ta("next")}
-                  </Button>
-                ) : (
-                  <Button asChild variant="secondary" size="sm">
-                    <Link href={pageHref(page + 1)}>{ta("next")}</Link>
-                  </Button>
-                )}
-              </span>
-            </nav>
+            <Pagination
+              label={t("pagination")}
+              summary={t("pageOf", { page, pages, total: f.number(result.total) })}
+              previous={page > 1 ? <Link href={pageHref(page - 1)} /> : null}
+              next={page < pages ? <Link href={pageHref(page + 1)} /> : null}
+              previousLabel={ta("previous")}
+              nextLabel={ta("next")}
+            />
           ) : null}
         </>
       )}

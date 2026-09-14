@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils"
  */
 const buttonVariants = cva(
   [
-    "inline-flex shrink-0 select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-control",
+    "relative inline-flex shrink-0 select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-control",
     "text-caption font-medium leading-none",
     "transition-[background-color,color,border-color,opacity] duration-[120ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
     "disabled:pointer-events-none disabled:opacity-40 aria-disabled:pointer-events-none aria-disabled:opacity-40",
@@ -29,7 +29,7 @@ const buttonVariants = cva(
         danger:
           "border border-border text-danger-foreground hover:border-danger/50 hover:bg-danger-subtle",
         /* Solid, and only inside the confirmation that states the consequence. */
-        destructive: "bg-danger text-white hover:brightness-110",
+        destructive: "bg-danger text-on-danger hover:brightness-110",
         link: "h-auto px-0 text-foreground underline-offset-4 hover:underline",
       },
       size: {
@@ -71,10 +71,14 @@ export function Button({
       aria-busy={loading || undefined}
       {...props}
     >
-      {loading ? (
+      {loading && !asChild ? (
+        // The label stays in the layout (invisible) so the button keeps its
+        // width; the spinner sits on top of it. DESIGN.md §9.
         <>
-          <Loader2 className="animate-spin" aria-hidden="true" />
-          {children}
+          <span className="invisible inline-flex items-center gap-1.5">{children}</span>
+          <span className="absolute inset-0 flex items-center justify-center">
+            <Loader2 className="animate-spin" aria-hidden="true" />
+          </span>
         </>
       ) : (
         children

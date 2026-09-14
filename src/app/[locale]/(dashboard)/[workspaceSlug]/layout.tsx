@@ -2,6 +2,8 @@ import { notFound } from "next/navigation"
 
 import { DashboardShell } from "@/components/layout/dashboard-shell"
 import { requireUser } from "@/server/auth/session"
+import { withUser } from "@/server/db"
+import { listParticipationsForUser } from "@/server/repositories/affiliates"
 import { getWorkspaceForUser, listUserWorkspaces } from "@/server/services/workspaces"
 
 export const dynamic = "force-dynamic"
@@ -21,8 +23,16 @@ export default async function DashboardLayout({
   // can never keep a revoked member inside the shell.
   await getWorkspaceForUser(user.id, workspaceSlug)
 
+  // The account menu only offers the affiliate portal to someone who has one.
+  const participations = await withUser(user.id, (tx) => listParticipationsForUser(tx, user.id))
+
   return (
-    <DashboardShell workspaces={workspaces} current={current} email={user.email}>
+    <DashboardShell
+      workspaces={workspaces}
+      current={current}
+      email={user.email}
+      isAffiliate={participations.length > 0}
+    >
       {children}
     </DashboardShell>
   )

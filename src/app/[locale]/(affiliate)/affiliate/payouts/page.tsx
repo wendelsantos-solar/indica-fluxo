@@ -12,6 +12,8 @@ import { withUser } from "@/server/db"
 import { listParticipationsForUser } from "@/server/repositories/affiliates"
 import { listPayoutsForAffiliate } from "@/server/repositories/commissions"
 
+import { PortalList, PortalListItem } from "../_components/portal-list"
+
 export const dynamic = "force-dynamic"
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -19,6 +21,11 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("title") }
 }
 
+/**
+ * The record of what the program owner says they paid. IndicaFluxo moves no
+ * money, so the page never implies it did: a payout is "paid" on the date the
+ * owner marked it, and the reference is theirs.
+ */
 export default async function AffiliatePayoutsPage() {
   const t = await getTranslations("portal.payouts")
   const tc = await getTranslations("common.table")
@@ -33,6 +40,11 @@ export default async function AffiliatePayoutsPage() {
     )
   })
 
+  function paidLine(row: (typeof rows)[number]) {
+    if (row.paidAt) return t("paidOn", { date: f.date(row.paidAt) })
+    return row.status === "pending" ? t("awaiting") : null
+  }
+
   return (
     <>
       <PageHeader
@@ -42,13 +54,9 @@ export default async function AffiliatePayoutsPage() {
       />
 
       {rows.length === 0 ? (
-        <EmptyState
-          icon={CreditCard}
-          title={t("empty.title")}
-          description={t("empty.description")}
-        />
+        <EmptyState icon={CreditCard} title={t("empty.title")} description={t("empty.description")} />
       ) : (
-        <div>
+        <>
           <TableContainer scrollable className="hidden md:block">
             <Table>
               <THead>
@@ -57,13 +65,15 @@ export default async function AffiliatePayoutsPage() {
                   <TH numeric>{tc("amount")}</TH>
                   <TH>{tc("status")}</TH>
                   <TH>{t("paid")}</TH>
-                  <TH>{tc("reference")}</TH>
+                  <TH>{t("paymentReference")}</TH>
                 </tr>
               </THead>
               <TBody>
                 {rows.map((row) => (
                   <TR key={row.id}>
-                    <TD className="text-foreground">{row.reference}</TD>
+                    <TD mono className="text-foreground">
+                      {row.reference}
+                    </TD>
                     <TD numeric className="font-medium text-foreground">
                       {f.money(row.amountMinor, row.currency)}
                     </TD>
@@ -71,7 +81,7 @@ export default async function AffiliatePayoutsPage() {
                       <StatusBadge status={row.status} />
                     </TD>
                     <TD className="whitespace-nowrap text-muted-foreground">
-                      {row.paidAt ? f.date(row.paidAt) : "—"}
+                      {row.paidAt ? f.date(row.paidAt) : row.status === "pending" ? t("awaiting") : "—"}
                     </TD>
                     <TD mono>{row.externalReference ?? "—"}</TD>
                   </TR>
@@ -80,32 +90,34 @@ export default async function AffiliatePayoutsPage() {
             </Table>
           </TableContainer>
 
-          <ul className="divide-y divide-border-faint border-y border-border md:hidden">
+          <PortalList className="md:hidden">
             {rows.map((row) => (
-              <li key={row.id} className="flex items-start justify-between gap-4 px-1 py-3">
-                <div className="min-w-0 space-y-0.5">
-                  <p className="truncate text-ui text-foreground">{row.reference}</p>
-                  {row.paidAt ? (
-                    <p className="text-meta text-muted-foreground">
-                      {t("paid")} {f.date(row.paidAt)}
-                    </p>
-                  ) : null}
-                  {row.externalReference ? (
-                    <p className="truncate font-mono text-label text-faint-foreground">
-                      {row.externalReference}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1.5">
-                  <span className="text-ui font-medium tabular-nums text-foreground">
-                    {f.money(row.amountMinor, row.currency)}
-                  </span>
-                  <StatusBadge status={row.status} />
-                </div>
-              </li>
+              <PortalListItem
+                key={row.id}
+                title={<span className="font-mono text-caption">{row.reference}</span>}
+                status={<StatusBadge status={row.status} />}
+                amount={f.money(row.amountMinor, row.currency)}
+                details={
+                  paidLine(row) || row.externalReference ? (
+                    <>
+                      {paidLine(row) ? <span className="block">{paidLine(row)}</span> : null}
+                      {row.externalReference ? (
+                        <span className="block truncate">
+                          {t.rich("paymentReferenceValue", {
+                            reference: row.externalReference,
+                            mono: (chunks) => (
+                              <span className="font-mono text-faint-foreground">{chunks}</span>
+                            ),
+                          })}
+                        </span>
+                      ) : null}
+                    </>
+                  ) : undefined
+                }
+              />
             ))}
-          </ul>
-        </div>
+          </PortalList>
+        </>
       )}
     </>
   )

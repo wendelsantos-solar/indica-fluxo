@@ -28,12 +28,15 @@ export function DashboardShell({
   current,
   email,
   name,
+  isAffiliate = false,
   children,
 }: {
   workspaces: WorkspaceOption[]
   current: WorkspaceOption
   email: string
   name?: string | null
+  /** Whether this person also participates in a program, so the portal link is real. */
+  isAffiliate?: boolean
   children: React.ReactNode
 }) {
   const t = useTranslations("nav")
@@ -79,7 +82,7 @@ export function DashboardShell({
     return { sections, footer: [item("settings", Settings2, "s")] }
   }, [t, slug])
 
-  const shared = useShellCommands({ portal: "affiliate" })
+  const shared = useShellCommands({ portal: isAffiliate ? "affiliate" : null })
 
   const commands = React.useMemo<Command[]>(
     () => [
@@ -114,7 +117,7 @@ export function DashboardShell({
       brand={<WorkspaceSwitcher workspaces={workspaces} current={current} />}
       sections={sections}
       footer={footer}
-      account={<AccountMenu email={email} name={name} portal="affiliate" />}
+      account={<AccountMenu email={email} name={name} portal={isAffiliate ? "affiliate" : null} />}
       commands={commands}
     >
       {children}

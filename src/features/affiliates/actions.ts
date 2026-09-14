@@ -1,6 +1,7 @@
 "use server"
 
 import { actionError, successMessage, translateFieldErrors } from "@/i18n/errors"
+import { getTranslations } from "next-intl/server"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
@@ -19,19 +20,24 @@ export interface AffiliateFormState {
   success?: string
 }
 
+// Messages are catalogue keys under `errors.fields`, translated on the way out.
 const inviteSchema = z
   .object({
     workspaceSlug: z.string().min(1),
-    programId: z.string().uuid("Choose a program."),
-    name: z.string().min(2, "affiliateName").max(120),
+    programId: z.string().uuid("programRequired"),
+    name: z.string().min(2, "affiliateName").max(120, "affiliateNameLength"),
     email: z.string().email("emailInvalid"),
-    companyName: z.string().max(120).optional(),
+    companyName: z.string().max(120, "companyNameLength").optional(),
     code: z
       .string()
-      .regex(/^[a-z0-9][a-z0-9_-]{1,48}$/, "Use lowercase letters, numbers, - or _.")
+      .regex(/^[a-z0-9][a-z0-9_-]{1,48}$/, "referralCodeFormat")
       .optional()
       .or(z.literal("")),
-    customRate: z.coerce.number().min(0).max(100).optional(),
+    customRate: z.coerce
+      .number("customRateNumber")
+      .min(0, "customRateRange")
+      .max(100, "customRateRange")
+      .optional(),
   })
   .refine((value) => value.customRate === undefined || value.customRate > 0, {
     message: "customRatePositive",
@@ -76,7 +82,8 @@ export async function inviteAffiliateAction(
   }
 
   revalidatePath(`/${parsed.data.workspaceSlug}/affiliates`)
-  return { success: `${parsed.data.name} was added to the program.` }
+  const t = await getTranslations("success")
+  return { success: t("affiliateAdded", { name: parsed.data.name, email: parsed.data.email }) }
 }
 
 const statusSchema = z.object({
@@ -139,26 +146,67 @@ export async function setCustomRateAction(
 
 const linkSchema = z.object({
   participationId: z.string().uuid(),
-  name: z.string().min(2, "linkName").max(80),
-  destinationUrl: z.string().url("urlRequired"),
-  campaign: z.string().max(80).optional(),
+  name: z.string("linkName").trim().min(2, "linkName").max(80, "linkNameTooLong"),
+  // The tracker only ever runs on an http(s) page, so any other scheme could
+  // never record a click.
+  destinationUrl: z
+    .string("urlRequired")
+    .trim()
+    .url("urlRequired")
+    .refine((value) => /^https?:\/\//i.test(value), "urlRequired"),
+  campaign: z.string().trim().max(80, "campaignTooLong").optional(),
 })
 
+/** Echoes the submitted text back, so a failed submission keeps what was typed. */
+export interface CreateLinkFormState extends AffiliateFormState {
+  values?: { name?: string; destinationUrl?: string; campaign?: string }
+}
+
+/** `referral_links_participation_code_key`: the code is the slugified name. */
+function isDuplicateLinkCode(error: unknown): boolean {
+  for (let current = error, depth = 0; current && depth < 3; depth += 1) {
+    const candidate = current as { code?: unknown; constraint_name?: unknown; cause?: unknown }
+    if (candidate.code === "23505") {
+      return (
+        candidate.constraint_name === undefined ||
+        candidate.constraint_name === "referral_links_participation_code_key"
+      )
+    }
+    current = candidate.cause
+  }
+  return false
+}
+
 export async function createLinkAction(
-  _prev: AffiliateFormState,
+  _prev: CreateLinkFormState,
   formData: FormData,
-): Promise<AffiliateFormState> {
+): Promise<CreateLinkFormState> {
   const user = await requireUser()
+  const text = (key: string) => {
+    const value = formData.get(key)
+    return typeof value === "string" ? value : undefined
+  }
+  const values = {
+    name: text("name"),
+    destinationUrl: text("destinationUrl"),
+    campaign: text("campaign"),
+  }
+
   const parsed = linkSchema.safeParse({
-    participationId: formData.get("participationId"),
-    name: formData.get("name"),
-    destinationUrl: formData.get("destinationUrl"),
-    campaign: formData.get("campaign") || undefined,
+    participationId: text("participationId"),
+    name: values.name,
+    destinationUrl: values.destinationUrl,
+    campaign: values.campaign?.trim() || undefined,
   })
 
-  if (!parsed.success) return {
-      fieldErrors: await translateFieldErrors(z.flattenError(parsed.error).fieldErrors),
+  if (!parsed.success) {
+    const { participationId, ...fieldErrors } = z.flattenError(parsed.error).fieldErrors
+    // A tampered or missing hidden field is not something the reader can fix.
+    if (participationId?.length) {
+      return { error: await actionError(null, "linkNotCreated"), values }
     }
+    return { fieldErrors: await translateFieldErrors(fieldErrors), values }
+  }
 
   try {
     await createReferralLink(user.id, parsed.data.participationId, {
@@ -167,9 +215,14 @@ export async function createLinkAction(
       campaign: parsed.data.campaign ?? null,
     })
   } catch (error) {
-    return { error: await actionError(error, "linkNotCreated") }
+    if (isDuplicateLinkCode(error)) {
+      return { fieldErrors: await translateFieldErrors({ name: ["linkNameTaken"] }), values }
+    }
+    return { error: await actionError(error, "linkNotCreated"), values }
   }
 
-  revalidatePath("/affiliate/links")
+  // The route pattern, not a URL: pages live under a locale segment and a
+  // translated pathname, so a literal "/affiliate/links" matches nothing.
+  revalidatePath("/[locale]/(affiliate)/affiliate/links", "page")
   return { success: await successMessage("linkCreated") }
 }

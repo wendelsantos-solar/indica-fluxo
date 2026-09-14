@@ -132,11 +132,38 @@ export function AppShell({
     [sections, footer],
   )
 
-  // The drawer is modal: Escape closes it and the page behind does not scroll.
+  const drawerRef = React.useRef<HTMLDivElement>(null)
+  const menuButtonRef = React.useRef<HTMLButtonElement>(null)
+
+  // The drawer is modal (DESIGN.md §12): focus moves in, Tab stays inside,
+  // Escape closes it, focus returns to the menu button, the page does not scroll.
   React.useEffect(() => {
     if (!drawerOpen) return
+    const drawer = drawerRef.current
+    const menuButton = menuButtonRef.current
+    const focusable = () =>
+      [...(drawer?.querySelectorAll<HTMLElement>("a[href], button:not([disabled])") ?? [])].filter(
+        (element) => element.offsetParent !== null,
+      )
+    focusable()[0]?.focus()
+
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setDrawerOpen(false)
+      if (event.key === "Escape") {
+        setDrawerOpen(false)
+        return
+      }
+      if (event.key !== "Tab") return
+      const items = focusable()
+      const first = items[0]
+      const last = items.at(-1)
+      if (!first || !last) return
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
     }
     const overflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
@@ -144,6 +171,7 @@ export function AppShell({
     return () => {
       document.body.style.overflow = overflow
       window.removeEventListener("keydown", onKeyDown)
+      menuButton?.focus()
     }
   }, [drawerOpen])
 
@@ -237,6 +265,7 @@ export function AppShell({
         {/* Phones: an app bar frames the page and opens the drawer. */}
         <header className="sticky top-0 z-30 flex h-12 items-center gap-1 border-b border-border bg-background/95 px-2 pt-[env(safe-area-inset-top)] backdrop-blur-[2px] md:hidden">
           <button
+            ref={menuButtonRef}
             type="button"
             onClick={() => setDrawerOpen(true)}
             aria-label={t("open")}
@@ -266,6 +295,7 @@ export function AppShell({
               onClick={() => setDrawerOpen(false)}
             />
             <div
+              ref={drawerRef}
               data-drawer="true"
               className="group/sidebar absolute inset-y-0 left-0 flex w-[280px] max-w-[85vw] animate-fade-in flex-col border-r border-border bg-background pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)]"
             >
@@ -371,7 +401,9 @@ function SidebarContent({
         >
           <Search className="size-3.5 shrink-0" aria-hidden="true" />
           <span className={cn(LABEL, "flex-1 text-left")}>{t("search")}</span>
-          <Kbd className={cn(LABEL, "group-data-[drawer=true]/sidebar:hidden")}>⌘K</Kbd>
+          <Kbd className={cn(LABEL, "group-data-[drawer=true]/sidebar:hidden")}>
+            <ModKey />K
+          </Kbd>
         </button>
       </div>
 
@@ -427,4 +459,16 @@ function NavLink({
       <span className={cn(LABEL, "flex-1 truncate")}>{item.label}</span>
     </Link>
   )
+}
+
+const subscribeNothing = () => () => {}
+
+/** ⌘ on Apple platforms, Ctrl elsewhere — the hint must match the shortcut. */
+export function ModKey() {
+  const apple = React.useSyncExternalStore(
+    subscribeNothing,
+    () => /Mac|iPhone|iPad/.test(navigator.platform),
+    () => true,
+  )
+  return <>{apple ? "⌘" : "Ctrl "}</>
 }

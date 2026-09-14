@@ -39,7 +39,7 @@ export function AccountMenu({
   email: string
   name?: string | null
   /** Which other surface this person can jump to. */
-  portal: "affiliate" | "dashboard"
+  portal: "affiliate" | "dashboard" | null
 }) {
   const t = useTranslations("common.account")
   const tt = useTranslations("common.theme")
@@ -94,6 +94,7 @@ export function AccountMenu({
           </DropdownCheckItem>
         ))}
         <DropdownSeparator />
+        {portal ? (
         <DropdownItem asChild>
           {portal === "affiliate" ? (
             <Link href="/affiliate/overview">
@@ -107,6 +108,7 @@ export function AccountMenu({
             </Link>
           )}
         </DropdownItem>
+        ) : null}
         <DropdownItem asChild>
           <Link href="/logout" prefetch={false}>
             <LogOut aria-hidden="true" />

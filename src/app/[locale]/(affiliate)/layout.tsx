@@ -4,6 +4,7 @@ import { redirect } from "@/i18n/navigation"
 
 import { AffiliateShell } from "@/components/layout/affiliate-shell"
 import { requireUser } from "@/server/auth/session"
+import { listUserWorkspaces } from "@/server/services/workspaces"
 import { withUser } from "@/server/db"
 import { listParticipationsForUser } from "@/server/repositories/affiliates"
 
@@ -22,5 +23,12 @@ export default async function AffiliateLayout({ children }: LayoutProps<"/[local
   )
   if (participations.length === 0) redirect({ href: "/app", locale: await getLocale() })
 
-  return <AffiliateShell email={user.email}>{children}</AffiliateShell>
+  // The account menu only offers the founder dashboard to someone with a workspace.
+  const workspaces = await listUserWorkspaces(user.id)
+
+  return (
+    <AffiliateShell email={user.email} hasWorkspace={workspaces.length > 0}>
+      {children}
+    </AffiliateShell>
+  )
 }

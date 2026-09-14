@@ -23,7 +23,7 @@ const connectSchema = z.object({
   workspaceSlug: z.string().min(1),
   providerAccountId: z
     .string()
-    .regex(/^acct_[A-Za-z0-9]{8,}$/, "Enter a Stripe account id, e.g. acct_1A2b3C4d5E."),
+    .regex(/^acct_[A-Za-z0-9]{8,}$/, "stripeAccountInvalid"),
 })
 
 /**
@@ -42,7 +42,8 @@ export async function connectStripeAction(
   })
 
   if (!parsed.success) {
-    return { error: z.flattenError(parsed.error).fieldErrors.providerAccountId?.[0] }
+    const accountInvalid = Boolean(z.flattenError(parsed.error).fieldErrors.providerAccountId)
+    return { error: await actionError(null, accountInvalid ? "stripeAccountInvalid" : "invalidRequest") }
   }
 
   try {

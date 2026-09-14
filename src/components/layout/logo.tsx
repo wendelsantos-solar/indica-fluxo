@@ -19,7 +19,7 @@ export function Logo({ className, compact = false }: { className?: string; compa
         <path d="M9 8h4.5" fill="none" stroke="var(--primary)" strokeWidth="2.25" strokeLinecap="round" />
       </svg>
       {!compact ? (
-        <span className="truncate text-caption font-semibold text-foreground">Indica</span>
+        <span className="truncate text-caption font-semibold text-foreground">IndicaFluxo</span>
       ) : null}
     </span>
   )

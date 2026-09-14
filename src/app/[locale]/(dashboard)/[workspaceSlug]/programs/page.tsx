@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { StatusBadge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
+import { Term } from "@/components/ui/term"
 import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
 import { listPrograms } from "@/server/repositories/programs"
@@ -76,7 +77,9 @@ export default async function ProgramsPage({ params }: PageProps<"/[locale]/[wor
                 <TH>{tc("program")}</TH>
                 <TH>{tc("status")}</TH>
                 <TH>{tc("commission")}</TH>
-                <TH className="max-lg:hidden">{t("attribution")}</TH>
+                <TH className="max-lg:hidden">
+                  <Term definition={t("attributionDefinition")}>{t("attribution")}</Term>
+                </TH>
                 <TH numeric>{t("affiliates")}</TH>
                 <TH numeric className="max-lg:hidden">{tc("clicks")}</TH>
                 <TH numeric>{t("commissionEarned")}</TH>
@@ -106,13 +109,17 @@ export default async function ProgramsPage({ params }: PageProps<"/[locale]/[wor
                             pathname: "/[workspaceSlug]/programs/[programSlug]",
                             params: { workspaceSlug, programSlug: program.slug },
                           }}
-                          className="truncate font-medium text-foreground after:absolute after:inset-0 focus-visible:outline-none"
+                          className={
+                            "truncate font-medium text-foreground outline-none after:absolute after:inset-0 after:rounded-control " +
+                            // The focus ring moves to the stretched overlay, so the whole row is outlined.
+                            "focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-ring"
+                          }
                         >
                           {program.name}
                         </Link>
                         <StatusBadge status={program.status} className="md:hidden" />
                       </div>
-                      <span className="block font-mono text-label text-muted-foreground max-md:hidden">
+                      <span className="block font-mono text-meta text-muted-foreground max-md:hidden">
                         {program.slug}
                       </span>
                       <span className="mt-0.5 flex gap-3 text-meta text-muted-foreground md:hidden">

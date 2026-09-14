@@ -37,6 +37,8 @@ export const routing = defineRouting({
     // Auth
     "/login": { "pt-br": "/entrar", en: "/login" },
     "/signup": { "pt-br": "/criar-conta", en: "/signup" },
+    "/forgot-password": { "pt-br": "/esqueci-a-senha", en: "/forgot-password" },
+    "/reset-password": { "pt-br": "/redefinir-senha", en: "/reset-password" },
     "/onboarding": { "pt-br": "/primeiros-passos", en: "/onboarding" },
 
     // The post-login fork. Not user-facing for long, but it must not 404.

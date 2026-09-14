@@ -31,12 +31,19 @@ export function AreaChart({
   labels,
   series,
   currency,
+  summary,
   height = 220,
   className,
 }: {
+  /** Already localised x-axis labels, one per value (e.g. "14 set."). */
   labels: string[]
   series: Series[]
   currency: string
+  /**
+   * The chart in one or two sentences, for screen readers — DESIGN.md §10:
+   * every chart has a text fallback. The drawing itself is then hidden.
+   */
+  summary?: string
   height?: number
   className?: string
 }) {
@@ -65,13 +72,14 @@ export function AreaChart({
 
   return (
     <div className={cn("relative", className)} onMouseLeave={() => setHover(null)}>
-      <div className="relative" style={{ height }}>
+      {summary ? <p className="sr-only">{summary}</p> : null}
+      <div className="relative" style={{ height }} aria-hidden={summary ? true : undefined}>
         <svg
           viewBox={`0 0 ${WIDTH} ${height}`}
           preserveAspectRatio="none"
           className="absolute inset-0 size-full overflow-visible"
-          role="img"
-          aria-label={series.map((s) => s.label).join(" · ")}
+          role={summary ? undefined : "img"}
+          aria-label={summary ? undefined : series.map((s) => s.label).join(" · ")}
         >
           {GRID.map((g) => (
             <line
@@ -180,7 +188,7 @@ export function AreaChart({
         ) : null}
       </div>
 
-      <div className="relative mt-2 h-4 text-meta tabular-nums text-muted-foreground">
+      <div aria-hidden="true" className="relative mt-2 h-4 text-meta tabular-nums text-muted-foreground">
         {ticks.map((i, n) => (
           <span
             key={i}

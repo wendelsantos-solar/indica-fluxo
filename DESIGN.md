@@ -58,7 +58,9 @@ Five principles, in priority order:
 - A dashboard that is a 4×3 grid of identical KPI cards.
 - Uppercase, letter-spaced column headers. Plain case, muted.
 - Stock photography or generic SaaS illustrations.
-- Hex colours written inline: `bg-[#08090a]`.
+- Hex colours written inline: `bg-[#08090a]`. (Sole exception: the generated
+  OpenGraph image, which Satori renders without CSS variables; it mirrors the
+  dark-theme tokens and says so.)
 - A keyboard hint for a shortcut that does not work.
 
 ---
@@ -104,6 +106,8 @@ If you add a token, add it twice.
 | `success` · `warning` · `danger` · `info` (+ `-subtle`, `-foreground`) | `#27a644` · `#e2a93b` · `#f07070` · `#4cc9d6` | `#1a7f4b` · `#8f5f00` · `#c62828` · `#0a6f7c` | Status dots, deltas, error text |
 | `ring` | Mist `#d0d6e0` | ink | Focus outline — brightens, no extra hue |
 | `scrim` | black 55% | ink 32% | Dialog and drawer backdrop |
+| `on-danger` | void | white | Text on a solid danger fill (confirm button) |
+| `select-chevron` | fog chevron | zinc chevron | Native select arrow, per theme |
 | `chart-1 … chart-6` | amber, teal, lavender, green, coral, fog | darker steps | Data series, in order |
 
 Elevation tokens: `shadow-ring` (inset hairline), `shadow-overlay` (floating
@@ -385,6 +389,38 @@ headline → one muted sentence (≤ 46ch) → one action. Never an illustration
 Shapes match the real content's geometry — same row height, same columns, no
 card around them. `fill` base with a 1600ms shimmer.
 
+### Confirm dialog
+
+`ConfirmDialog` guards every destructive or irreversible action: cancel a payout
+batch, generate a new API key, disconnect Stripe. The trigger is a quiet `danger`
+hairline button, never adjacent-and-equal to the primary action; the solid
+`destructive` button exists only inside the dialog, on the right, next to a
+neutral cancel that receives focus first. The description states the
+consequence in plain language.
+
+### Inline alert
+
+`InlineAlert` is the one inline message style (form error, form success, page
+notice): hairline box tinted by tone, icon, text. Use it instead of ad-hoc red
+paragraphs. A form that shows its error inline does not also toast it
+(`useActionResult(state, { toastOnError: false })`).
+
+### Pagination, Term, FormSection
+
+- `Pagination`: summary left, previous/next right; the caller passes typed
+  `Link`s so filters survive; a missing link is a disabled button.
+- `Term`: dotted underline + tooltip on hover and focus, for real jargon only —
+  attribution window, first/last click, hold period, commission status.
+- `FormSection`: one group of related fields in a form card — heading and a
+  one-line description on the left, fields on the right from `md`.
+
+### Route states
+
+Every authenticated route group has `loading.tsx` (skeleton shaped like the page,
+header bar included), `error.tsx` (translated, retry, way back) and
+`not-found.tsx`. `[locale]/not-found.tsx` plus a catch-all serve the localised
+404. No raw provider or database message ever reaches the page.
+
 ### Toast
 
 Bottom-right (bottom-centre on mobile). Only for asynchronous, off-screen
@@ -425,10 +461,21 @@ outcomes. A form that can show inline success must not fire a toast.
   (1280px); detail pages may narrow to `max-w-detail` (880px). The page header
   bar is full-bleed across the panel.
 - The account menu carries theme and language, which have no page of their own.
-- Marketing: 1200px max-width (`max-w-page`), 24px gutter, 96–128px section
-  rhythm; the product mock in the hero uses the same shell.
-- Auth and onboarding: canvas, a slim top bar (logo, language, theme), one
-  centred narrow column.
+- Marketing: 1200px max-width (`max-w-page`), 24px gutter, 80–112px section
+  rhythm. The landing is a sales narrative in a fixed order — hero, click →
+  commission flow, problem, how it works, product stories, founder/affiliate
+  sides, integrations, principles, pricing preview, closing CTA — and its only
+  imagery is the product, rebuilt from tokens in
+  `(marketing)/_components/visuals.tsx`. One amber action per viewport; mock
+  buttons inside visuals are secondary. Claims must be true in the code
+  (Stripe only; no invented customers, logos or numbers).
+- Auth: from 1024px a split — product statement and a decorative
+  click → commission proof on the canvas, the form on `surface-1` behind a
+  hairline; below, one column. Login, sign-up, check-your-e-mail, forgot and
+  reset password share it.
+- Onboarding: canvas, slim top bar, a three-step stepper (Workspace → Programa
+  → Pronto) and progressive disclosure for expert settings; "Pronto" is the
+  activation checklist on the overview.
 
 ## 11b. Keyboard
 

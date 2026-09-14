@@ -74,27 +74,37 @@ export function PageHeader({
   )
 }
 
-/** A heading for a block inside a page: title, optional count, one action. */
+/**
+ * The one heading for a block inside a page: title, optional count, optional
+ * one-line description, one action.
+ */
 export function SectionHeader({
   title,
   count,
+  description,
   action,
   className,
 }: {
   title: string
   count?: React.ReactNode
+  description?: React.ReactNode
   action?: React.ReactNode
   className?: string
 }) {
   return (
-    <div className={cn("mb-1 flex min-h-8 items-center justify-between gap-3", className)}>
-      <h2 className="flex items-center gap-2 text-caption font-medium text-foreground">
-        {title}
-        {count !== undefined ? (
-          <span className="font-normal tabular-nums text-muted-foreground">{count}</span>
+    <div className={cn("mb-2 flex min-h-8 items-start justify-between gap-3", className)}>
+      <div className="min-w-0 pt-1.5">
+        <h2 className="flex items-center gap-2 text-caption font-medium text-foreground">
+          {title}
+          {count !== undefined ? (
+            <span className="font-normal tabular-nums text-muted-foreground">{count}</span>
+          ) : null}
+        </h2>
+        {description ? (
+          <p className="mt-1 max-w-[68ch] text-pretty text-caption text-muted-foreground">{description}</p>
         ) : null}
-      </h2>
-      {action}
+      </div>
+      {action ? <div className="shrink-0">{action}</div> : null}
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server"
 import { Metric, MetricCell, MetricGrid } from "@/components/data-display/metric"
 import { getFormatters } from "@/i18n/format"
 import { EmptyState } from "@/components/feedback/empty-state"
+import { InlineAlert } from "@/components/feedback/inline-alert"
 import { PageHeader, SectionHeader } from "@/components/layout/page-header"
 import { StatusBadge } from "@/components/ui/badge"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
@@ -29,6 +30,9 @@ export async function generateMetadata({
   return { title: t("title") }
 }
 
+const BATCH_STATUSES = ["draft", "approved", "paid", "cancelled"] as const
+type BatchStatus = (typeof BATCH_STATUSES)[number]
+
 export default async function PayoutsPage({ params }: PageProps<"/[locale]/[workspaceSlug]/payouts">) {
   const t = await getTranslations("dashboard.payouts")
   const tc = await getTranslations("common.table")
@@ -46,11 +50,17 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
   })
 
   const currency = payable[0]?.currency ?? workspace.defaultCurrency
-  const availableTotal = payable
-    .filter((row) => row.currency === currency)
-    .reduce((sum, row) => sum + row.amountMinor, 0)
+  const payableRows = payable.filter((row) => row.currency === currency)
+  const availableTotal = payableRows.reduce((sum, row) => sum + row.amountMinor, 0)
+  // A batch holds one currency; rows in any other one wait for their own batch.
+  const otherCurrencies = [...new Set(payable.map((row) => row.currency))].filter((code) => code !== currency)
 
-  const pendingBatches = batches.filter((batch) => batch.status === "approved").length
+  const awaitingPayment = batches.filter((batch) => batch.status === "approved").length
+
+  // "approved" reads "Aprovada" for a commission; a batch in that state is
+  // waiting for the founder to transfer the money, and is a masculine noun.
+  const batchLabel = (status: string) =>
+    BATCH_STATUSES.includes(status as BatchStatus) ? t(`batchStatus.${status as BatchStatus}`) : undefined
 
   return (
     <>
@@ -59,20 +69,28 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
       <div className="space-y-10">
         <MetricGrid>
           <MetricCell>
-            <Metric
-              label={t("availableToPay")}
-              value={f.money(availableTotal, currency)}
-              comparison={t("clearedAffiliates", { count: payable.length })}
-            />
+            <Metric label={t("availableToPay")} value={f.money(availableTotal, currency)} />
+          </MetricCell>
+          <MetricCell>
+            <Metric label={t("clearedAffiliatesLabel")} value={f.number(payableRows.length)} />
+          </MetricCell>
+          <MetricCell className="max-sm:col-span-2 max-sm:border-t max-sm:border-border-faint">
+            <Metric label={t("awaitingPaymentLabel")} value={f.number(awaitingPayment)} />
           </MetricCell>
         </MetricGrid>
 
         <section>
           <SectionHeader
             title={t("readyToPay")}
-            count={payable.length > 0 ? f.number(payable.length) : undefined}
+            count={payableRows.length > 0 ? f.number(payableRows.length) : undefined}
+            description={payableRows.length > 0 ? t("readyToPayDescription") : undefined}
           />
-          {payable.length === 0 ? (
+          {otherCurrencies.length > 0 ? (
+            <InlineAlert className="mb-3">
+              {t("otherCurrencies", { currency, others: otherCurrencies.join(", ") })}
+            </InlineAlert>
+          ) : null}
+          {payableRows.length === 0 ? (
             <EmptyState
               icon={CreditCard}
               title={t("emptyPayable.title")}
@@ -80,11 +98,7 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
               className="border-y border-border py-12"
             />
           ) : (
-            <PayableList
-              workspaceSlug={workspaceSlug}
-              currency={currency}
-              rows={payable.filter((row) => row.currency === currency)}
-            />
+            <PayableList workspaceSlug={workspaceSlug} currency={currency} rows={payableRows} />
           )}
         </section>
 
@@ -110,23 +124,27 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
                     <TH numeric>{t("affiliates")}</TH>
                     <TH numeric>{t("total")}</TH>
                     <TH>{tc("status")}</TH>
-                    <TH className="text-right">
-                      <span className={pendingBatches === 0 ? "sr-only" : undefined}>
-                        {tc("actions")}
-                      </span>
-                    </TH>
+                    {awaitingPayment > 0 ? <TH className="text-right">{tc("actions")}</TH> : null}
                   </tr>
                 </THead>
                 <TBody>
                   {batches.map((batch) => {
                     const period = `${f.date(batch.periodStart)} → ${f.date(batch.periodEnd)}`
                     const total = f.money(batch.totalAmountMinor, batch.currency)
+                    const label = batchLabel(batch.status)
+                    const paidOn = batch.paidAt ? t("paidOn", { date: f.date(batch.paidAt) }) : null
                     // Rendered twice: in its own column on wide screens and
                     // under the stacked row on phones. Only one is visible.
+                    // The irreversible "cancel" sits apart from "mark as paid".
                     const actions =
                       batch.status === "approved" ? (
                         <>
-                          <CancelBatchButton workspaceSlug={workspaceSlug} batchId={batch.id} />
+                          <CancelBatchButton
+                            workspaceSlug={workspaceSlug}
+                            batchId={batch.id}
+                            reference={batch.reference}
+                          />
+                          <span aria-hidden="true" className="mx-1 h-4 w-px bg-border" />
                           <MarkPaidDialog
                             workspaceSlug={workspaceSlug}
                             batchId={batch.id}
@@ -144,13 +162,11 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
                             <span className="truncate font-mono text-meta text-foreground">
                               {batch.reference}
                             </span>
-                            <StatusBadge status={batch.status} className="md:hidden" />
+                            <StatusBadge status={batch.status} label={label} className="md:hidden" />
                           </div>
                           <span className="mt-0.5 flex gap-3 text-meta text-muted-foreground md:hidden">
-                            <span className="truncate">{period}</span>
-                            <span className="ml-auto shrink-0 tabular-nums text-foreground-secondary">
-                              {total}
-                            </span>
+                            <span className="truncate">{paidOn ?? period}</span>
+                            <span className="ml-auto shrink-0 tabular-nums text-foreground">{total}</span>
                           </span>
                           {actions ? (
                             <div className="mt-2 flex items-center justify-end gap-1 md:hidden">
@@ -168,19 +184,18 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
                           {total}
                         </TD>
                         <TD className="max-md:hidden">
-                          <StatusBadge status={batch.status} />
+                          <StatusBadge status={batch.status} label={label} />
+                          {paidOn ? (
+                            <span className="block whitespace-nowrap pt-0.5 text-meta text-muted-foreground">
+                              {paidOn}
+                            </span>
+                          ) : null}
                         </TD>
-                        <TD className="max-md:hidden">
-                          <div className="flex items-center justify-end gap-1">
-                            {batch.status === "approved" ? (
-                              actions
-                            ) : batch.paidAt ? (
-                              <span className="whitespace-nowrap text-meta text-muted-foreground">
-                                {t("paidOn", { date: f.date(batch.paidAt) })}
-                              </span>
-                            ) : null}
-                          </div>
-                        </TD>
+                        {awaitingPayment > 0 ? (
+                          <TD className="max-md:hidden">
+                            <div className="flex items-center justify-end gap-1">{actions}</div>
+                          </TD>
+                        ) : null}
                       </TR>
                     )
                   })}
