@@ -96,6 +96,67 @@
     "locale": {
       "label": "Language",
       "current": "current"
+    },
+    "theme": {
+      "label": "Change theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "account": {
+      "menu": "Account menu",
+      "signedInAs": "Signed in as",
+      "affiliatePortal": "Affiliate portal",
+      "signOut": "Sign out"
+    },
+    "workspace": {
+      "plural": "Workspaces",
+      "switchLabel": "Current workspace: {name}. Switch workspace",
+      "create": "New workspace"
+    },
+    "actions": {
+      "closeDialog": "Close",
+      "cancel": "Cancel",
+      "save": "Save",
+      "copy": "Copy",
+      "copied": "Copied",
+      "previous": "Previous",
+      "next": "Next",
+      "clearFilters": "Clear filters",
+      "connectBilling": "Connect billing"
+    },
+    "feedback": {
+      "errorTitle": "Something went wrong"
+    },
+    "table": {
+      "affiliate": "Affiliate",
+      "revenue": "Revenue",
+      "commission": "Commission",
+      "customer": "Customer",
+      "date": "Date",
+      "status": "Status",
+      "program": "Program",
+      "base": "Base",
+      "rate": "Rate",
+      "eligible": "Eligible",
+      "clicks": "Clicks",
+      "customers": "Customers",
+      "conversion": "Conversion",
+      "joined": "Joined",
+      "transaction": "Transaction",
+      "payment": "Payment",
+      "amount": "Amount",
+      "period": "Period",
+      "reference": "Reference",
+      "code": "Code",
+      "link": "Link",
+      "name": "Name",
+      "actions": "Actions"
+    },
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "member": "Member"
     }
   },
   "auth": {
@@ -187,5 +248,211 @@
         "body": "When Stripe confirms $49.00 on a 30% program, Indica writes a commission of $14.70 against the affiliate that owns the attribution, holds it for the program's hold period, and then makes it payable. A refund adds a −$14.70 reversal and marks the original reversed; nothing is ever deleted."
       }
     }
+  },
+  "status": {
+    "active": "Active",
+    "approved": "Approved",
+    "paid": "Paid",
+    "available": "Available",
+    "connected": "Connected",
+    "succeeded": "Succeeded",
+    "pending": "Pending",
+    "draft": "Draft",
+    "invited": "Invited",
+    "hold": "On hold",
+    "reversed": "Reversed",
+    "rejected": "Rejected",
+    "cancelled": "Cancelled",
+    "failed": "Failed",
+    "suspended": "Suspended",
+    "chargeback": "Chargeback",
+    "refund": "Refund",
+    "paused": "Paused",
+    "archived": "Archived",
+    "inactive": "Inactive",
+    "disconnected": "Disconnected",
+    "payment": "Payment",
+    "trialing": "Trialing",
+    "pastdue": "Past due",
+    "incomplete": "Incomplete"
+  },
+  "dashboard": {
+    "overview": {
+      "title": "Overview",
+      "description": "Affiliate performance across every program in this workspace.",
+      "legendRevenue": "Revenue",
+      "legendCommission": "Commission",
+      "empty": {
+        "title": "No affiliate activity yet",
+        "description": "Create a program, invite your first affiliate and install the tracking snippet. Numbers appear here as soon as the first click lands.",
+        "action": "Create a program"
+      },
+      "metrics": {
+        "revenue": "Affiliate revenue",
+        "comparison": "vs. previous 30 days",
+        "commissions": "Commissions",
+        "netRevenue": "Net revenue",
+        "activeAffiliates": "Active affiliates",
+        "customers": "Customers acquired",
+        "conversionRate": "Conversion rate",
+        "clicks": "{count} clicks"
+      },
+      "revenueOverTime": "Revenue over time",
+      "conversionFunnel": "Conversion funnel",
+      "topAffiliates": "Top affiliates",
+      "recentConversions": "Recent conversions",
+      "viewAll": "View all",
+      "noCommissions": "No commissions yet.",
+      "noConversions": "No conversions yet.",
+      "readyToPay": "{amount} ready to pay",
+      "stillOnHold": "{amount} still inside the hold period.",
+      "reviewPayouts": "Review payouts"
+    },
+    "funnel": {
+      "clicks": "Clicks",
+      "signups": "Signups",
+      "trials": "Trials",
+      "customers": "Customers"
+    },
+    "affiliates": {
+      "title": "Affiliates",
+      "description": "Everyone promoting your product, and what each one has earned.",
+      "searchPlaceholder": "Search name, e-mail or code",
+      "searchLabel": "Search affiliates",
+      "filterLabel": "Filter by status",
+      "allStatuses": "All statuses",
+      "apply": "Apply",
+      "pagination": "Pagination",
+      "pageOf": "Page {page} of {pages} · {total} affiliates",
+      "empty": {
+        "title": "No affiliates yet",
+        "description": "Invite your first affiliate and they will get a referral link straight away.",
+        "filteredTitle": "No affiliates match those filters",
+        "filteredDescription": "Try a different search term, or clear the status filter.",
+        "action": "Invite your first affiliate"
+      }
+    },
+    "commissions": {
+      "title": "Commissions",
+      "description": "Every commission the engine has calculated, with the rule that produced it.",
+      "summary": "{amount} across {count} entries",
+      "filterStatus": "Filter by status",
+      "filterProgram": "Filter by program",
+      "allStatuses": "All statuses",
+      "allPrograms": "All programs",
+      "apply": "Apply",
+      "fixed": "Fixed",
+      "pagination": "Pagination",
+      "pageOf": "Page {page} of {pages}",
+      "empty": {
+        "title": "No commissions yet",
+        "description": "Commissions appear the moment a tracked customer pays and your billing webhook fires.",
+        "filteredTitle": "No commissions match those filters",
+        "filteredDescription": "Try a different status or program."
+      }
+    },
+    "conversions": {
+      "title": "Conversions",
+      "description": "Payments from customers your affiliates brought in.",
+      "empty": {
+        "title": "No conversions yet",
+        "description": "Once a tracked visitor becomes a paying customer, the payment shows up here with the affiliate that earned it."
+      }
+    },
+    "payouts": {
+      "title": "Payouts",
+      "description": "Indica is the source of truth for what you owe. You pay affiliates through your own rails and record it here.",
+      "availableToPay": "Available to pay",
+      "clearedAffiliates": "{count, plural, =0 {no affiliates} one {# affiliate} other {# affiliates}} with cleared commissions",
+      "readyToPay": "Ready to pay",
+      "history": "Payout history",
+      "batch": "Batch",
+      "affiliates": "Affiliates",
+      "total": "Total",
+      "paidOn": "Paid {date}",
+      "emptyPayable": {
+        "title": "Nothing to pay right now",
+        "description": "Commissions become payable once they clear their program's hold period. Anything still pending is shown on the commissions page."
+      },
+      "emptyHistory": {
+        "title": "No payout batches yet",
+        "description": "A batch freezes the amounts owed at a point in time so your records match what you actually transferred."
+      }
+    },
+    "programs": {
+      "title": "Programs",
+      "description": "Each program carries its own commission rule, attribution model and hold period.",
+      "create": "New program",
+      "attribution": "Attribution",
+      "affiliates": "Affiliates",
+      "commissionEarned": "Commission earned",
+      "lifetime": "lifetime",
+      "firstPayment": "first payment",
+      "nMonths": "{count, plural, one {# month} other {# months}}",
+      "nDays": "{count, plural, one {# day} other {# days}}",
+      "lastClick": "Last click",
+      "firstClick": "First click",
+      "empty": {
+        "title": "No programs yet",
+        "description": "A program defines what affiliates earn and how conversions are attributed. Most SaaS companies start with a single one.",
+        "action": "Create your first program"
+      }
+    },
+    "newProgram": {
+      "title": "New program",
+      "description": "Set the commission rule once — every conversion is calculated against it from then on."
+    },
+    "integrations": {
+      "title": "Integrations",
+      "description": "Connect the billing provider that charges your customers, then install tracking."
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Workspace details and team access.",
+      "team": {
+        "title": "Team",
+        "description": "Members see everything in this workspace. Only owners and admins can change programs, payouts and keys.",
+        "member": "Member",
+        "role": "Role",
+        "pendingProfile": "Pending profile",
+        "you": "(you)",
+        "invitedRole": "invited · {role}"
+      }
+    },
+    "program": {
+      "duration": "Duration",
+      "attribution": "Attribution",
+      "model": "Model",
+      "hold": "Hold",
+      "sections": "Program sections",
+      "lifetime": "Lifetime",
+      "firstPayment": "First payment",
+      "nMonths": "{count, plural, one {# month} other {# months}}",
+      "nDays": "{count, plural, one {# day} other {# days}}",
+      "windowDays": "{count, plural, one {#-day} other {#-day}} window",
+      "lastClick": "Last click",
+      "firstClick": "First click",
+      "tabs": {
+        "overview": "Overview",
+        "affiliates": "Affiliates",
+        "commissions": "Commissions",
+        "settings": "Settings"
+      },
+      "emptyAffiliates": {
+        "title": "No affiliates in this program",
+        "description": "Invite someone and they will receive a referral code immediately.",
+        "action": "Invite the first affiliate"
+      },
+      "emptyCommissions": {
+        "title": "No commissions in this program yet",
+        "description": "They appear as soon as a tracked customer pays.",
+        "action": "Check your billing connection"
+      }
+    }
+  },
+  "onboarding": {
+    "title": "Create your workspace",
+    "step": "Step 1 of 2",
+    "description": "A workspace holds your programs, affiliates and commission ledger. You can rename it later; the currency sets the default for new programs."
   }
 }

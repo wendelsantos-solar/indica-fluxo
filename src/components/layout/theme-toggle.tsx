@@ -1,6 +1,7 @@
 "use client"
 
 import { Monitor, Moon, Sun } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { useTheme } from "next-themes"
 
 import {
@@ -13,12 +14,13 @@ import { Button } from "@/components/ui/button"
 import { useHydrated } from "@/components/ui/use-hydrated"
 
 const OPTIONS = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "system", label: "System", icon: Monitor },
+  { value: "light", icon: Sun },
+  { value: "dark", icon: Moon },
+  { value: "system", icon: Monitor },
 ] as const
 
 export function ThemeToggle() {
+  const t = useTranslations("common.theme")
   const { theme, setTheme, resolvedTheme } = useTheme()
   // The resolved theme is unknown on the server, so render a stable
   // placeholder rather than guessing and flipping after hydration.
@@ -29,7 +31,7 @@ export function ThemeToggle() {
   return (
     <Dropdown>
       <DropdownTrigger asChild>
-        <Button variant="ghost" size="icon-sm" aria-label="Change theme">
+        <Button variant="ghost" size="icon-sm" aria-label={t("label")}>
           <Icon aria-hidden="true" />
         </Button>
       </DropdownTrigger>
@@ -41,7 +43,7 @@ export function ThemeToggle() {
             onSelect={() => setTheme(option.value)}
           >
             <option.icon aria-hidden="true" />
-            {option.label}
+            {t(option.value)}
           </DropdownCheckItem>
         ))}
       </DropdownContent>

@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server"
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
@@ -12,9 +13,10 @@ export async function Funnel({
   steps,
   className,
 }: {
-  steps: { label: string; value: number }[]
+  steps: { key: string; value: number }[]
   className?: string
 }) {
+  const t = await getTranslations("dashboard.funnel")
   const f = await getFormatters()
   const max = Math.max(1, ...steps.map((s) => s.value))
 
@@ -25,9 +27,9 @@ export async function Funnel({
         const width = Math.max(2, (step.value / max) * 100)
 
         return (
-          <li key={step.label} className="space-y-1.5">
+          <li key={step.key} className="space-y-1.5">
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-caption text-foreground-secondary">{step.label}</span>
+              <span className="text-caption text-foreground-secondary">{t(step.key)}</span>
               <span className="flex items-baseline gap-2">
                 <span className="font-medium tabular-nums text-foreground">
                   {f.number(step.value)}

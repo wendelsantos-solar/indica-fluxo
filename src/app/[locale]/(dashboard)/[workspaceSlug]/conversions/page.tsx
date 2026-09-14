@@ -1,5 +1,7 @@
 import { Receipt } from "lucide-react"
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
+
 import { Link } from "@/i18n/navigation"
 
 import { EmptyState } from "@/components/feedback/empty-state"
@@ -14,12 +16,22 @@ import { withUser } from "@/server/db"
 import { getRecentConversions } from "@/server/repositories/analytics"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
-export const metadata: Metadata = { title: "Conversions" }
 export const dynamic = "force-dynamic"
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/[locale]/[workspaceSlug]/conversions">): Promise<Metadata> {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: "dashboard.conversions" })
+  return { title: t("title") }
+}
 
 export default async function ConversionsPage({
   params,
 }: PageProps<"/[locale]/[workspaceSlug]/conversions">) {
+  const t = await getTranslations("dashboard.conversions")
+  const tc = await getTranslations("common.table")
+  const ta = await getTranslations("common.actions")
   const f = await getFormatters()
   const { workspaceSlug } = await params
   const user = await requireUser()
@@ -32,19 +44,19 @@ export default async function ConversionsPage({
   return (
     <>
       <PageHeader
-        title="Conversions"
-        description="Payments from customers your affiliates brought in."
+        title={t("title")}
+        description={t("description")}
       />
 
       {conversions.length === 0 ? (
         <Card>
           <EmptyState
             icon={Receipt}
-            title="No conversions yet"
-            description="Once a tracked visitor becomes a paying customer, the payment shows up here with the affiliate that earned it."
+            title={t("empty.title")}
+            description={t("empty.description")}
             action={
               <Button asChild variant="primary">
-                <Link href={{ pathname: "/[workspaceSlug]/integrations", params: { workspaceSlug: workspaceSlug } }}>Connect billing</Link>
+                <Link href={{ pathname: "/[workspaceSlug]/integrations", params: { workspaceSlug: workspaceSlug } }}>{ta("connectBilling")}</Link>
               </Button>
             }
           />
@@ -54,19 +66,19 @@ export default async function ConversionsPage({
           <Table>
             <THead>
               <tr>
-                <TH>Date</TH>
-                <TH>Affiliate</TH>
-                <TH>Customer</TH>
-                <TH numeric>Payment</TH>
-                <TH numeric>Commission</TH>
-                <TH>Status</TH>
+                <TH>{tc("date")}</TH>
+                <TH>{tc("affiliate")}</TH>
+                <TH>{tc("customer")}</TH>
+                <TH numeric>{tc("payment")}</TH>
+                <TH numeric>{tc("commission")}</TH>
+                <TH>{tc("status")}</TH>
               </tr>
             </THead>
             <TBody>
               {conversions.map((conversion) => (
                 <TR key={conversion.id} interactive>
                   <TD className="text-muted-foreground">
-                    {conversion.occurredAt.toISOString().slice(0, 10)}
+                    {f.date(conversion.occurredAt)}
                   </TD>
                   <TD className="text-foreground">{conversion.affiliateName}</TD>
                   <TD mono>{conversion.customerRef}</TD>

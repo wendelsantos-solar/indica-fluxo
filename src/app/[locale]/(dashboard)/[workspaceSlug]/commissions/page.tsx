@@ -1,5 +1,7 @@
 import { Coins } from "lucide-react"
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
+
 import { Link } from "@/i18n/navigation"
 
 import { EmptyState } from "@/components/feedback/empty-state"
@@ -20,8 +22,15 @@ import {
 import { listPrograms } from "@/server/repositories/programs"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
-export const metadata: Metadata = { title: "Commissions" }
 export const dynamic = "force-dynamic"
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/[locale]/[workspaceSlug]/commissions">): Promise<Metadata> {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: "dashboard.commissions" })
+  return { title: t("title") }
+}
 
 const STATUSES: CommissionStatus[] = [
   "pending",
@@ -38,6 +47,10 @@ export default async function CommissionsPage({
   params,
   searchParams,
 }: PageProps<"/[locale]/[workspaceSlug]/commissions">) {
+  const t = await getTranslations("dashboard.commissions")
+  const tc = await getTranslations("common.table")
+  const ta = await getTranslations("common.actions")
+  const ts = await getTranslations("status")
   const f = await getFormatters()
   const { workspaceSlug } = await params
   const query = await searchParams
@@ -74,29 +87,31 @@ export default async function CommissionsPage({
   return (
     <>
       <PageHeader
-        title="Commissions"
-        description="Every commission the engine has calculated, with the rule that produced it."
+        title={t("title")}
+        description={t("description")}
         meta={
           result.total > 0 ? (
             <span className="text-caption tabular-nums text-muted-foreground">
-              {f.money(result.totalAmountMinor, workspace.defaultCurrency)} across{" "}
-              {f.number(result.total)} entries
+              {t("summary", {
+                amount: f.money(result.totalAmountMinor, workspace.defaultCurrency),
+                count: f.number(result.total),
+              })}
             </span>
           ) : null
         }
       />
 
       <form className="mb-4 flex flex-wrap items-center gap-2">
-        <Select name="status" defaultValue={status ?? ""} aria-label="Filter by status" className="w-auto min-w-[150px]">
-          <option value="">All statuses</option>
+        <Select name="status" defaultValue={status ?? ""} aria-label={t("filterStatus")} className="w-auto min-w-[150px]">
+          <option value="">{t("allStatuses")}</option>
           {STATUSES.map((value) => (
             <option key={value} value={value}>
-              {value.charAt(0).toUpperCase() + value.slice(1)}
+              {ts(value)}
             </option>
           ))}
         </Select>
-        <Select name="program" defaultValue={programId ?? ""} aria-label="Filter by program" className="w-auto min-w-[180px]">
-          <option value="">All programs</option>
+        <Select name="program" defaultValue={programId ?? ""} aria-label={t("filterProgram")} className="w-auto min-w-[180px]">
+          <option value="">{t("allPrograms")}</option>
           {programs.map((program) => (
             <option key={program.id} value={program.id}>
               {program.name}
@@ -104,7 +119,7 @@ export default async function CommissionsPage({
           ))}
         </Select>
         <Button type="submit" variant="secondary">
-          Apply
+          {t("apply")}
         </Button>
       </form>
 
@@ -112,20 +127,18 @@ export default async function CommissionsPage({
         <Card>
           <EmptyState
             icon={Coins}
-            title={status || programId ? "No commissions match those filters" : "No commissions yet"}
+            title={status || programId ? t("empty.filteredTitle") : t("empty.title")}
             description={
-              status || programId
-                ? "Try a different status or program."
-                : "Commissions appear the moment a tracked customer pays and your billing webhook fires."
+              status || programId ? t("empty.filteredDescription") : t("empty.description")
             }
             action={
               status || programId ? (
                 <Button asChild variant="secondary">
-                  <Link href={{ pathname: "/[workspaceSlug]/commissions", params: { workspaceSlug: workspaceSlug } }}>Clear filters</Link>
+                  <Link href={{ pathname: "/[workspaceSlug]/commissions", params: { workspaceSlug: workspaceSlug } }}>{ta("clearFilters")}</Link>
                 </Button>
               ) : (
                 <Button asChild variant="primary">
-                  <Link href={{ pathname: "/[workspaceSlug]/integrations", params: { workspaceSlug: workspaceSlug } }}>Connect billing</Link>
+                  <Link href={{ pathname: "/[workspaceSlug]/integrations", params: { workspaceSlug: workspaceSlug } }}>{ta("connectBilling")}</Link>
                 </Button>
               )
             }
@@ -137,14 +150,14 @@ export default async function CommissionsPage({
             <Table>
               <THead>
                 <tr>
-                  <TH>Affiliate</TH>
-                  <TH>Customer</TH>
-                  <TH>Transaction</TH>
-                  <TH numeric>Base</TH>
-                  <TH numeric>Rate</TH>
-                  <TH numeric>Commission</TH>
-                  <TH>Status</TH>
-                  <TH>Eligible</TH>
+                  <TH>{tc("affiliate")}</TH>
+                  <TH>{tc("customer")}</TH>
+                  <TH>{tc("transaction")}</TH>
+                  <TH numeric>{tc("base")}</TH>
+                  <TH numeric>{tc("rate")}</TH>
+                  <TH numeric>{tc("commission")}</TH>
+                  <TH>{tc("status")}</TH>
+                  <TH>{tc("eligible")}</TH>
                 </tr>
               </THead>
               <TBody>
@@ -162,7 +175,7 @@ export default async function CommissionsPage({
                     </TD>
                     <TD numeric>{f.money(row.baseAmountMinor, row.currency)}</TD>
                     <TD numeric>
-                      {row.commissionRate ? f.basisPoints(row.commissionRate) : "Fixed"}
+                      {row.commissionRate ? f.basisPoints(row.commissionRate) : t("fixed")}
                     </TD>
                     <TD
                       numeric
@@ -180,7 +193,7 @@ export default async function CommissionsPage({
                       <StatusBadge status={row.status} />
                     </TD>
                     <TD className="text-muted-foreground">
-                      {row.eligibleAt.toISOString().slice(0, 10)}
+                      {f.date(row.eligibleAt)}
                     </TD>
                   </TR>
                 ))}
@@ -190,18 +203,16 @@ export default async function CommissionsPage({
 
           {pages > 1 ? (
             <nav
-              aria-label="Pagination"
+              aria-label={t("pagination")}
               className="mt-3 flex items-center justify-between text-meta text-muted-foreground"
             >
-              <span>
-                Page {page} of {pages}
-              </span>
+              <span>{t("pageOf", { page, pages })}</span>
               <span className="flex gap-2">
                 <Button asChild variant="secondary" size="sm" disabled={page <= 1}>
-                  <Link href={{ pathname: "/[workspaceSlug]/commissions", params: { workspaceSlug: workspaceSlug }, query: { page: page - 1 } }}>Previous</Link>
+                  <Link href={{ pathname: "/[workspaceSlug]/commissions", params: { workspaceSlug: workspaceSlug }, query: { page: page - 1 } }}>{ta("previous")}</Link>
                 </Button>
                 <Button asChild variant="secondary" size="sm" disabled={page >= pages}>
-                  <Link href={{ pathname: "/[workspaceSlug]/commissions", params: { workspaceSlug: workspaceSlug }, query: { page: page + 1 } }}>Next</Link>
+                  <Link href={{ pathname: "/[workspaceSlug]/commissions", params: { workspaceSlug: workspaceSlug }, query: { page: page + 1 } }}>{ta("next")}</Link>
                 </Button>
               </span>
             </nav>

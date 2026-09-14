@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 
 import { PageHeader } from "@/components/layout/page-header"
 import { TRACKER_PATH } from "@/lib/tracking/constants"
@@ -10,12 +11,20 @@ import { listApiKeys } from "@/server/services/api-keys"
 import { listIntegrations } from "@/server/services/integrations"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
-export const metadata: Metadata = { title: "Integrations" }
 export const dynamic = "force-dynamic"
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/[locale]/[workspaceSlug]/integrations">): Promise<Metadata> {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: "dashboard.integrations" })
+  return { title: t("title") }
+}
 
 export default async function IntegrationsPage({
   params,
 }: PageProps<"/[locale]/[workspaceSlug]/integrations">) {
+  const t = await getTranslations("dashboard.integrations")
   const { workspaceSlug } = await params
   const user = await requireUser()
   const workspace = await getWorkspaceForUser(user.id, workspaceSlug)
@@ -34,8 +43,8 @@ export default async function IntegrationsPage({
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
-        title="Integrations"
-        description="Connect the billing provider that charges your customers, then install tracking."
+        title={t("title")}
+        description={t("description")}
       />
 
       <div className="space-y-6">

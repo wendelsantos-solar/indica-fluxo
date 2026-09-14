@@ -3,6 +3,7 @@ import "server-only"
 import { and, desc, eq, inArray, sql } from "drizzle-orm"
 
 import { withUser } from "@/server/db"
+import { qualified } from "@/server/db/qualify"
 import {
   affiliates,
   commissions,
@@ -287,7 +288,7 @@ export async function listPayoutBatches(tx: Parameters<Parameters<typeof withUse
       createdAt: payoutBatches.createdAt,
       affiliateCount: sql<number>`(
         select count(*)::int from ${payoutItems}
-         where ${payoutItems.payoutBatchId} = ${payoutBatches.id})`,
+         where ${payoutItems.payoutBatchId} = ${qualified(payoutBatches.id)})`,
     })
     .from(payoutBatches)
     .where(eq(payoutBatches.workspaceId, workspaceId))

@@ -1,6 +1,7 @@
 "use client"
 
 import { Check, Copy } from "lucide-react"
+import { useTranslations } from "next-intl"
 import * as React from "react"
 
 import { Button } from "@/components/ui/button"
@@ -12,15 +13,17 @@ import { cn } from "@/lib/utils"
  */
 export function CopyButton({
   value,
-  label = "Copy",
+  label,
   className,
   size = "sm",
 }: {
   value: string
+  /** Defaults to the translated "Copy". */
   label?: string
   className?: string
   size?: "sm" | "md"
 }) {
+  const t = useTranslations("common.actions")
   const [copied, setCopied] = React.useState(false)
 
   React.useEffect(() => {
@@ -49,7 +52,7 @@ export function CopyButton({
       ) : (
         <Copy aria-hidden="true" />
       )}
-      <span aria-live="polite">{copied ? "Copied" : label}</span>
+      <span aria-live="polite">{copied ? t("copied") : (label ?? t("copy"))}</span>
     </Button>
   )
 }

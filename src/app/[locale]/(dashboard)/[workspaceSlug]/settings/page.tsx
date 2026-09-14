@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 
+import { getFormatters } from "@/i18n/format"
 import { PageHeader } from "@/components/layout/page-header"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -10,10 +12,21 @@ import { withUser } from "@/server/db"
 import { listMembers, listPendingInvites } from "@/server/repositories/workspaces"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
-export const metadata: Metadata = { title: "Settings" }
 export const dynamic = "force-dynamic"
 
+export async function generateMetadata({
+  params,
+}: PageProps<"/[locale]/[workspaceSlug]/settings">): Promise<Metadata> {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: "dashboard.settings" })
+  return { title: t("title") }
+}
+
 export default async function SettingsPage({ params }: PageProps<"/[locale]/[workspaceSlug]/settings">) {
+  const t = await getTranslations("dashboard.settings")
+  const tc = await getTranslations("common.table")
+  const tr = await getTranslations("common.roles")
+  const f = await getFormatters()
   const { workspaceSlug } = await params
   const user = await requireUser()
   const workspace = await getWorkspaceForUser(user.id, workspaceSlug)
@@ -26,7 +39,7 @@ export default async function SettingsPage({ params }: PageProps<"/[locale]/[wor
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader title="Settings" description="Workspace details and team access." />
+      <PageHeader title={t("title")} description={t("description")} />
 
       <div className="space-y-6">
         <WorkspaceSettingsForm
@@ -42,11 +55,8 @@ export default async function SettingsPage({ params }: PageProps<"/[locale]/[wor
         <Card>
           <CardHeader bordered>
             <div>
-              <CardTitle>Team</CardTitle>
-              <CardDescription>
-                Members see everything in this workspace. Only owners and admins can change
-                programs, payouts and keys.
-              </CardDescription>
+              <CardTitle>{t("team.title")}</CardTitle>
+              <CardDescription>{t("team.description")}</CardDescription>
             </div>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -54,27 +64,27 @@ export default async function SettingsPage({ params }: PageProps<"/[locale]/[wor
               <Table>
                 <THead>
                   <tr>
-                    <TH>Member</TH>
-                    <TH>Role</TH>
-                    <TH>Joined</TH>
+                    <TH>{t("team.member")}</TH>
+                    <TH>{t("team.role")}</TH>
+                    <TH>{tc("joined")}</TH>
                   </tr>
                 </THead>
                 <TBody>
                   {members.map((member) => (
                     <TR key={member.id}>
                       <TD className="text-foreground">
-                        {member.fullName ?? "Pending profile"}
+                        {member.fullName ?? t("team.pendingProfile")}
                         {member.userId === user.id ? (
-                          <span className="ml-2 text-label text-muted-foreground">(you)</span>
+                          <span className="ml-2 text-label text-muted-foreground">{t("team.you")}</span>
                         ) : null}
                       </TD>
                       <TD>
                         <Badge tone={member.role === "owner" ? "primary" : "neutral"}>
-                          {member.role}
+                          {tr(member.role)}
                         </Badge>
                       </TD>
                       <TD className="text-muted-foreground">
-                        {member.createdAt.toISOString().slice(0, 10)}
+                        {f.date(member.createdAt)}
                       </TD>
                     </TR>
                   ))}
@@ -82,10 +92,10 @@ export default async function SettingsPage({ params }: PageProps<"/[locale]/[wor
                     <TR key={invite.id}>
                       <TD className="text-muted-foreground">{invite.email}</TD>
                       <TD>
-                        <Badge tone="warning">invited · {invite.role}</Badge>
+                        <Badge tone="warning">{t("team.invitedRole", { role: tr(invite.role) })}</Badge>
                       </TD>
                       <TD className="text-muted-foreground">
-                        {invite.createdAt.toISOString().slice(0, 10)}
+                        {f.date(invite.createdAt)}
                       </TD>
                     </TR>
                   ))}

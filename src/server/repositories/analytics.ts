@@ -169,7 +169,8 @@ export async function getRevenueSeries(
 }
 
 export interface FunnelStep {
-  label: string
+  /** A catalogue key, not a label: the repository does not know the reader. */
+  key: "clicks" | "signups" | "trials" | "customers"
   value: number
 }
 
@@ -205,10 +206,10 @@ export async function getConversionFunnel(
   `)
 
   return [
-    { label: "Clicks", value: Number(row?.clicks ?? 0) },
-    { label: "Signups", value: Number(row?.identified ?? 0) },
-    { label: "Trials", value: Number(row?.trials ?? 0) },
-    { label: "Customers", value: Number(row?.customers ?? 0) },
+    { key: "clicks", value: Number(row?.clicks ?? 0) },
+    { key: "signups", value: Number(row?.identified ?? 0) },
+    { key: "trials", value: Number(row?.trials ?? 0) },
+    { key: "customers", value: Number(row?.customers ?? 0) },
   ]
 }
 

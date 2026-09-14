@@ -1,5 +1,6 @@
 import { CreditCard } from "lucide-react"
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 
 import { Metric } from "@/components/data-display/metric"
 import { getFormatters } from "@/i18n/format"
@@ -19,10 +20,19 @@ import {
 import { listPayoutBatches } from "@/server/services/payouts"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
-export const metadata: Metadata = { title: "Payouts" }
 export const dynamic = "force-dynamic"
 
+export async function generateMetadata({
+  params,
+}: PageProps<"/[locale]/[workspaceSlug]/payouts">): Promise<Metadata> {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: "dashboard.payouts" })
+  return { title: t("title") }
+}
+
 export default async function PayoutsPage({ params }: PageProps<"/[locale]/[workspaceSlug]/payouts">) {
+  const t = await getTranslations("dashboard.payouts")
+  const tc = await getTranslations("common.table")
   const f = await getFormatters()
   const { workspaceSlug } = await params
   const user = await requireUser()
@@ -44,30 +54,30 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
   return (
     <>
       <PageHeader
-        title="Payouts"
-        description="Indica is the source of truth for what you owe. You pay affiliates through your own rails and record it here."
+        title={t("title")}
+        description={t("description")}
       />
 
       <div className="space-y-6">
         <Card>
           <CardContent>
             <Metric
-              label="Available to pay"
+              label={t("availableToPay")}
               value={f.money(availableTotal, currency)}
-              comparison={`${payable.length} affiliate${payable.length === 1 ? "" : "s"} with cleared commissions`}
+              comparison={t("clearedAffiliates", { count: payable.length })}
               size="lg"
             />
           </CardContent>
         </Card>
 
         <section>
-          <SectionHeader title="Ready to pay" />
+          <SectionHeader title={t("readyToPay")} />
           {payable.length === 0 ? (
             <Card>
               <EmptyState
                 icon={CreditCard}
-                title="Nothing to pay right now"
-                description="Commissions become payable once they clear their program's hold period. Anything still pending is shown on the commissions page."
+                title={t("emptyPayable.title")}
+                description={t("emptyPayable.description")}
               />
             </Card>
           ) : (
@@ -80,13 +90,13 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
         </section>
 
         <section>
-          <SectionHeader title="Payout history" />
+          <SectionHeader title={t("history")} />
           {batches.length === 0 ? (
             <Card>
               <EmptyState
                 icon={CreditCard}
-                title="No payout batches yet"
-                description="A batch freezes the amounts owed at a point in time so your records match what you actually transferred."
+                title={t("emptyHistory.title")}
+                description={t("emptyHistory.description")}
               />
             </Card>
           ) : (
@@ -94,12 +104,12 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
               <Table>
                 <THead>
                   <tr>
-                    <TH>Batch</TH>
-                    <TH>Period</TH>
-                    <TH numeric>Affiliates</TH>
-                    <TH numeric>Total</TH>
-                    <TH>Status</TH>
-                    <TH className="text-right">Actions</TH>
+                    <TH>{t("batch")}</TH>
+                    <TH>{tc("period")}</TH>
+                    <TH numeric>{t("affiliates")}</TH>
+                    <TH numeric>{t("total")}</TH>
+                    <TH>{tc("status")}</TH>
+                    <TH className="text-right">{tc("actions")}</TH>
                   </tr>
                 </THead>
                 <TBody>
@@ -107,8 +117,7 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
                     <TR key={batch.id}>
                       <TD className="font-medium text-foreground">{batch.reference}</TD>
                       <TD className="text-muted-foreground">
-                        {batch.periodStart.toISOString().slice(0, 10)} →{" "}
-                        {batch.periodEnd.toISOString().slice(0, 10)}
+                        {f.date(batch.periodStart)} → {f.date(batch.periodEnd)}
                       </TD>
                       <TD numeric>{f.number(batch.affiliateCount)}</TD>
                       <TD numeric className="font-medium text-foreground">
@@ -136,7 +145,7 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
                             </>
                           ) : batch.paidAt ? (
                             <span className="text-meta text-muted-foreground">
-                              Paid {batch.paidAt.toISOString().slice(0, 10)}
+                              {t("paidOn", { date: f.date(batch.paidAt) })}
                             </span>
                           ) : null}
                         </div>

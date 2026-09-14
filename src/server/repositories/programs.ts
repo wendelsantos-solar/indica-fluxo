@@ -3,6 +3,7 @@ import "server-only"
 import { and, count, desc, eq, sql } from "drizzle-orm"
 
 import { type DbClient } from "@/server/db"
+import { qualified } from "@/server/db/qualify"
 import { commissions, programAffiliates, programs, referralClicks } from "@/server/db/schema"
 import type { ProgramRules } from "@/server/domain/types"
 
@@ -26,16 +27,16 @@ export async function listPrograms(tx: DbClient, workspaceId: string) {
       createdAt: programs.createdAt,
       affiliateCount: sql<number>`(
         select count(*)::int from ${programAffiliates}
-         where ${programAffiliates.programId} = ${programs.id}
+         where ${programAffiliates.programId} = ${qualified(programs.id)}
            and ${programAffiliates.status} = 'approved'
       )`,
       clickCount: sql<number>`(
         select count(*)::int from ${referralClicks}
-         where ${referralClicks.programId} = ${programs.id}
+         where ${referralClicks.programId} = ${qualified(programs.id)}
       )`,
       commissionTotalMinor: sql<number>`coalesce((
         select sum(${commissions.commissionAmountMinor})::bigint from ${commissions}
-         where ${commissions.programId} = ${programs.id}
+         where ${commissions.programId} = ${qualified(programs.id)}
            and ${commissions.status} <> 'rejected'
       ), 0)::int`,
     })

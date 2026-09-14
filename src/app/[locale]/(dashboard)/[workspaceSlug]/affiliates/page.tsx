@@ -1,5 +1,7 @@
 import { Search, Users } from "lucide-react"
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
+
 import { Link } from "@/i18n/navigation"
 
 import { EmptyState } from "@/components/feedback/empty-state"
@@ -17,8 +19,15 @@ import { listAffiliates } from "@/server/repositories/affiliates"
 import { listPrograms } from "@/server/repositories/programs"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
-export const metadata: Metadata = { title: "Affiliates" }
 export const dynamic = "force-dynamic"
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/[locale]/[workspaceSlug]/affiliates">): Promise<Metadata> {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: "dashboard.affiliates" })
+  return { title: t("title") }
+}
 
 const PAGE_SIZE = 25
 
@@ -26,6 +35,10 @@ export default async function AffiliatesPage({
   params,
   searchParams,
 }: PageProps<"/[locale]/[workspaceSlug]/affiliates">) {
+  const t = await getTranslations("dashboard.affiliates")
+  const tc = await getTranslations("common.table")
+  const ts = await getTranslations("status")
+  const ta = await getTranslations("common.actions")
   const f = await getFormatters()
   const { workspaceSlug } = await params
   const query = await searchParams
@@ -59,8 +72,8 @@ export default async function AffiliatesPage({
   return (
     <>
       <PageHeader
-        title="Affiliates"
-        description="Everyone promoting your product, and what each one has earned."
+        title={t("title")}
+        description={t("description")}
         actions={
           <InviteAffiliateDialog
             workspaceSlug={workspaceSlug}
@@ -78,20 +91,20 @@ export default async function AffiliatesPage({
           <Input
             name="q"
             defaultValue={search}
-            placeholder="Search name, e-mail or code"
-            aria-label="Search affiliates"
+            placeholder={t("searchPlaceholder")}
+            aria-label={t("searchLabel")}
             className="pl-8"
           />
         </div>
-        <Select name="status" defaultValue={status ?? ""} aria-label="Filter by status" className="w-auto min-w-[150px]">
-          <option value="">All statuses</option>
-          <option value="approved">Approved</option>
-          <option value="pending">Pending</option>
-          <option value="suspended">Suspended</option>
-          <option value="rejected">Rejected</option>
+        <Select name="status" defaultValue={status ?? ""} aria-label={t("filterLabel")} className="w-auto min-w-[150px]">
+          <option value="">{t("allStatuses")}</option>
+          <option value="approved">{ts("approved")}</option>
+          <option value="pending">{ts("pending")}</option>
+          <option value="suspended">{ts("suspended")}</option>
+          <option value="rejected">{ts("rejected")}</option>
         </Select>
         <Button type="submit" variant="secondary">
-          Apply
+          {t("apply")}
         </Button>
       </form>
 
@@ -99,22 +112,20 @@ export default async function AffiliatesPage({
         <Card>
           <EmptyState
             icon={Users}
-            title={search || status ? "No affiliates match those filters" : "No affiliates yet"}
+            title={search || status ? t("empty.filteredTitle") : t("empty.title")}
             description={
-              search || status
-                ? "Try a different search term, or clear the status filter."
-                : "Invite your first affiliate and they will get a referral link straight away."
+              search || status ? t("empty.filteredDescription") : t("empty.description")
             }
             action={
               search || status ? (
                 <Button asChild variant="secondary">
-                  <Link href={{ pathname: "/[workspaceSlug]/affiliates", params: { workspaceSlug: workspaceSlug } }}>Clear filters</Link>
+                  <Link href={{ pathname: "/[workspaceSlug]/affiliates", params: { workspaceSlug: workspaceSlug } }}>{ta("clearFilters")}</Link>
                 </Button>
               ) : (
                 <InviteAffiliateDialog
                   workspaceSlug={workspaceSlug}
                   programs={programs.map((program) => ({ id: program.id, name: program.name }))}
-                  triggerLabel="Invite your first affiliate"
+                  triggerLabel={t("empty.action")}
                 />
               )
             }
@@ -126,14 +137,14 @@ export default async function AffiliatesPage({
             <Table>
               <THead>
                 <tr>
-                  <TH>Affiliate</TH>
-                  <TH>Program</TH>
-                  <TH>Status</TH>
-                  <TH numeric>Clicks</TH>
-                  <TH numeric>Customers</TH>
-                  <TH numeric>Revenue</TH>
-                  <TH numeric>Commission</TH>
-                  <TH numeric>Conversion</TH>
+                  <TH>{tc("affiliate")}</TH>
+                  <TH>{tc("program")}</TH>
+                  <TH>{tc("status")}</TH>
+                  <TH numeric>{tc("clicks")}</TH>
+                  <TH numeric>{tc("customers")}</TH>
+                  <TH numeric>{tc("revenue")}</TH>
+                  <TH numeric>{tc("commission")}</TH>
+                  <TH numeric>{tc("conversion")}</TH>
                 </tr>
               </THead>
               <TBody>
@@ -164,18 +175,18 @@ export default async function AffiliatesPage({
 
           {pages > 1 ? (
             <nav
-              aria-label="Pagination"
+              aria-label={t("pagination")}
               className="mt-3 flex items-center justify-between text-meta text-muted-foreground"
             >
               <span>
-                Page {page} of {pages} · {f.number(result.total)} affiliates
+                {t("pageOf", { page, pages, total: f.number(result.total) })}
               </span>
               <span className="flex gap-2">
                 <Button asChild variant="secondary" size="sm" disabled={page <= 1}>
-                  <Link href={{ pathname: "/[workspaceSlug]/affiliates", params: { workspaceSlug: workspaceSlug }, query: { page: page - 1 } }}>Previous</Link>
+                  <Link href={{ pathname: "/[workspaceSlug]/affiliates", params: { workspaceSlug: workspaceSlug }, query: { page: page - 1 } }}>{ta("previous")}</Link>
                 </Button>
                 <Button asChild variant="secondary" size="sm" disabled={page >= pages}>
-                  <Link href={{ pathname: "/[workspaceSlug]/affiliates", params: { workspaceSlug: workspaceSlug }, query: { page: page + 1 } }}>Next</Link>
+                  <Link href={{ pathname: "/[workspaceSlug]/affiliates", params: { workspaceSlug: workspaceSlug }, query: { page: page + 1 } }}>{ta("next")}</Link>
                 </Button>
               </span>
             </nav>

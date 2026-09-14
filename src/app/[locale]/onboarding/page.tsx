@@ -1,14 +1,23 @@
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 
 import { Logo } from "@/components/layout/logo"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { CreateWorkspaceForm } from "@/features/workspaces/create-workspace-form"
 import { requireUser } from "@/server/auth/session"
 
-export const metadata: Metadata = { title: "Create your workspace" }
 export const dynamic = "force-dynamic"
 
+export async function generateMetadata({
+  params,
+}: PageProps<"/[locale]/onboarding">): Promise<Metadata> {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: "onboarding" })
+  return { title: t("title") }
+}
+
 export default async function OnboardingPage() {
+  const t = await getTranslations("onboarding")
   await requireUser()
 
   return (
@@ -21,12 +30,11 @@ export default async function OnboardingPage() {
       <main className="mx-auto flex w-full max-w-[460px] flex-1 flex-col justify-center px-4 py-10">
         <div className="mb-6 space-y-2">
           <p className="text-meta font-medium uppercase tracking-[0.02em] text-muted-foreground">
-            Step 1 of 2
+            {t("step")}
           </p>
-          <h1 className="text-subheading font-medium">Create your workspace</h1>
+          <h1 className="text-subheading font-medium">{t("title")}</h1>
           <p className="text-caption leading-relaxed text-muted-foreground">
-            A workspace holds your programs, affiliates and commission ledger. You can rename it
-            later; the currency sets the default for new programs.
+            {t("description")}
           </p>
         </div>
 

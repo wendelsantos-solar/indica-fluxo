@@ -1,6 +1,6 @@
 import { Users } from "lucide-react"
 import type { Metadata } from "next"
-import { getLocale } from "next-intl/server"
+import { getLocale, getTranslations } from "next-intl/server"
 import { notFound } from "next/navigation"
 
 import { getPathname, Link } from "@/i18n/navigation"
@@ -32,6 +32,8 @@ export default async function ProgramDetailPage({
   params,
   searchParams,
 }: PageProps<"/[locale]/[workspaceSlug]/programs/[programSlug]">) {
+  const t = await getTranslations("dashboard.program")
+  const tc = await getTranslations("common.table")
   const f = await getFormatters()
   const { workspaceSlug, programSlug } = await params
   const query = await searchParams
@@ -90,7 +92,7 @@ export default async function ProgramDetailPage({
 
       <dl className="mb-6 flex flex-wrap gap-x-8 gap-y-3 rounded-panel border border-border bg-surface-1 px-5 py-4">
         <SummaryItem
-          label="Commission"
+          label={tc("commission")}
           value={
             program.commissionType === "percentage"
               ? f.basisPoints(program.commissionValue)
@@ -98,55 +100,58 @@ export default async function ProgramDetailPage({
           }
         />
         <SummaryItem
-          label="Duration"
+          label={t("duration")}
           value={
             program.commissionDurationMonths === null
-              ? "Lifetime"
+              ? t("lifetime")
               : program.commissionDurationMonths === 1
-                ? "First payment"
-                : `${program.commissionDurationMonths} months`
+                ? t("firstPayment")
+                : t("nMonths", { count: program.commissionDurationMonths })
           }
         />
-        <SummaryItem label="Attribution" value={`${program.attributionWindowDays}-day window`} />
         <SummaryItem
-          label="Model"
-          value={program.attributionModel === "last_click" ? "Last click" : "First click"}
+          label={t("attribution")}
+          value={t("windowDays", { count: program.attributionWindowDays })}
         />
-        <SummaryItem label="Hold" value={`${program.commissionHoldDays} days`} />
+        <SummaryItem
+          label={t("model")}
+          value={program.attributionModel === "last_click" ? t("lastClick") : t("firstClick")}
+        />
+        <SummaryItem label={t("hold")} value={t("nDays", { count: program.commissionHoldDays })} />
       </dl>
 
-      <nav className="mb-5 flex items-center gap-1 border-b border-border" aria-label="Program sections">
+      <nav className="mb-5 flex items-center gap-1 border-b border-border" aria-label={t("sections")}>
         <TabLink href={`${base}?tab=overview`} active={tab === "overview"}>
-          Overview
+          {t("tabs.overview")}
         </TabLink>
         <TabLink href={`${base}?tab=affiliates`} active={tab === "affiliates"}>
-          Affiliates
+          {t("tabs.affiliates")}
         </TabLink>
         <TabLink href={`${base}?tab=commissions`} active={tab === "commissions"}>
-          Commissions
+          {t("tabs.commissions")}
         </TabLink>
         <TabLink href={`${base}?tab=settings`} active={tab === "settings"}>
-          Settings
+          {t("tabs.settings")}
         </TabLink>
       </nav>
 
       {tab === "overview" ? (
         <MetricGrid className="lg:grid-cols-4">
           <MetricCell>
-            <Metric label="Clicks" value={f.number(totals.clicks)} />
+            <Metric label={tc("clicks")} value={f.number(totals.clicks)} />
           </MetricCell>
           <MetricCell>
             <Metric
-              label="Customers"
+              label={tc("customers")}
               value={f.number(totals.customers)}
               comparison={f.rate(totals.customers, totals.clicks)}
             />
           </MetricCell>
           <MetricCell>
-            <Metric label="Revenue" value={f.money(totals.revenue, program.currency)} />
+            <Metric label={tc("revenue")} value={f.money(totals.revenue, program.currency)} />
           </MetricCell>
           <MetricCell>
-            <Metric label="Commission" value={f.money(totals.commission, program.currency)} />
+            <Metric label={tc("commission")} value={f.money(totals.commission, program.currency)} />
           </MetricCell>
         </MetricGrid>
       ) : null}
@@ -156,14 +161,14 @@ export default async function ProgramDetailPage({
           <Card>
             <EmptyState
               icon={Users}
-              title="No affiliates in this program"
-              description="Invite someone and they will receive a referral code immediately."
+              title={t("emptyAffiliates.title")}
+              description={t("emptyAffiliates.description")}
               action={
                 <InviteAffiliateDialog
                   workspaceSlug={workspaceSlug}
                   programs={[{ id: program.id, name: program.name }]}
                   defaultProgramId={program.id}
-                  triggerLabel="Invite the first affiliate"
+                  triggerLabel={t("emptyAffiliates.action")}
                 />
               }
             />
@@ -173,12 +178,12 @@ export default async function ProgramDetailPage({
             <Table>
               <THead>
                 <tr>
-                  <TH>Affiliate</TH>
-                  <TH>Code</TH>
-                  <TH>Status</TH>
-                  <TH numeric>Clicks</TH>
-                  <TH numeric>Customers</TH>
-                  <TH numeric>Commission</TH>
+                  <TH>{tc("affiliate")}</TH>
+                  <TH>{tc("code")}</TH>
+                  <TH>{tc("status")}</TH>
+                  <TH numeric>{tc("clicks")}</TH>
+                  <TH numeric>{tc("customers")}</TH>
+                  <TH numeric>{tc("commission")}</TH>
                 </tr>
               </THead>
               <TBody>
@@ -207,14 +212,14 @@ export default async function ProgramDetailPage({
           <Card>
             <EmptyState
               icon={Users}
-              title="No commissions in this program yet"
-              description="They appear as soon as a tracked customer pays."
+              title={t("emptyCommissions.title")}
+              description={t("emptyCommissions.description")}
               action={
                 <Link
                   href={{ pathname: "/[workspaceSlug]/integrations", params: { workspaceSlug: workspaceSlug } }}
                   className="text-caption text-foreground underline-offset-4 hover:underline"
                 >
-                  Check your billing connection
+                  {t("emptyCommissions.action")}
                 </Link>
               }
             />
@@ -224,11 +229,11 @@ export default async function ProgramDetailPage({
             <Table>
               <THead>
                 <tr>
-                  <TH>Affiliate</TH>
-                  <TH>Customer</TH>
-                  <TH numeric>Base</TH>
-                  <TH numeric>Commission</TH>
-                  <TH>Status</TH>
+                  <TH>{tc("affiliate")}</TH>
+                  <TH>{tc("customer")}</TH>
+                  <TH numeric>{tc("base")}</TH>
+                  <TH numeric>{tc("commission")}</TH>
+                  <TH>{tc("status")}</TH>
                 </tr>
               </THead>
               <TBody>

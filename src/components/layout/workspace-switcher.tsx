@@ -1,9 +1,10 @@
 "use client"
 
 import { Check, ChevronsUpDown, Plus } from "lucide-react"
-import { Link } from "@/i18n/navigation"
-import { useRouter } from "@/i18n/navigation"
+import { useTranslations } from "next-intl"
 import * as React from "react"
+
+import { Link, useRouter } from "@/i18n/navigation"
 
 import {
   Dropdown,
@@ -29,6 +30,7 @@ export function WorkspaceSwitcher({
   workspaces: WorkspaceOption[]
   current: WorkspaceOption
 }) {
+  const t = useTranslations("common.workspace")
   const router = useRouter()
 
   return (
@@ -37,7 +39,7 @@ export function WorkspaceSwitcher({
         <button
           type="button"
           className="flex w-full items-center gap-2 rounded-control px-2 py-1.5 text-left transition-colors duration-[120ms] hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          aria-label={`Current workspace: ${current.name}. Switch workspace`}
+          aria-label={t("switchLabel", { name: current.name })}
         >
           <span className="flex size-6 shrink-0 items-center justify-center rounded-control bg-primary text-micro font-medium text-primary-foreground">
             {initials(current.name)}
@@ -50,7 +52,7 @@ export function WorkspaceSwitcher({
       </DropdownTrigger>
 
       <DropdownContent className="w-[232px]">
-        <DropdownLabel>Workspaces</DropdownLabel>
+        <DropdownLabel>{t("plural")}</DropdownLabel>
         {workspaces.map((workspace) => (
           <DropdownItem
             key={workspace.id}
@@ -77,7 +79,7 @@ export function WorkspaceSwitcher({
         <DropdownItem asChild>
           <Link href="/onboarding">
             <Plus aria-hidden="true" />
-            New workspace
+            {t("create")}
           </Link>
         </DropdownItem>
       </DropdownContent>

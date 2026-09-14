@@ -1,7 +1,9 @@
 import { ArrowRight, Coins, Users } from "lucide-react"
 import type { Metadata } from "next"
-import { Link } from "@/i18n/navigation"
+import { getTranslations } from "next-intl/server"
 import { Suspense } from "react"
+
+import { Link } from "@/i18n/navigation"
 
 import { AreaChart, ChartLegend } from "@/components/data-display/area-chart"
 import { getFormatters } from "@/i18n/format"
@@ -25,18 +27,23 @@ import {
 } from "@/server/repositories/analytics"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
-export const metadata: Metadata = { title: "Overview" }
 export const dynamic = "force-dynamic"
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/[locale]/[workspaceSlug]/overview">): Promise<Metadata> {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: "dashboard.overview" })
+  return { title: t("title") }
+}
 
 export default async function OverviewPage({ params }: PageProps<"/[locale]/[workspaceSlug]/overview">) {
   const { workspaceSlug } = await params
+  const t = await getTranslations("dashboard.overview")
 
   return (
     <>
-      <PageHeader
-        title="Overview"
-        description="Affiliate performance across every program in this workspace."
-      />
+      <PageHeader title={t("title")} description={t("description")} />
       <Suspense fallback={<OverviewSkeleton />}>
         <OverviewContent slug={workspaceSlug} />
       </Suspense>
@@ -45,6 +52,8 @@ export default async function OverviewPage({ params }: PageProps<"/[locale]/[wor
 }
 
 async function OverviewContent({ slug }: { slug: string }) {
+  const t = await getTranslations("dashboard.overview")
+  const tc = await getTranslations("common.table")
   const f = await getFormatters()
   const user = await requireUser()
   const workspace = await getWorkspaceForUser(user.id, slug)
@@ -69,13 +78,13 @@ async function OverviewContent({ slug }: { slug: string }) {
   const chartSeries = [
     {
       key: "revenue",
-      label: "Revenue",
+      label: t("legendRevenue"),
       color: "var(--chart-1)",
       values: series.map((point) => point.revenueMinor),
     },
     {
       key: "commission",
-      label: "Commission",
+      label: t("legendCommission"),
       color: "var(--chart-2)",
       values: series.map((point) => point.commissionMinor),
     },
@@ -88,11 +97,11 @@ async function OverviewContent({ slug }: { slug: string }) {
       <Card>
         <EmptyState
           icon={Users}
-          title="No affiliate activity yet"
-          description="Create a program, invite your first affiliate and install the tracking snippet. Numbers appear here as soon as the first click lands."
+          title={t("empty.title")}
+          description={t("empty.description")}
           action={
             <Button asChild variant="primary">
-              <Link href={{ pathname: "/[workspaceSlug]/programs/new", params: { workspaceSlug: slug } }}>Create a program</Link>
+              <Link href={{ pathname: "/[workspaceSlug]/programs/new", params: { workspaceSlug: slug } }}>{t("empty.action")}</Link>
             </Button>
           }
         />
@@ -105,19 +114,19 @@ async function OverviewContent({ slug }: { slug: string }) {
       <Card>
         <CardContent className="flex flex-wrap items-end justify-between gap-6">
           <Metric
-            label="Affiliate revenue"
+            label={t("metrics.revenue")}
             value={f.money(overview.revenueMinor, overview.currency)}
             delta={delta}
-            comparison="vs. previous 30 days"
+            comparison={t("metrics.comparison")}
             size="lg"
           />
           <div className="flex flex-wrap gap-8">
             <Metric
-              label="Commissions"
+              label={t("metrics.commissions")}
               value={f.money(overview.commissionMinor, overview.currency)}
             />
             <Metric
-              label="Net revenue"
+              label={t("metrics.netRevenue")}
               value={f.money(overview.netRevenueMinor, overview.currency)}
             />
           </div>
@@ -126,16 +135,16 @@ async function OverviewContent({ slug }: { slug: string }) {
 
       <MetricGrid>
         <MetricCell>
-          <Metric label="Active affiliates" value={f.number(overview.activeAffiliates)} />
+          <Metric label={t("metrics.activeAffiliates")} value={f.number(overview.activeAffiliates)} />
         </MetricCell>
         <MetricCell>
-          <Metric label="Customers acquired" value={f.number(overview.customersAcquired)} />
+          <Metric label={t("metrics.customers")} value={f.number(overview.customersAcquired)} />
         </MetricCell>
         <MetricCell>
           <Metric
-            label="Conversion rate"
+            label={t("metrics.conversionRate")}
             value={f.rate(overview.customersAcquired, overview.clicks)}
-            comparison={`${f.number(overview.clicks)} clicks`}
+            comparison={t("metrics.clicks", { count: f.number(overview.clicks) })}
           />
         </MetricCell>
       </MetricGrid>
@@ -143,7 +152,7 @@ async function OverviewContent({ slug }: { slug: string }) {
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         <Card>
           <CardHeader bordered>
-            <CardTitle>Revenue over time</CardTitle>
+            <CardTitle>{t("revenueOverTime")}</CardTitle>
             <ChartLegend series={chartSeries} />
           </CardHeader>
           <CardContent>
@@ -157,7 +166,7 @@ async function OverviewContent({ slug }: { slug: string }) {
 
         <Card>
           <CardHeader bordered>
-            <CardTitle>Conversion funnel</CardTitle>
+            <CardTitle>{t("conversionFunnel")}</CardTitle>
           </CardHeader>
           <CardContent>
             <Funnel steps={funnel} />
@@ -168,11 +177,11 @@ async function OverviewContent({ slug }: { slug: string }) {
       <div className="grid gap-6 lg:grid-cols-2">
         <section>
           <SectionHeader
-            title="Top affiliates"
+            title={t("topAffiliates")}
             action={
               <Button asChild variant="ghost" size="sm">
                 <Link href={{ pathname: "/[workspaceSlug]/affiliates", params: { workspaceSlug: slug } }}>
-                  View all
+                  {t("viewAll")}
                   <ArrowRight aria-hidden="true" />
                 </Link>
               </Button>
@@ -182,16 +191,16 @@ async function OverviewContent({ slug }: { slug: string }) {
             <Table>
               <THead>
                 <tr>
-                  <TH>Affiliate</TH>
-                  <TH numeric>Revenue</TH>
-                  <TH numeric>Commission</TH>
+                  <TH>{tc("affiliate")}</TH>
+                  <TH numeric>{tc("revenue")}</TH>
+                  <TH numeric>{tc("commission")}</TH>
                 </tr>
               </THead>
               <TBody>
                 {topAffiliates.length === 0 ? (
                   <TR>
                     <TD colSpan={3} className="text-center text-muted-foreground">
-                      No commissions yet.
+                      {t("noCommissions")}
                     </TD>
                   </TR>
                 ) : (
@@ -217,11 +226,11 @@ async function OverviewContent({ slug }: { slug: string }) {
 
         <section>
           <SectionHeader
-            title="Recent conversions"
+            title={t("recentConversions")}
             action={
               <Button asChild variant="ghost" size="sm">
                 <Link href={{ pathname: "/[workspaceSlug]/conversions", params: { workspaceSlug: slug } }}>
-                  View all
+                  {t("viewAll")}
                   <ArrowRight aria-hidden="true" />
                 </Link>
               </Button>
@@ -231,16 +240,16 @@ async function OverviewContent({ slug }: { slug: string }) {
             <Table>
               <THead>
                 <tr>
-                  <TH>Affiliate</TH>
-                  <TH>Customer</TH>
-                  <TH numeric>Commission</TH>
+                  <TH>{tc("affiliate")}</TH>
+                  <TH>{tc("customer")}</TH>
+                  <TH numeric>{tc("commission")}</TH>
                 </tr>
               </THead>
               <TBody>
                 {recent.length === 0 ? (
                   <TR>
                     <TD colSpan={3} className="text-center text-muted-foreground">
-                      No conversions yet.
+                      {t("noConversions")}
                     </TD>
                   </TR>
                 ) : (
@@ -272,16 +281,19 @@ async function OverviewContent({ slug }: { slug: string }) {
               </span>
               <div>
                 <p className="text-caption font-medium">
-                  {f.money(overview.availableCommissionMinor, overview.currency)} ready to pay
+                  {t("readyToPay", {
+                    amount: f.money(overview.availableCommissionMinor, overview.currency),
+                  })}
                 </p>
                 <p className="text-meta text-muted-foreground">
-                  {f.money(overview.pendingCommissionMinor, overview.currency)} still inside the
-                  hold period.
+                  {t("stillOnHold", {
+                    amount: f.money(overview.pendingCommissionMinor, overview.currency),
+                  })}
                 </p>
               </div>
             </div>
             <Button asChild variant="primary">
-              <Link href={{ pathname: "/[workspaceSlug]/payouts", params: { workspaceSlug: slug } }}>Review payouts</Link>
+              <Link href={{ pathname: "/[workspaceSlug]/payouts", params: { workspaceSlug: slug } }}>{t("reviewPayouts")}</Link>
             </Button>
           </CardContent>
         </Card>

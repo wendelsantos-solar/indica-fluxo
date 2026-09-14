@@ -83,6 +83,24 @@ export function formatRate(locale: string, numerator: number, denominator: numbe
 }
 
 /**
+ * `2026-09-14` reads as 14 September to a Brazilian and as the 9th of
+ * something to an American. Dates in this product are facts on a ledger, so
+ * they are always rendered in the reader's own convention rather than in ISO.
+ */
+export function formatDate(
+  locale: string,
+  value: Date,
+  style: "short" | "medium" = "short",
+): string {
+  return new Intl.DateTimeFormat(locale, {
+    day: "2-digit",
+    month: style === "short" ? "2-digit" : "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(value)
+}
+
+/**
  * Binds the locale once so a view does not thread it through every call.
  *
  * Server components get this from `getFormatters()` in `@/i18n/format`; client
@@ -98,6 +116,7 @@ export function createFormatters(locale: string) {
       formatNumber(locale, value, options),
     rate: (numerator: number, denominator: number) =>
       formatRate(locale, numerator, denominator),
+    date: (value: Date, style?: "short" | "medium") => formatDate(locale, value, style),
   }
 }
 

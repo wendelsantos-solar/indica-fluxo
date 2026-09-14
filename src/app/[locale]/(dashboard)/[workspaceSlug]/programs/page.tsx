@@ -1,5 +1,6 @@
 import { Layers, Plus } from "lucide-react"
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 import { Link } from "@/i18n/navigation"
 
 import { EmptyState } from "@/components/feedback/empty-state"
@@ -14,10 +15,19 @@ import { withUser } from "@/server/db"
 import { listPrograms } from "@/server/repositories/programs"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
-export const metadata: Metadata = { title: "Programs" }
 export const dynamic = "force-dynamic"
 
+export async function generateMetadata({
+  params,
+}: PageProps<"/[locale]/[workspaceSlug]/programs">): Promise<Metadata> {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: "dashboard.programs" })
+  return { title: t("title") }
+}
+
 export default async function ProgramsPage({ params }: PageProps<"/[locale]/[workspaceSlug]/programs">) {
+  const t = await getTranslations("dashboard.programs")
+  const tc = await getTranslations("common.table")
   const f = await getFormatters()
   const { workspaceSlug } = await params
   const user = await requireUser()
@@ -27,13 +37,13 @@ export default async function ProgramsPage({ params }: PageProps<"/[locale]/[wor
   return (
     <>
       <PageHeader
-        title="Programs"
-        description="Each program carries its own commission rule, attribution model and hold period."
+        title={t("title")}
+        description={t("description")}
         actions={
           <Button asChild variant="primary">
             <Link href={{ pathname: "/[workspaceSlug]/programs/new", params: { workspaceSlug: workspaceSlug } }}>
               <Plus aria-hidden="true" />
-              New program
+              {t("create")}
             </Link>
           </Button>
         }
@@ -43,11 +53,11 @@ export default async function ProgramsPage({ params }: PageProps<"/[locale]/[wor
         <Card>
           <EmptyState
             icon={Layers}
-            title="No programs yet"
-            description="A program defines what affiliates earn and how conversions are attributed. Most SaaS companies start with a single one."
+            title={t("empty.title")}
+            description={t("empty.description")}
             action={
               <Button asChild variant="primary">
-                <Link href={{ pathname: "/[workspaceSlug]/programs/new", params: { workspaceSlug: workspaceSlug } }}>Create your first program</Link>
+                <Link href={{ pathname: "/[workspaceSlug]/programs/new", params: { workspaceSlug: workspaceSlug } }}>{t("empty.action")}</Link>
               </Button>
             }
           />
@@ -57,13 +67,13 @@ export default async function ProgramsPage({ params }: PageProps<"/[locale]/[wor
           <Table>
             <THead>
               <tr>
-                <TH>Program</TH>
-                <TH>Status</TH>
-                <TH>Commission</TH>
-                <TH>Attribution</TH>
-                <TH numeric>Affiliates</TH>
-                <TH numeric>Clicks</TH>
-                <TH numeric>Commission earned</TH>
+                <TH>{tc("program")}</TH>
+                <TH>{tc("status")}</TH>
+                <TH>{tc("commission")}</TH>
+                <TH>{t("attribution")}</TH>
+                <TH numeric>{t("affiliates")}</TH>
+                <TH numeric>{tc("clicks")}</TH>
+                <TH numeric>{t("commissionEarned")}</TH>
               </tr>
             </THead>
             <TBody>
@@ -90,16 +100,16 @@ export default async function ProgramsPage({ params }: PageProps<"/[locale]/[wor
                     <span className="text-muted-foreground">
                       {" · "}
                       {program.commissionDurationMonths === null
-                        ? "lifetime"
+                        ? t("lifetime")
                         : program.commissionDurationMonths === 1
-                          ? "first payment"
-                          : `${program.commissionDurationMonths} months`}
+                          ? t("firstPayment")
+                          : t("nMonths", { count: program.commissionDurationMonths })}
                     </span>
                   </TD>
                   <TD>
-                    {program.attributionModel === "last_click" ? "Last click" : "First click"}
+                    {program.attributionModel === "last_click" ? t("lastClick") : t("firstClick")}
                     <span className="text-muted-foreground">
-                      {` · ${program.attributionWindowDays}d`}
+                      {` · ${t("nDays", { count: program.attributionWindowDays })}`}
                     </span>
                   </TD>
                   <TD numeric>{f.number(program.affiliateCount)}</TD>

@@ -3,6 +3,7 @@ import "server-only"
 import { and, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm"
 
 import { type DbClient } from "@/server/db"
+import { qualified } from "@/server/db/qualify"
 import {
   affiliates,
   commissions,
@@ -211,7 +212,7 @@ export async function listLinks(tx: DbClient, participationId: string) {
       createdAt: referralLinks.createdAt,
       clicks: sql<number>`coalesce((
         select count(*)::int from ${referralClicks}
-         where ${referralClicks.referralLinkId} = ${referralLinks.id}), 0)`,
+         where ${referralClicks.referralLinkId} = ${qualified(referralLinks.id)}), 0)`,
     })
     .from(referralLinks)
     .where(eq(referralLinks.programAffiliateId, participationId))
@@ -231,7 +232,7 @@ export async function participationStats(tx: DbClient, participationId: string) 
            and ${commissions.commissionAmountMinor} > 0), 0)`,
       revenueMinor: sql<number>`coalesce((
         select sum(${transactions.grossAmountMinor})::bigint from ${commissions}
-          join ${transactions} on ${transactions.id} = ${commissions.transactionId}
+          join ${transactions} on ${qualified(transactions.id)} = ${qualified(commissions.transactionId)}
          where ${commissions.programAffiliateId} = ${participationId}
            and ${commissions.commissionAmountMinor} > 0), 0)::int`,
       commissionMinor: sql<number>`coalesce((

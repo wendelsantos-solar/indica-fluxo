@@ -1,4 +1,5 @@
 import { cva, type VariantProps } from "class-variance-authority"
+import { useTranslations } from "next-intl"
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
@@ -55,13 +56,20 @@ const TONES = {
 
 export type KnownStatus = keyof typeof TONES
 
-/** Maps a domain status onto its tone, so status colour is never ad hoc. */
+/**
+ * Maps a domain status onto its tone and its label, so neither colour nor
+ * wording is ad hoc. The label is a catalogue lookup rather than a capitalised
+ * database value: "reversed" is a word a reader sees, and it has to be a word
+ * in their language.
+ */
 export function StatusBadge({ status, className }: { status: string; className?: string }) {
+  const t = useTranslations("status")
   const tone = (TONES[status as KnownStatus] ?? "info") as NonNullable<BadgeProps["tone"]>
-  const label = status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ")
+  const key = status.replace(/_/g, "")
+
   return (
     <Badge tone={tone} className={className}>
-      {label}
+      {t.has(key) ? t(key) : status}
     </Badge>
   )
 }

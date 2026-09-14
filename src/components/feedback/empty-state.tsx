@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react"
+import { useTranslations } from "next-intl"
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
@@ -42,14 +43,17 @@ export function EmptyState({
 }
 
 export function ErrorState({
-  title = "Something went wrong",
+  title,
   description,
   action,
 }: {
+  /** Defaults to the translated "Something went wrong". */
   title?: string
   description: string
   action?: React.ReactNode
 }) {
+  const t = useTranslations("common.feedback")
+
   return (
     <div
       role="alert"
@@ -61,7 +65,7 @@ export function ErrorState({
         </span>
       </div>
       <div className="space-y-1">
-        <p className="text-body-sm font-medium text-foreground">{title}</p>
+        <p className="text-body-sm font-medium text-foreground">{title ?? t("errorTitle")}</p>
         <p className="mx-auto max-w-sm text-caption leading-relaxed text-muted-foreground">
           {description}
         </p>
