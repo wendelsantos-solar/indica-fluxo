@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# indica-fluxo
 
-## Getting Started
+Affiliate and referral tracking for SaaS. Next.js App Router, Supabase Postgres
+with row-level security, Drizzle ORM, Stripe billing.
 
-First, run the development server:
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.example .env.local   # fill in real values; never commit them
+pnpm db:migrate
+pnpm db:seed                 # optional demo workspace
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Every variable is documented in `.env.example`. The split matters:
 
-## Learn More
+| Variable | Scope | Notes |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | public | inlined into the browser bundle |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | public | `sb_publishable_*` |
+| `NEXT_PUBLIC_APP_URL` | public | |
+| `SUPABASE_SECRET_KEY` | **server only** | `sb_secret_*`, bypasses RLS |
+| `DATABASE_URL` | **server only** | direct Postgres for Drizzle |
+| `ENCRYPTION_KEY`, `HASH_PEPPER` | **server only** | |
+| `STRIPE_*` | **server only** | |
 
-To learn more about Next.js, take a look at the following resources:
+Validation lives in `src/lib/env/client.ts` (browser-safe) and
+`src/lib/env/server.ts` (`server-only`). A server secret is never exported by a
+module the browser can import.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Supabase security
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This project uses Supabase's current API-key model, not the legacy
+`anon` / `service_role` JWTs.
 
-## Deploy on Vercel
+- `sb_publishable_*` may be used in the browser.
+- `sb_secret_*` is server-only.
+- **No secret key may use the `NEXT_PUBLIC_` prefix** — `NEXT_PUBLIC_*` values are
+  inlined into the client bundle at build time.
+- Normal operations respect RLS. Running on the server is not a reason to use
+  the secret key.
+- The Admin Client is for explicit administrative operations only.
+- Never bypass RLS for convenience — fix the policy instead.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Three clients, three responsibilities:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Module | Key | Result |
+| --- | --- | --- |
+| `src/lib/supabase/browser.ts` | publishable | RLS as the signed-in user |
+| `src/lib/supabase/server.ts` | publishable + cookies | RLS as the signed-in user |
+| `src/lib/supabase/admin.ts` | secret (`server-only`) | bypasses RLS — justify every call site (today: the seed only) |
+
+`DATABASE_URL` is a different mechanism: direct Postgres for Drizzle,
+migrations and controlled scripts. It is not a Supabase API key.
+
+If a `sb_secret_*` value is ever assigned to a `NEXT_PUBLIC_*` variable, rotate
+it in the Supabase dashboard — a build may already have inlined it.
+
+## Commands
+
+```bash
+pnpm dev           # dev server
+pnpm build         # production build
+pnpm lint          # eslint
+pnpm typecheck     # tsc --noEmit
+pnpm test          # vitest
+pnpm db:generate   # generate a drizzle migration from schema changes
+pnpm db:migrate    # apply migrations (includes handwritten RLS migrations)
+pnpm db:seed       # demo workspace + affiliates + ledger
+```
+
+## Further reading
+
+- `ARCHITECTURE.md` — module boundaries, RLS posture, security
+- `DATABASE.md` — schema, policies, migrations
+- `DESIGN.md` — design tokens and UI conventions
+- `CLAUDE.md` — operating rules for contributors and agents
