@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useActionState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -21,23 +22,22 @@ export function WorkspaceSettingsForm({
   defaultValues: { name: string; defaultCurrency: string; timezone: string }
   disabled?: boolean
 }) {
+  const t = useTranslations("forms.workspace")
   const [state, action, pending] = useActionState(updateWorkspaceAction, INITIAL)
 
   return (
     <Card>
       <CardHeader bordered>
         <div>
-          <CardTitle>Workspace</CardTitle>
-          <CardDescription>
-            The default currency applies to new programs; existing programs keep their own.
-          </CardDescription>
+          <CardTitle>{t("title")}</CardTitle>
+          <CardDescription>{t("description")}</CardDescription>
         </div>
       </CardHeader>
       <CardContent>
         <form action={action} className="space-y-4" noValidate>
           <input type="hidden" name="workspaceId" value={workspaceId} />
 
-          <Field label="Name" htmlFor="ws-name" required error={state.fieldErrors?.name?.[0]}>
+          <Field label={t("name")} htmlFor="ws-name" required error={state.fieldErrors?.name?.[0]}>
             <Input
               id="ws-name"
               name="name"
@@ -48,7 +48,7 @@ export function WorkspaceSettingsForm({
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Default currency" htmlFor="ws-currency">
+            <Field label={t("currency")} htmlFor="ws-currency">
               <Select
                 id="ws-currency"
                 name="defaultCurrency"
@@ -63,7 +63,7 @@ export function WorkspaceSettingsForm({
               </Select>
             </Field>
 
-            <Field label="Timezone" htmlFor="ws-timezone">
+            <Field label={t("timezone")} htmlFor="ws-timezone">
               <Select
                 id="ws-timezone"
                 name="timezone"
@@ -93,7 +93,7 @@ export function WorkspaceSettingsForm({
           {!disabled ? (
             <div className="flex justify-end">
               <Button type="submit" variant="primary" loading={pending}>
-                Save changes
+                {t("save")}
               </Button>
             </div>
           ) : null}
@@ -104,6 +104,8 @@ export function WorkspaceSettingsForm({
 }
 
 export function InviteMemberForm({ workspaceId }: { workspaceId: string }) {
+  const ti = useTranslations("forms.inviteMember")
+  const tr = useTranslations("common.roles")
   const [state, action, pending] = useActionState(inviteMemberAction, INITIAL)
 
   return (
@@ -111,23 +113,23 @@ export function InviteMemberForm({ workspaceId }: { workspaceId: string }) {
       <input type="hidden" name="workspaceId" value={workspaceId} />
 
       <Field
-        label="Invite by e-mail"
+        label={ti("label")}
         htmlFor="invite-email"
         className="min-w-[220px] flex-1"
         error={state.fieldErrors?.email?.[0]}
       >
-        <Input id="invite-email" name="email" type="email" placeholder="teammate@company.com" />
+        <Input id="invite-email" name="email" type="email" placeholder={ti("placeholder")} />
       </Field>
 
-      <Field label="Role" htmlFor="invite-role" className="w-[140px]">
+      <Field label={ti("role")} htmlFor="invite-role" className="w-[140px]">
         <Select id="invite-role" name="role" defaultValue="member">
-          <option value="member">Member</option>
-          <option value="admin">Admin</option>
+          <option value="member">{tr("member")}</option>
+          <option value="admin">{tr("admin")}</option>
         </Select>
       </Field>
 
       <Button type="submit" variant="secondary" loading={pending}>
-        Send invite
+        {ti("submit")}
       </Button>
 
       {state.success ? (

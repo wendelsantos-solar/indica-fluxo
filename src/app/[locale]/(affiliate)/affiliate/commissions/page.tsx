@@ -1,5 +1,6 @@
 import { Coins } from "lucide-react"
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 
 import { EmptyState } from "@/components/feedback/empty-state"
 import { getFormatters } from "@/i18n/format"
@@ -12,10 +13,16 @@ import { withUser } from "@/server/db"
 import { listParticipationsForUser } from "@/server/repositories/affiliates"
 import { listCommissionsForAffiliate } from "@/server/repositories/commissions"
 
-export const metadata: Metadata = { title: "Commissions" }
 export const dynamic = "force-dynamic"
 
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("portal.commissions")
+  return { title: t("title") }
+}
+
 export default async function AffiliateCommissionsPage() {
+  const t = await getTranslations("portal.commissions")
+  const tc = await getTranslations("common.table")
   const f = await getFormatters()
   const user = await requireUser()
 
@@ -30,16 +37,16 @@ export default async function AffiliateCommissionsPage() {
   return (
     <>
       <PageHeader
-        title="Commissions"
-        description="Everything you have earned, and where each commission is in the payout cycle."
+        title={t("title")}
+        description={t("description")}
       />
 
       {rows.length === 0 ? (
         <Card>
           <EmptyState
             icon={Coins}
-            title="No commissions yet"
-            description="Share your referral link. Commissions appear here the moment a referred customer pays."
+            title={t("empty.title")}
+            description={t("empty.description")}
           />
         </Card>
       ) : (
@@ -49,26 +56,26 @@ export default async function AffiliateCommissionsPage() {
             <Table>
               <THead>
                 <tr>
-                  <TH>Date</TH>
-                  <TH>Program</TH>
-                  <TH>Customer</TH>
-                  <TH numeric>Sale</TH>
-                  <TH numeric>Rate</TH>
-                  <TH numeric>Commission</TH>
-                  <TH>Status</TH>
+                  <TH>{tc("date")}</TH>
+                  <TH>{tc("program")}</TH>
+                  <TH>{tc("customer")}</TH>
+                  <TH numeric>{t("sale")}</TH>
+                  <TH numeric>{tc("rate")}</TH>
+                  <TH numeric>{tc("commission")}</TH>
+                  <TH>{tc("status")}</TH>
                 </tr>
               </THead>
               <TBody>
                 {rows.map((row) => (
                   <TR key={row.id}>
                     <TD className="text-muted-foreground">
-                      {row.createdAt.toISOString().slice(0, 10)}
+                      {f.date(row.createdAt)}
                     </TD>
                     <TD>{row.programName}</TD>
                     <TD mono>{row.customerRef}</TD>
                     <TD numeric>{f.money(row.baseAmountMinor, row.currency)}</TD>
                     <TD numeric>
-                      {row.commissionRate ? f.basisPoints(row.commissionRate) : "Fixed"}
+                      {row.commissionRate ? f.basisPoints(row.commissionRate) : t("fixed")}
                     </TD>
                     <TD
                       numeric
@@ -108,8 +115,10 @@ export default async function AffiliateCommissionsPage() {
                     </div>
                     <div className="flex items-baseline justify-between gap-3">
                       <span className="text-meta text-muted-foreground">
-                        {row.createdAt.toISOString().slice(0, 10)} ·{" "}
-                        {f.money(row.baseAmountMinor, row.currency)} sale
+                        {t("mobileSummary", {
+                          date: f.date(row.createdAt),
+                          amount: f.money(row.baseAmountMinor, row.currency),
+                        })}
                       </span>
                       <span className="text-body-sm font-medium tabular-nums text-foreground">
                         {f.money(row.commissionAmountMinor, row.currency)}

@@ -32,7 +32,7 @@ export interface IdentifyResult {
  */
 export async function identifyCustomer(input: IdentifyInput): Promise<IdentifyResult> {
   if (!input.externalId.trim()) {
-    throw new ValidationError("externalId is required.", { externalId: ["Required."] })
+    throw new ValidationError("externalId is required.", { externalId: ["Required."] }, "externalIdRequired")
   }
 
   const provider = input.provider ?? "stripe"

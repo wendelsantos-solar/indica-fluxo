@@ -2,6 +2,8 @@
 
 import { Link, usePathname } from "@/i18n/navigation"
 
+import { useTranslations } from "next-intl"
+
 import { cn } from "@/lib/utils"
 
 export type AffiliateNavItem = {
@@ -10,11 +12,12 @@ export type AffiliateNavItem = {
 }
 
 export function AffiliateNav({ items }: { items: AffiliateNavItem[] }) {
+  const t = useTranslations("nav")
   const pathname = usePathname()
 
   return (
     <nav
-      aria-label="Affiliate sections"
+      aria-label={t("affiliateSections")}
       data-slot="scrollable"
       className="sticky top-14 z-20 overflow-x-auto border-b border-border bg-background/85 backdrop-blur-[2px]"
     >

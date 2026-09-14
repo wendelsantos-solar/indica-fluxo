@@ -1,5 +1,6 @@
 import { CreditCard } from "lucide-react"
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 
 import { EmptyState } from "@/components/feedback/empty-state"
 import { getFormatters } from "@/i18n/format"
@@ -12,10 +13,16 @@ import { withUser } from "@/server/db"
 import { listParticipationsForUser } from "@/server/repositories/affiliates"
 import { listPayoutsForAffiliate } from "@/server/repositories/commissions"
 
-export const metadata: Metadata = { title: "Payouts" }
 export const dynamic = "force-dynamic"
 
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("portal.payouts")
+  return { title: t("title") }
+}
+
 export default async function AffiliatePayoutsPage() {
+  const t = await getTranslations("portal.payouts")
+  const tc = await getTranslations("common.table")
   const f = await getFormatters()
   const user = await requireUser()
 
@@ -30,16 +37,16 @@ export default async function AffiliatePayoutsPage() {
   return (
     <>
       <PageHeader
-        title="Payout history"
-        description="Payments are sent by the program owner outside Indica. This is the record of what they marked as paid."
+        title={t("title")}
+        description={t("description")}
       />
 
       {rows.length === 0 ? (
         <Card>
           <EmptyState
             icon={CreditCard}
-            title="No payouts yet"
-            description="Once your commissions clear their hold period and the program owner runs a payout, it appears here."
+            title={t("empty.title")}
+            description={t("empty.description")}
           />
         </Card>
       ) : (
@@ -47,11 +54,11 @@ export default async function AffiliatePayoutsPage() {
           <Table>
             <THead>
               <tr>
-                <TH>Batch</TH>
-                <TH numeric>Amount</TH>
-                <TH>Status</TH>
-                <TH>Paid</TH>
-                <TH>Reference</TH>
+                <TH>{t("batch")}</TH>
+                <TH numeric>{tc("amount")}</TH>
+                <TH>{tc("status")}</TH>
+                <TH>{t("paid")}</TH>
+                <TH>{tc("reference")}</TH>
               </tr>
             </THead>
             <TBody>
@@ -65,7 +72,7 @@ export default async function AffiliatePayoutsPage() {
                     <StatusBadge status={row.status} />
                   </TD>
                   <TD className="text-muted-foreground">
-                    {row.paidAt ? row.paidAt.toISOString().slice(0, 10) : "—"}
+                    {row.paidAt ? f.date(row.paidAt) : "—"}
                   </TD>
                   <TD mono>{row.externalReference ?? "—"}</TD>
                 </TR>

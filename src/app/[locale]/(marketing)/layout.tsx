@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server"
+import { getTranslations, setRequestLocale } from "next-intl/server"
 
 import { Link } from "@/i18n/navigation"
 
@@ -7,7 +7,12 @@ import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { LocaleSwitcher } from "@/components/layout/locale-switcher"
 
-export default async function MarketingLayout({ children }: LayoutProps<"/[locale]">) {
+export default async function MarketingLayout({ children, params }: LayoutProps<"/[locale]">) {
+  // Without this the layout's `getTranslations` call opts the whole subtree
+  // out of static rendering, and every marketing page becomes a server render.
+  const { locale } = await params
+  setRequestLocale(locale)
+
   const t = await getTranslations("marketing.chrome")
 
   return (

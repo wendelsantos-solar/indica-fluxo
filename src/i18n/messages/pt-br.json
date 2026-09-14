@@ -13,7 +13,12 @@
     "payouts": "Pagamentos",
     "integrations": "Integrações",
     "settings": "Configurações",
-    "links": "Links"
+    "links": "Links",
+    "portalHome": "Início do portal do afiliado",
+    "affiliateSections": "Seções do afiliado",
+    "open": "Abrir navegação",
+    "close": "Fechar navegação",
+    "main": "Principal"
   },
   "marketing": {
     "home": {
@@ -454,5 +459,273 @@
     "title": "Crie seu workspace",
     "step": "Passo 1 de 2",
     "description": "Um workspace guarda seus programas, afiliados e o ledger de comissões. Você pode renomeá-lo depois; a moeda define o padrão para novos programas."
+  },
+  "portal": {
+    "overview": {
+      "title": "Visão geral",
+      "subtitle": "Veja como suas indicações estão performando.",
+      "greeting": {
+        "morning": "Bom dia, {name}.",
+        "afternoon": "Boa tarde, {name}.",
+        "evening": "Boa noite, {name}."
+      },
+      "unpaidEarnings": "Ganhos a receber",
+      "paidSoFar": "{amount} pagos até agora",
+      "revenueGenerated": "Receita gerada",
+      "yourLinks": "Seus links de indicação",
+      "commissionOverTime": "Comissão ao longo do tempo",
+      "customRate": "{rate} — sua taxa especial",
+      "percentageRate": "{rate} de comissão",
+      "fixedRate": "{amount} por conversão",
+      "lifetime": "vitalícia",
+      "firstPayment": "primeiro pagamento",
+      "nMonths": "{count, plural, one {# mês} other {# meses}}"
+    },
+    "links": {
+      "title": "Links",
+      "description": "Seu link padrão funciona em qualquer lugar. Crie links nomeados para ver qual canal converte.",
+      "defaultLink": "Link padrão",
+      "destination": "Destino",
+      "campaign": "Campanha"
+    },
+    "commissions": {
+      "title": "Comissões",
+      "description": "Tudo que você ganhou, e em que ponto do ciclo de pagamento cada comissão está.",
+      "sale": "Venda",
+      "fixed": "Fixa",
+      "mobileSummary": "{date} · venda de {amount}",
+      "empty": {
+        "title": "Nenhuma comissão ainda",
+        "description": "Compartilhe seu link de indicação. As comissões aparecem aqui no momento em que um cliente indicado pagar."
+      }
+    },
+    "conversions": {
+      "title": "Conversões",
+      "description": "Clientes que se cadastraram pelo seu link e pagaram.",
+      "sale": "Venda",
+      "yourCommission": "Sua comissão",
+      "empty": {
+        "title": "Nenhuma conversão ainda",
+        "description": "Uma conversão é registrada quando alguém que clicou no seu link vira cliente pagante."
+      }
+    },
+    "payouts": {
+      "title": "Histórico de pagamentos",
+      "description": "Os pagamentos são enviados pelo dono do programa fora da Indica. Este é o registro do que ele marcou como pago.",
+      "batch": "Lote",
+      "paid": "Pago em",
+      "empty": {
+        "title": "Nenhum pagamento ainda",
+        "description": "Quando suas comissões passarem o período de retenção e o dono do programa rodar um pagamento, ele aparece aqui."
+      }
+    },
+    "settings": {
+      "title": "Configurações",
+      "description": "Seu perfil de afiliado e os programas de que participa.",
+      "account": {
+        "title": "Conta",
+        "description": "Guardamos o mínimo necessário para te pagar: um nome, um e-mail e seu histórico de comissões.",
+        "name": "Nome",
+        "email": "E-mail"
+      },
+      "programs": {
+        "title": "Programas",
+        "description": "Programas em que você está inscrito e seu código de indicação."
+      }
+    }
+  },
+  "forms": {
+    "program": {
+      "basics": {
+        "title": "Básico",
+        "description": "O que os afiliados veem ao entrar."
+      },
+      "name": "Nome do programa",
+      "namePlaceholder": "Acme Partners",
+      "status": "Status",
+      "description": "Descrição",
+      "descriptionHint": "Opcional. Exibida aos afiliados no portal deles.",
+      "commission": {
+        "title": "Comissão",
+        "description": "Quanto um afiliado ganha, e por quanto tempo depois do primeiro pagamento."
+      },
+      "type": "Tipo",
+      "typePercentage": "Percentual do pagamento",
+      "typeFixed": "Valor fixo",
+      "rate": "Taxa (%)",
+      "amount": "Valor",
+      "currency": "Moeda",
+      "recurrence": "Recorrência",
+      "recurrenceFirst": "Somente o primeiro pagamento",
+      "recurrenceMonths": "Por um número de meses",
+      "recurrenceLifetime": "Vitalícia",
+      "durationMonths": "Duração (meses)",
+      "holdDays": "Período de retenção (dias)",
+      "holdDaysHint": "As comissões ficam pendentes por esse tempo antes de poderem ser pagas — a sua janela de estorno.",
+      "attribution": {
+        "title": "Atribuição",
+        "description": "Qual afiliado recebe o crédito quando um visitante converte."
+      },
+      "model": "Modelo",
+      "lastClick": "Último clique",
+      "firstClick": "Primeiro clique",
+      "windowDays": "Janela de atribuição (dias)",
+      "submitCreate": "Criar programa",
+      "submitSave": "Salvar alterações"
+    },
+    "workspace": {
+      "title": "Workspace",
+      "description": "A moeda padrão vale para novos programas; programas existentes mantêm a sua.",
+      "name": "Nome",
+      "currency": "Moeda padrão",
+      "timezone": "Fuso horário",
+      "save": "Salvar alterações"
+    },
+    "inviteMember": {
+      "label": "Convidar por e-mail",
+      "placeholder": "colega@empresa.com",
+      "role": "Papel",
+      "submit": "Enviar convite"
+    },
+    "createWorkspace": {
+      "name": "Nome do workspace",
+      "nameHint": "Normalmente o nome da sua empresa ou produto.",
+      "namePlaceholder": "Acme SaaS",
+      "currency": "Moeda padrão",
+      "timezone": "Fuso horário",
+      "submit": "Continuar"
+    },
+    "createLink": {
+      "name": "Nome do link",
+      "namePlaceholder": "Review no YouTube",
+      "destination": "Destino",
+      "destinationPlaceholder": "https://acme.com/precos",
+      "submit": "Criar link"
+    },
+    "inviteAffiliate": {
+      "title": "Convidar um afiliado",
+      "description": "Ele ainda não precisa de conta. O registro é reivindicado automaticamente no primeiro login com esse e-mail.",
+      "program": "Programa",
+      "name": "Nome",
+      "email": "E-mail",
+      "code": "Código de indicação",
+      "codeHint": "Deixe em branco para derivar do nome.",
+      "codePlaceholder": "wendel",
+      "customRate": "Taxa especial (%)",
+      "customRateHint": "Opcional. Sobrepõe a taxa do programa.",
+      "company": "Empresa",
+      "optional": "Opcional.",
+      "submit": "Adicionar afiliado"
+    },
+    "apiKeys": {
+      "title": "Chaves de API",
+      "description": "A chave publicável vai no seu snippet de tracking. A chave secreta é só para chamadas server-to-server a <code>/api/identify</code>.",
+      "revealWarning": "Copie esta chave agora — ela nunca mais será exibida.",
+      "key": "Chave",
+      "type": "Tipo",
+      "lastUsed": "Último uso",
+      "rotate": "Rotacionar",
+      "snippet": "Snippet de tracking"
+    },
+    "payable": {
+      "selectAll": "Selecionar todos os afiliados",
+      "commissions": "Comissões",
+      "submit": "Criar lote de pagamento"
+    },
+    "batch": {
+      "markPaid": "Marcar como pago",
+      "confirmTitle": "Marcar {reference} como pago?",
+      "confirmBody": "Isto registra que você pagou {count, plural, one {# afiliado} other {# afiliados}} um total de {amount} fora da plataforma. As comissões deste lote passam a <strong>pagas</strong> e isso não pode ser desfeito.",
+      "reference": "Referência do pagamento",
+      "referenceHint": "Opcional. Um id de transferência Wise, referência bancária ou número de nota.",
+      "confirmAction": "Sim, marcar como pago",
+      "cancelBatch": "Cancelar"
+    },
+    "stripe": {
+      "description": "A Indica lê eventos de pagamento para calcular comissões. Ela nunca move dinheiro e nunca guarda sua chave secreta do Stripe.",
+      "accountId": "Id da conta Stripe",
+      "accountIdHint": "Encontrado no painel do Stripe em Settings → Account details.",
+      "accountIdPlaceholder": "acct_1A2b3C4d5E",
+      "account": "Conta",
+      "webhook": "Endpoint de webhook",
+      "disconnect": "Desconectar Stripe",
+      "thenAdd": "Depois adicione este endpoint de webhook no Stripe:",
+      "connect": "Conectar Stripe"
+    }
+  },
+  "errors": {
+    "generic": "Algo deu errado. Tente de novo.",
+    "unauthorized": "Você precisa estar conectado para fazer isso.",
+    "forbidden": "Você não tem acesso a este workspace.",
+    "notFound": "Não encontrado.",
+    "validation": "Confira os campos destacados.",
+    "conflict": "Essa operação conflita com o estado atual.",
+    "rateLimited": "Requisições demais. Aguarde um instante.",
+    "invalidRequest": "Requisição inválida.",
+    "badCredentials": "Essas credenciais não funcionaram. Tente de novo.",
+    "missingProgram": "Referência de programa ausente.",
+    "participationNotFound": "Participação do afiliado não encontrada.",
+    "percentageOver100": "Uma comissão percentual não pode passar de 100%.",
+    "linkNotCreated": "Não foi possível criar o link.",
+    "programNotFound": "Programa não encontrado.",
+    "affiliateAlreadyInProgram": "Esse afiliado já está neste programa.",
+    "customRateIncomplete": "Uma taxa especial precisa de tipo e valor.",
+    "apiKeyMalformed": "Chave de API malformada.",
+    "apiKeyInvalid": "Chave de API inválida.",
+    "externalIdRequired": "externalId é obrigatório.",
+    "batchNotFound": "Lote de pagamento não encontrado.",
+    "batchAlreadyPaid": "Esse lote já está marcado como pago.",
+    "batchCancelled": "Esse lote foi cancelado.",
+    "paidBatchNotCancellable": "Um lote pago não pode ser cancelado; registre um ajuste.",
+    "selectAffiliate": "Selecione ao menos um afiliado para pagar.",
+    "nothingPayable": "Esses afiliados não têm comissões pagáveis agora.",
+    "netsToZero": "As comissões selecionadas somam zero ou menos.",
+    "commissionPositive": "A comissão precisa ser maior que zero.",
+    "programNameInvalid": "O nome do programa precisa conter letras ou números.",
+    "programNameTaken": "Já existe um programa com esse nome.",
+    "unknownReferralCode": "Código de indicação desconhecido.",
+    "invitePending": "Essa pessoa já tem um convite pendente.",
+    "workspaceNameInvalid": "O nome do workspace precisa conter letras ou números.",
+    "workspaceNotCreated": "Não foi possível criar o workspace.",
+    "workspaceNotFound": "Workspace não encontrado, ou você não tem acesso a ele.",
+    "workspaceNotSaved": "Não foi possível salvar o workspace.",
+    "inviteNotSent": "Não foi possível enviar o convite.",
+    "stripeNotConnected": "Não foi possível conectar o Stripe.",
+    "stripeNotDisconnected": "Não foi possível desconectar o Stripe.",
+    "keyNotRotated": "Não foi possível rotacionar a chave.",
+    "affiliateNotAdded": "Não foi possível adicionar o afiliado.",
+    "rateNotUpdated": "Não foi possível atualizar a taxa.",
+    "batchNotCreated": "Não foi possível criar o lote.",
+    "programNotSaved": "Não foi possível salvar o programa.",
+    "fields": {
+      "urlRequired": "Informe uma URL completa, incluindo https://",
+      "emailInvalid": "Informe um e-mail válido.",
+      "affiliateName": "Informe o nome do afiliado.",
+      "programName": "Dê um nome ao programa.",
+      "workspaceName": "Dê um nome ao seu workspace.",
+      "linkName": "Nomeie o link.",
+      "selectAffiliate": "Selecione ao menos um afiliado.",
+      "fullName": "Diga seu nome.",
+      "passwordLength": "Use pelo menos 8 caracteres.",
+      "commissionPositive": "A comissão precisa ser maior que zero.",
+      "percentageOver100": "Uma comissão percentual não pode passar de 100%.",
+      "customRatePositive": "Uma taxa especial precisa ser maior que zero."
+    }
+  },
+  "success": {
+    "programSaved": "Programa salvo.",
+    "workspaceUpdated": "Workspace atualizado.",
+    "rateUpdated": "Taxa atualizada.",
+    "linkCreated": "Link criado.",
+    "stripeConnected": "Stripe conectado. Aponte seu webhook para /api/webhooks/stripe.",
+    "stripeDisconnected": "Stripe desconectado.",
+    "keyRotated": "Chave rotacionada. Copie agora — ela não será exibida de novo.",
+    "batchPaid": "Lote marcado como pago.",
+    "batchCancelled": "Lote cancelado; comissões voltaram para disponível.",
+    "inviteSent": "Convite enviado.",
+    "affiliateAdded": "Afiliado adicionado.",
+    "affiliateUpdated": "Afiliado atualizado.",
+    "batchCreated": "Lote de pagamento criado.",
+    "confirmEmail": "Confira sua caixa de entrada para confirmar o e-mail e depois entre."
   }
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import { Plus } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { useActionState, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -33,6 +34,8 @@ export function InviteAffiliateDialog({
   defaultProgramId?: string
   triggerLabel?: string
 }) {
+  const t = useTranslations("forms.inviteAffiliate")
+  const ta = useTranslations("common.actions")
   const [open, setOpen] = useState(false)
   const [state, action, pending] = useActionState(inviteAffiliateAction, INITIAL)
 
@@ -54,15 +57,12 @@ export function InviteAffiliateDialog({
           <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
 
           <DialogHeader>
-            <DialogTitle>Invite an affiliate</DialogTitle>
-            <DialogDescription>
-              They do not need an account yet. The record is claimed automatically the first time
-              they sign in with this e-mail address.
-            </DialogDescription>
+            <DialogTitle>{t("title")}</DialogTitle>
+            <DialogDescription>{t("description")}</DialogDescription>
           </DialogHeader>
 
           <DialogBody>
-            <Field label="Program" htmlFor="programId" required>
+            <Field label={t("program")} htmlFor="programId" required>
               <Select id="programId" name="programId" defaultValue={defaultProgramId} required>
                 {programs.map((program) => (
                   <option key={program.id} value={program.id}>
@@ -73,11 +73,11 @@ export function InviteAffiliateDialog({
             </Field>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Name" htmlFor="name" required error={state.fieldErrors?.name?.[0]}>
+              <Field label={t("name")} htmlFor="name" required error={state.fieldErrors?.name?.[0]}>
                 <Input id="name" name="name" required invalid={Boolean(state.fieldErrors?.name)} />
               </Field>
 
-              <Field label="E-mail" htmlFor="email" required error={state.fieldErrors?.email?.[0]}>
+              <Field label={t("email")} htmlFor="email" required error={state.fieldErrors?.email?.[0]}>
                 <Input
                   id="email"
                   name="email"
@@ -90,25 +90,25 @@ export function InviteAffiliateDialog({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
-                label="Referral code"
+                label={t("code")}
                 htmlFor="code"
-                hint="Leave blank to derive it from the name."
+                hint={t("codeHint")}
                 error={state.fieldErrors?.code?.[0]}
               >
-                <Input id="code" name="code" placeholder="wendel" className="font-mono" />
+                <Input id="code" name="code" placeholder={t("codePlaceholder")} className="font-mono" />
               </Field>
 
               <Field
-                label="Custom rate (%)"
+                label={t("customRate")}
                 htmlFor="customRate"
-                hint="Optional. Overrides the program rate."
+                hint={t("customRateHint")}
                 error={state.fieldErrors?.customRate?.[0]}
               >
                 <Input id="customRate" name="customRate" type="number" min="0" max="100" step="0.5" />
               </Field>
             </div>
 
-            <Field label="Company" htmlFor="companyName" hint="Optional.">
+            <Field label={t("company")} htmlFor="companyName" hint={t("optional")}>
               <Input id="companyName" name="companyName" />
             </Field>
 
@@ -121,10 +121,10 @@ export function InviteAffiliateDialog({
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
+              {ta("cancel")}
             </Button>
             <Button type="submit" variant="primary" loading={pending}>
-              Add affiliate
+              {t("submit")}
             </Button>
           </DialogFooter>
         </form>

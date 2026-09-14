@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useActionState } from "react"
 
 import { CopyButton } from "@/components/data-display/copy-button"
@@ -29,6 +30,8 @@ export function ApiKeysPanel({
   keys: ApiKeyRow[]
   snippet: string
 }) {
+  const t = useTranslations("forms.apiKeys")
+  const tc = useTranslations("common.table")
   const [state, rotate, rotating] = useActionState(rotateKeyAction, INITIAL)
   const active = keys.filter((key) => !key.revokedAt)
 
@@ -36,10 +39,11 @@ export function ApiKeysPanel({
     <Card>
       <CardHeader bordered>
         <div>
-          <CardTitle>API keys</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
           <CardDescription>
-            The publishable key goes in your tracking snippet. The secret key is for
-            server-to-server calls to <code className="font-mono">/api/identify</code> only.
+            {t.rich("description", {
+              code: (chunks) => <code className="font-mono">{chunks}</code>,
+            })}
           </CardDescription>
         </div>
       </CardHeader>
@@ -48,7 +52,7 @@ export function ApiKeysPanel({
         {state.revealedKey ? (
           <div className="space-y-2 rounded-control border border-border bg-warning-subtle p-3">
             <p className="text-meta font-medium text-warning-foreground">
-              Copy this key now — it will never be shown again.
+              {t("revealWarning")}
             </p>
             <div className="flex items-center gap-2">
               <code className="min-w-0 flex-1 break-all font-mono text-meta text-foreground">
@@ -69,10 +73,10 @@ export function ApiKeysPanel({
           <Table>
             <THead>
               <tr>
-                <TH>Key</TH>
-                <TH>Type</TH>
-                <TH>Last used</TH>
-                <TH className="text-right">Actions</TH>
+                <TH>{t("key")}</TH>
+                <TH>{t("type")}</TH>
+                <TH>{t("lastUsed")}</TH>
+                <TH className="text-right">{tc("actions")}</TH>
               </tr>
             </THead>
             <TBody>
@@ -88,7 +92,7 @@ export function ApiKeysPanel({
                       <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
                       <input type="hidden" name="type" value={key.type} />
                       <Button type="submit" variant="ghost" size="sm" loading={rotating}>
-                        Rotate
+                        {t("rotate")}
                       </Button>
                     </form>
                   </TD>
@@ -99,7 +103,7 @@ export function ApiKeysPanel({
         </TableContainer>
 
         <div>
-          <p className="mb-2 text-caption font-medium">Tracking snippet</p>
+          <p className="mb-2 text-caption font-medium">{t("snippet")}</p>
           <div className="flex items-start gap-2 rounded-control border border-border bg-surface-2 p-3">
             <code className="min-w-0 flex-1 break-all font-mono text-meta leading-relaxed text-foreground-secondary">
               {snippet}

@@ -58,7 +58,7 @@ export function Sidebar({
   }
 
   const nav = (
-    <nav aria-label="Main" className="flex-1 space-y-0.5 px-2 py-2">
+    <nav aria-label={t("main")} className="flex-1 space-y-0.5 px-2 py-2">
       {NAV.map((item) => {
         // `usePathname` from @/i18n/navigation returns the canonical path with
         // the locale stripped, so it compares against the template directly.
@@ -92,7 +92,7 @@ export function Sidebar({
           variant="ghost"
           size="icon-sm"
           onClick={() => setOpen(true)}
-          aria-label="Open navigation"
+          aria-label={t("open")}
         >
           <Menu aria-hidden="true" />
         </Button>
@@ -104,7 +104,7 @@ export function Sidebar({
           <button
             type="button"
             className="absolute inset-0 bg-[var(--scrim)]"
-            aria-label="Close navigation"
+            aria-label={t("close")}
             onClick={() => setOpen(false)}
           />
           <div className="absolute inset-y-0 left-0 flex w-[260px] flex-col border-r border-border bg-surface-1">
@@ -114,7 +114,7 @@ export function Sidebar({
                 variant="ghost"
                 size="icon-sm"
                 onClick={() => setOpen(false)}
-                aria-label="Close navigation"
+                aria-label={t("close")}
               >
                 <X aria-hidden="true" />
               </Button>

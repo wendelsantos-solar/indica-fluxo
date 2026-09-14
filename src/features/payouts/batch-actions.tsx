@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useActionState, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -41,6 +42,8 @@ export function MarkPaidDialog({
   totalAmountMinor: number
   currency: string
 }) {
+  const t = useTranslations("forms.batch")
+  const ta = useTranslations("common.actions")
   const f = useFormatters()
   const [open, setOpen] = useState(false)
   const [state, action, pending] = useActionState(markBatchPaidAction, INITIAL)
@@ -51,7 +54,7 @@ export function MarkPaidDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="primary" size="sm">
-          Mark as paid
+          {t("markPaid")}
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -60,20 +63,21 @@ export function MarkPaidDialog({
           <input type="hidden" name="batchId" value={batchId} />
 
           <DialogHeader>
-            <DialogTitle>Mark {reference} as paid?</DialogTitle>
+            <DialogTitle>{t("confirmTitle", { reference })}</DialogTitle>
             <DialogDescription>
-              This records that you paid {affiliateCount} affiliate
-              {affiliateCount === 1 ? "" : "s"} a total of{" "}
-              {f.money(totalAmountMinor, currency)} outside the platform. The commissions in
-              this batch become <strong>paid</strong> and this cannot be undone.
+              {t.rich("confirmBody", {
+                count: affiliateCount,
+                amount: f.money(totalAmountMinor, currency),
+                strong: (chunks) => <strong>{chunks}</strong>,
+              })}
             </DialogDescription>
           </DialogHeader>
 
           <DialogBody>
             <Field
-              label="Payment reference"
+              label={t("reference")}
               htmlFor="externalReference"
-              hint="Optional. A Wise transfer id, bank reference or invoice number."
+              hint={t("referenceHint")}
             >
               <Input id="externalReference" name="externalReference" className="font-mono" />
             </Field>
@@ -81,10 +85,10 @@ export function MarkPaidDialog({
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
+              {ta("cancel")}
             </Button>
             <Button type="submit" variant="primary" loading={pending}>
-              Yes, mark as paid
+              {t("confirmAction")}
             </Button>
           </DialogFooter>
         </form>
@@ -100,6 +104,7 @@ export function CancelBatchButton({
   workspaceSlug: string
   batchId: string
 }) {
+  const t = useTranslations("forms.batch")
   const [state, action, pending] = useActionState(cancelBatchAction, INITIAL)
 
   useActionResult(state)
@@ -109,7 +114,7 @@ export function CancelBatchButton({
       <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
       <input type="hidden" name="batchId" value={batchId} />
       <Button type="submit" variant="ghost" size="sm" loading={pending}>
-        Cancel
+        {t("cancelBatch")}
       </Button>
     </form>
   )

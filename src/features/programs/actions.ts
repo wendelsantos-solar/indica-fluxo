@@ -1,5 +1,6 @@
 "use server"
 
+import { actionError, successMessage, translateFieldErrors } from "@/i18n/errors"
 import { getLocale } from "next-intl/server"
 
 import { redirect } from "@/i18n/navigation"
@@ -7,7 +8,6 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { requireUser } from "@/server/auth/session"
-import { isAppError } from "@/server/policies/errors"
 import { createProgram, updateProgram } from "@/server/services/programs"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
@@ -25,11 +25,11 @@ const schema = z
   .object({
     workspaceSlug: z.string().min(1),
     programId: z.string().uuid().optional(),
-    name: z.string().min(2, "Give the program a name.").max(80),
+    name: z.string().min(2, "programName").max(80),
     description: z.string().max(500).optional(),
     status: z.enum(["draft", "active", "paused", "archived"]),
     commissionType: z.enum(["percentage", "fixed"]),
-    commissionAmount: z.coerce.number().positive("Commission must be greater than zero."),
+    commissionAmount: z.coerce.number().positive("commissionPositive"),
     recurrence: z.enum(["lifetime", "first_only", "months"]),
     durationMonths: z.coerce.number().int().min(1).max(120).optional(),
     attributionModel: z.enum(["first_click", "last_click"]),
@@ -39,7 +39,7 @@ const schema = z
   })
   .refine(
     (value) => value.commissionType !== "percentage" || value.commissionAmount <= 100,
-    { message: "A percentage commission cannot exceed 100%.", path: ["commissionAmount"] },
+    { message: "percentageOver100", path: ["commissionAmount"] },
   )
 
 function toDomain(input: z.infer<typeof schema>) {
@@ -89,7 +89,9 @@ export async function createProgramAction(
 ): Promise<ProgramFormState> {
   const user = await requireUser()
   const parsed = parse(formData)
-  if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors }
+  if (!parsed.success) return {
+      fieldErrors: await translateFieldErrors(z.flattenError(parsed.error).fieldErrors),
+    }
 
   let slug: string
   try {
@@ -97,7 +99,7 @@ export async function createProgramAction(
     const program = await createProgram(user.id, workspace.id, toDomain(parsed.data))
     slug = program.slug
   } catch (error) {
-    return { error: isAppError(error) ? error.message : "Could not create the program." }
+    return { error: await actionError(error, "programNotCreated") }
   }
 
   revalidatePath(`/${parsed.data.workspaceSlug}/programs`)
@@ -116,16 +118,18 @@ export async function updateProgramAction(
 ): Promise<ProgramFormState> {
   const user = await requireUser()
   const parsed = parse(formData)
-  if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors }
-  if (!parsed.data.programId) return { error: "Missing program reference." }
+  if (!parsed.success) return {
+      fieldErrors: await translateFieldErrors(z.flattenError(parsed.error).fieldErrors),
+    }
+  if (!parsed.data.programId) return { error: await actionError(null, "missingProgram") }
 
   try {
     const workspace = await getWorkspaceForUser(user.id, parsed.data.workspaceSlug)
     await updateProgram(user.id, workspace.id, parsed.data.programId, toDomain(parsed.data))
   } catch (error) {
-    return { error: isAppError(error) ? error.message : "Could not save the program." }
+    return { error: await actionError(error, "programNotSaved") }
   }
 
   revalidatePath(`/${parsed.data.workspaceSlug}/programs`)
-  return { success: "Program saved." }
+  return { success: await successMessage("programSaved") }
 }

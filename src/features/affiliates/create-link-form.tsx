@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useActionState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -12,6 +13,7 @@ import { createLinkAction, type AffiliateFormState } from "./actions"
 const INITIAL: AffiliateFormState = {}
 
 export function CreateLinkForm({ participationId }: { participationId: string }) {
+  const t = useTranslations("forms.createLink")
   const [state, action, pending] = useActionState(createLinkAction, INITIAL)
 
   useActionResult(state)
@@ -21,16 +23,16 @@ export function CreateLinkForm({ participationId }: { participationId: string })
       <input type="hidden" name="participationId" value={participationId} />
 
       <Field
-        label="Link name"
+        label={t("name")}
         htmlFor={`link-name-${participationId}`}
         className="min-w-[160px] flex-1"
         error={state.fieldErrors?.name?.[0]}
       >
-        <Input id={`link-name-${participationId}`} name="name" placeholder="YouTube review" />
+        <Input id={`link-name-${participationId}`} name="name" placeholder={t("namePlaceholder")} />
       </Field>
 
       <Field
-        label="Destination"
+        label={t("destination")}
         htmlFor={`link-url-${participationId}`}
         className="min-w-[220px] flex-[2]"
         error={state.fieldErrors?.destinationUrl?.[0]}
@@ -39,12 +41,12 @@ export function CreateLinkForm({ participationId }: { participationId: string })
           id={`link-url-${participationId}`}
           name="destinationUrl"
           type="url"
-          placeholder="https://acme.com/pricing"
+          placeholder={t("destinationPlaceholder")}
         />
       </Field>
 
       <Button type="submit" variant="secondary" loading={pending}>
-        Create link
+        {t("submit")}
       </Button>
 
       {state.error ? (

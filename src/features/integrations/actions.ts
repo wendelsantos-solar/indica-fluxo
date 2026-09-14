@@ -1,10 +1,10 @@
 "use server"
 
+import { actionError, successMessage } from "@/i18n/errors"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { requireUser } from "@/server/auth/session"
-import { isAppError } from "@/server/policies/errors"
 import {
   connectIntegration,
   disconnectIntegration,
@@ -51,11 +51,11 @@ export async function connectStripeAction(
       mode: "manual",
     })
   } catch (error) {
-    return { error: isAppError(error) ? error.message : "Could not connect Stripe." }
+    return { error: await actionError(error, "stripeNotConnected") }
   }
 
   revalidatePath(`/${parsed.data.workspaceSlug}/integrations`)
-  return { success: "Stripe connected. Point your webhook at /api/webhooks/stripe." }
+  return { success: await successMessage("stripeConnected") }
 }
 
 export async function disconnectStripeAction(
@@ -69,11 +69,11 @@ export async function disconnectStripeAction(
     const workspace = await getWorkspaceForUser(user.id, workspaceSlug)
     await disconnectIntegration(user.id, workspace.id, "stripe")
   } catch (error) {
-    return { error: isAppError(error) ? error.message : "Could not disconnect Stripe." }
+    return { error: await actionError(error, "stripeNotDisconnected") }
   }
 
   revalidatePath(`/${workspaceSlug}/integrations`)
-  return { success: "Stripe disconnected." }
+  return { success: await successMessage("stripeDisconnected") }
 }
 
 const rotateSchema = z.object({
@@ -91,7 +91,7 @@ export async function rotateKeyAction(
     type: formData.get("type"),
   })
 
-  if (!parsed.success) return { error: "Invalid request." }
+  if (!parsed.success) return { error: await actionError(null, "invalidRequest") }
 
   try {
     const workspace = await getWorkspaceForUser(user.id, parsed.data.workspaceSlug)
@@ -99,10 +99,10 @@ export async function rotateKeyAction(
 
     revalidatePath(`/${parsed.data.workspaceSlug}/integrations`)
     return {
-      success: "Key rotated. Copy it now — it is not shown again.",
+      success: await successMessage("keyRotated"),
       revealedKey: key.plaintext,
     }
   } catch (error) {
-    return { error: isAppError(error) ? error.message : "Could not rotate the key." }
+    return { error: await actionError(error, "keyNotRotated") }
   }
 }

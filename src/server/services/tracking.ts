@@ -65,7 +65,7 @@ export async function recordClick(input: RecordClickInput): Promise<RecordClickR
       )
       .limit(1)
 
-    if (!match) throw new NotFoundError("Unknown referral code.")
+    if (!match) throw new NotFoundError("Unknown referral code.", "unknownReferralCode")
 
     // A paused program still records the click for reporting, but never
     // reassigns attribution — that would silently move money.

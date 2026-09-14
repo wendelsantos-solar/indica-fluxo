@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 
 import { PageHeader } from "@/components/layout/page-header"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -6,10 +7,15 @@ import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
 import { listParticipationsForUser } from "@/server/repositories/affiliates"
 
-export const metadata: Metadata = { title: "Settings" }
 export const dynamic = "force-dynamic"
 
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("portal.settings")
+  return { title: t("title") }
+}
+
 export default async function AffiliateSettingsPage() {
+  const t = await getTranslations("portal.settings")
   const user = await requireUser()
   const participations = await withUser(user.id, (tx) =>
     listParticipationsForUser(tx, user.id),
@@ -17,24 +23,21 @@ export default async function AffiliateSettingsPage() {
 
   return (
     <div className="max-w-2xl">
-      <PageHeader title="Settings" description="Your affiliate profile and program memberships." />
+      <PageHeader title={t("title")} description={t("description")} />
 
       <div className="space-y-6">
         <Card>
           <CardHeader bordered>
             <div>
-              <CardTitle>Account</CardTitle>
-              <CardDescription>
-                We store the minimum needed to pay you: a name, an e-mail address and your
-                commission history.
-              </CardDescription>
+              <CardTitle>{t("account.title")}</CardTitle>
+              <CardDescription>{t("account.description")}</CardDescription>
             </div>
           </CardHeader>
           <CardContent>
             <dl className="grid gap-4 sm:grid-cols-2">
               <div>
                 <dt className="text-label uppercase tracking-[0.02em] text-muted-foreground">
-                  Name
+                  {t("account.name")}
                 </dt>
                 <dd className="text-caption text-foreground">
                   {participations[0]?.affiliateName ?? "—"}
@@ -42,7 +45,7 @@ export default async function AffiliateSettingsPage() {
               </div>
               <div>
                 <dt className="text-label uppercase tracking-[0.02em] text-muted-foreground">
-                  E-mail
+                  {t("account.email")}
                 </dt>
                 <dd className="text-caption text-foreground">{user.email}</dd>
               </div>
@@ -53,8 +56,8 @@ export default async function AffiliateSettingsPage() {
         <Card>
           <CardHeader bordered>
             <div>
-              <CardTitle>Programs</CardTitle>
-              <CardDescription>Programs you are enrolled in and your referral code.</CardDescription>
+              <CardTitle>{t("programs.title")}</CardTitle>
+              <CardDescription>{t("programs.description")}</CardDescription>
             </div>
           </CardHeader>
           <CardContent>

@@ -41,7 +41,7 @@ export async function inviteAffiliate(
       .where(and(eq(programs.id, input.programId), eq(programs.workspaceId, workspaceId)))
       .limit(1)
 
-    if (!program) throw new NotFoundError("Program not found.")
+    if (!program) throw new NotFoundError("Program not found.", "programNotFound")
 
     const email = input.email.trim().toLowerCase()
 
@@ -82,13 +82,13 @@ export async function inviteAffiliate(
       )
       .limit(1)
 
-    if (duplicate) throw new ConflictError("That affiliate is already in this program.")
+    if (duplicate) throw new ConflictError("That affiliate is already in this program.", "affiliateAlreadyInProgram")
 
     if (
       (input.customCommissionType === null) !== (input.customCommissionValue === null) &&
       (input.customCommissionType !== undefined || input.customCommissionValue !== undefined)
     ) {
-      throw new ValidationError("A custom rate needs both a type and a value.")
+      throw new ValidationError("A custom rate needs both a type and a value.", {}, "customRateIncomplete")
     }
 
     const approve = input.autoApprove ?? true
@@ -156,7 +156,7 @@ export async function setParticipationStatus(
       .where(eq(programAffiliates.id, participationId))
       .returning({ id: programAffiliates.id, affiliateId: programAffiliates.affiliateId })
 
-    if (updated.length === 0) throw new NotFoundError("Affiliate participation not found.")
+    if (updated.length === 0) throw new NotFoundError("Affiliate participation not found.", "participationNotFound")
 
     if (status === "approved") {
       await tx
@@ -183,7 +183,7 @@ export async function setCustomRate(
   rate: { type: "percentage" | "fixed"; value: number } | null,
 ): Promise<void> {
   if (rate && rate.type === "percentage" && rate.value > 10_000) {
-    throw new ValidationError("A percentage commission cannot exceed 100%.")
+    throw new ValidationError("A percentage commission cannot exceed 100%.", {}, "percentageOver100")
   }
 
   return withUser(userId, async (tx) => {
@@ -228,7 +228,7 @@ export async function createReferralLink(
       })
       .returning({ id: referralLinks.id, code: referralLinks.code })
 
-    if (!row) throw new ConflictError("Could not create the link.")
+    if (!row) throw new ConflictError("Could not create the link.", "linkNotCreated")
     return row
   })
 }

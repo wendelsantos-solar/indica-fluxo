@@ -37,7 +37,7 @@ export async function createPayoutBatch(
   input: CreateBatchInput,
 ): Promise<{ id: string; reference: string; totalAmountMinor: number }> {
   if (input.participationIds.length === 0) {
-    throw new ValidationError("Select at least one affiliate to pay.")
+    throw new ValidationError("Select at least one affiliate to pay.", {}, "selectAffiliate")
   }
 
   return withUser(userId, async (tx) => {
@@ -63,7 +63,7 @@ export async function createPayoutBatch(
       .for("update")
 
     if (claimable.length === 0) {
-      throw new ConflictError("Those affiliates have no payable commissions right now.")
+      throw new ConflictError("Those affiliates have no payable commissions right now.", "nothingPayable")
     }
 
     const byParticipation = new Map<string, { total: number; ids: string[] }>()
@@ -75,7 +75,7 @@ export async function createPayoutBatch(
     }
 
     const total = [...byParticipation.values()].reduce((sum, b) => sum + b.total, 0)
-    if (total <= 0) throw new ConflictError("The selected commissions net to zero or less.")
+    if (total <= 0) throw new ConflictError("The selected commissions net to zero or less.", "netsToZero")
 
     const reference = buildReference(input.periodEnd)
 
@@ -159,9 +159,9 @@ export async function markBatchPaid(
       .where(and(eq(payoutBatches.id, batchId), eq(payoutBatches.workspaceId, workspaceId)))
       .limit(1)
 
-    if (!batch) throw new NotFoundError("Payout batch not found.")
-    if (batch.status === "paid") throw new ConflictError("That batch is already marked as paid.")
-    if (batch.status === "cancelled") throw new ConflictError("That batch was cancelled.")
+    if (!batch) throw new NotFoundError("Payout batch not found.", "batchNotFound")
+    if (batch.status === "paid") throw new ConflictError("That batch is already marked as paid.", "batchAlreadyPaid")
+    if (batch.status === "cancelled") throw new ConflictError("That batch was cancelled.", "batchCancelled")
 
     const now = new Date()
 
@@ -223,9 +223,9 @@ export async function cancelPayoutBatch(
       .where(and(eq(payoutBatches.id, batchId), eq(payoutBatches.workspaceId, workspaceId)))
       .limit(1)
 
-    if (!batch) throw new NotFoundError("Payout batch not found.")
+    if (!batch) throw new NotFoundError("Payout batch not found.", "batchNotFound")
     if (batch.status === "paid") {
-      throw new ConflictError("A paid batch cannot be cancelled; record an adjustment instead.")
+      throw new ConflictError("A paid batch cannot be cancelled; record an adjustment instead.", "paidBatchNotCancellable")
     }
 
     const items = await tx

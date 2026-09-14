@@ -122,7 +122,7 @@ export async function authenticateApiKey(
 ): Promise<AuthenticatedKey> {
   const trimmed = presented.trim()
   if (!/^(pk|sk)_(live|test)_[A-Za-z0-9_-]{10,}$/.test(trimmed)) {
-    throw new UnauthorizedError("Malformed API key.")
+    throw new UnauthorizedError("Malformed API key.", "apiKeyMalformed")
   }
 
   const [row] = await db
@@ -135,7 +135,7 @@ export async function authenticateApiKey(
     .where(and(eq(apiKeys.keyHash, peppered(trimmed)), isNull(apiKeys.revokedAt)))
     .limit(1)
 
-  if (!row || row.type !== expected) throw new UnauthorizedError("Invalid API key.")
+  if (!row || row.type !== expected) throw new UnauthorizedError("Invalid API key.", "apiKeyInvalid")
 
   // Best-effort usage stamp; never block the request on it.
   void db

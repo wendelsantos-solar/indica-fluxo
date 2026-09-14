@@ -29,7 +29,7 @@ export async function createWorkspace(
   input: CreateWorkspaceInput,
 ): Promise<{ id: string; slug: string }> {
   const base = slugify(input.name)
-  if (!base) throw new ValidationError("Workspace name must contain letters or numbers.")
+  if (!base) throw new ValidationError("Workspace name must contain letters or numbers.", {}, "workspaceNameInvalid")
 
   return db.transaction(async (tx) => {
     const slug = await uniqueSlug(tx, base)
@@ -44,7 +44,7 @@ export async function createWorkspace(
       })
       .returning({ id: workspaces.id, slug: workspaces.slug })
 
-    if (!workspace) throw new ConflictError("Could not create the workspace.")
+    if (!workspace) throw new ConflictError("Could not create the workspace.", "workspaceNotCreated")
 
     await tx.insert(workspaceMembers).values({
       workspaceId: workspace.id,
@@ -86,7 +86,7 @@ async function uniqueSlug(
 
 export async function getWorkspaceForUser(userId: string, slug: string) {
   const workspace = await withUser(userId, (tx) => findWorkspaceBySlug(tx, slug, userId))
-  if (!workspace) throw new NotFoundError("Workspace not found, or you do not have access to it.")
+  if (!workspace) throw new NotFoundError("Workspace not found, or you do not have access to it.", "workspaceNotFound")
   return workspace
 }
 
@@ -143,7 +143,7 @@ export async function inviteMember(
       )
       .limit(1)
 
-    if (existing) throw new ConflictError("That person already has a pending invitation.")
+    if (existing) throw new ConflictError("That person already has a pending invitation.", "invitePending")
 
     await tx.insert(workspaceInvites).values({
       workspaceId,

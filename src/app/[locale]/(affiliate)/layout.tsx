@@ -39,7 +39,7 @@ export default async function AffiliateLayout({ children }: LayoutProps<"/[local
   return (
     <div className="flex min-h-dvh flex-col bg-background">
       <TopBar email={user.email} affiliatePortal>
-        <Link href="/affiliate/overview" aria-label="Affiliate portal home">
+        <Link href="/affiliate/overview" aria-label={t("portalHome")}>
           <Logo />
         </Link>
       </TopBar>

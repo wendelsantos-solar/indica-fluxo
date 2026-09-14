@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useActionState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -13,6 +14,7 @@ import { CURRENCIES, TIMEZONES } from "./options"
 const INITIAL: FormState = {}
 
 export function CreateWorkspaceForm() {
+  const t = useTranslations("forms.createWorkspace")
   const [state, action, pending] = useActionState(createWorkspaceAction, INITIAL)
 
   return (
@@ -20,16 +22,16 @@ export function CreateWorkspaceForm() {
       <CardContent>
         <form action={action} className="space-y-4" noValidate>
           <Field
-            label="Workspace name"
+            label={t("name")}
             htmlFor="name"
             required
-            hint="Usually your company or product name."
+            hint={t("nameHint")}
             error={state.fieldErrors?.name?.[0]}
           >
             <Input
               id="name"
               name="name"
-              placeholder="Acme SaaS"
+              placeholder={t("namePlaceholder")}
               autoComplete="organization"
               required
               invalid={Boolean(state.fieldErrors?.name)}
@@ -37,7 +39,7 @@ export function CreateWorkspaceForm() {
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Default currency" htmlFor="defaultCurrency">
+            <Field label={t("currency")} htmlFor="defaultCurrency">
               <Select id="defaultCurrency" name="defaultCurrency" defaultValue="USD">
                 {CURRENCIES.map((currency) => (
                   <option key={currency.code} value={currency.code}>
@@ -47,7 +49,7 @@ export function CreateWorkspaceForm() {
               </Select>
             </Field>
 
-            <Field label="Timezone" htmlFor="timezone">
+            <Field label={t("timezone")} htmlFor="timezone">
               <Select id="timezone" name="timezone" defaultValue="UTC">
                 {TIMEZONES.map((zone) => (
                   <option key={zone} value={zone}>
@@ -65,7 +67,7 @@ export function CreateWorkspaceForm() {
           ) : null}
 
           <Button type="submit" variant="primary" size="lg" className="w-full" loading={pending}>
-            Continue
+            {t("submit")}
           </Button>
         </form>
       </CardContent>

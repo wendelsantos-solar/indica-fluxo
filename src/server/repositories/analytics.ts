@@ -335,6 +335,9 @@ export async function getAffiliateSeries(
 ): Promise<AffiliateSeriesPoint[]> {
   if (participationIds.length === 0) return []
 
+  // `sql.param` is required around the id list: interpolating an array directly
+  // renders it as a row constructor — `($1, $2)` — which is not an array, and
+  // for a single participation `($1)::uuid[]` fails outright with 22P02.
   const rows = await tx.execute<{ day: string; clicks: number; commission_minor: number }>(sql`
     with series as (
       select generate_series(
@@ -343,7 +346,7 @@ export async function getAffiliateSeries(
         interval '1 day'
       )::date as day
     ),
-    ids as (select unnest(${participationIds}::uuid[]) as id)
+    ids as (select unnest(${sql.param(participationIds)}::uuid[]) as id)
     select
       s.day::text as day,
       coalesce((select count(*) from referral_clicks rc

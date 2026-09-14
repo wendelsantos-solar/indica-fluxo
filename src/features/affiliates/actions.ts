@@ -1,10 +1,10 @@
 "use server"
 
+import { actionError, successMessage, translateFieldErrors } from "@/i18n/errors"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { requireUser } from "@/server/auth/session"
-import { isAppError } from "@/server/policies/errors"
 import {
   createReferralLink,
   inviteAffiliate,
@@ -23,8 +23,8 @@ const inviteSchema = z
   .object({
     workspaceSlug: z.string().min(1),
     programId: z.string().uuid("Choose a program."),
-    name: z.string().min(2, "Enter the affiliate's name.").max(120),
-    email: z.string().email("Enter a valid e-mail address."),
+    name: z.string().min(2, "affiliateName").max(120),
+    email: z.string().email("emailInvalid"),
     companyName: z.string().max(120).optional(),
     code: z
       .string()
@@ -34,7 +34,7 @@ const inviteSchema = z
     customRate: z.coerce.number().min(0).max(100).optional(),
   })
   .refine((value) => value.customRate === undefined || value.customRate > 0, {
-    message: "A custom rate must be greater than zero.",
+    message: "customRatePositive",
     path: ["customRate"],
   })
 
@@ -55,7 +55,9 @@ export async function inviteAffiliateAction(
     customRate: rawRate && String(rawRate).trim() !== "" ? rawRate : undefined,
   })
 
-  if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors }
+  if (!parsed.success) return {
+      fieldErrors: await translateFieldErrors(z.flattenError(parsed.error).fieldErrors),
+    }
 
   try {
     const workspace = await getWorkspaceForUser(user.id, parsed.data.workspaceSlug)
@@ -70,7 +72,7 @@ export async function inviteAffiliateAction(
         parsed.data.customRate !== undefined ? Math.round(parsed.data.customRate * 100) : null,
     })
   } catch (error) {
-    return { error: isAppError(error) ? error.message : "Could not add the affiliate." }
+    return { error: await actionError(error, "affiliateNotAdded") }
   }
 
   revalidatePath(`/${parsed.data.workspaceSlug}/affiliates`)
@@ -113,7 +115,9 @@ export async function setCustomRateAction(
     rate: formData.get("rate"),
   })
 
-  if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors }
+  if (!parsed.success) return {
+      fieldErrors: await translateFieldErrors(z.flattenError(parsed.error).fieldErrors),
+    }
 
   try {
     const workspace = await getWorkspaceForUser(user.id, parsed.data.workspaceSlug)
@@ -126,17 +130,17 @@ export async function setCustomRateAction(
         : null,
     )
   } catch (error) {
-    return { error: isAppError(error) ? error.message : "Could not update the rate." }
+    return { error: await actionError(error, "rateNotUpdated") }
   }
 
   revalidatePath(`/${parsed.data.workspaceSlug}/affiliates`)
-  return { success: "Rate updated." }
+  return { success: await successMessage("rateUpdated") }
 }
 
 const linkSchema = z.object({
   participationId: z.string().uuid(),
-  name: z.string().min(2, "Name the link.").max(80),
-  destinationUrl: z.string().url("Enter a full URL, including https://"),
+  name: z.string().min(2, "linkName").max(80),
+  destinationUrl: z.string().url("urlRequired"),
   campaign: z.string().max(80).optional(),
 })
 
@@ -152,7 +156,9 @@ export async function createLinkAction(
     campaign: formData.get("campaign") || undefined,
   })
 
-  if (!parsed.success) return { fieldErrors: z.flattenError(parsed.error).fieldErrors }
+  if (!parsed.success) return {
+      fieldErrors: await translateFieldErrors(z.flattenError(parsed.error).fieldErrors),
+    }
 
   try {
     await createReferralLink(user.id, parsed.data.participationId, {
@@ -161,9 +167,9 @@ export async function createLinkAction(
       campaign: parsed.data.campaign ?? null,
     })
   } catch (error) {
-    return { error: isAppError(error) ? error.message : "Could not create the link." }
+    return { error: await actionError(error, "linkNotCreated") }
   }
 
   revalidatePath("/affiliate/links")
-  return { success: "Link created." }
+  return { success: await successMessage("linkCreated") }
 }

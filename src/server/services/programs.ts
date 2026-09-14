@@ -28,12 +28,12 @@ function assertRule(input: ProgramInput): void {
   if (input.commissionType === "percentage" && input.commissionValue > 10_000) {
     throw new ValidationError("A percentage commission cannot exceed 100%.", {
       commissionValue: ["Must be 100% or less."],
-    })
+    }, "percentageOver100")
   }
   if (input.commissionValue <= 0) {
     throw new ValidationError("Commission must be greater than zero.", {
       commissionValue: ["Must be greater than zero."],
-    })
+    }, "commissionPositive")
   }
 }
 
@@ -48,7 +48,7 @@ export async function createProgram(
     await requireMembership(tx, workspaceId, userId, "admin")
 
     const slug = slugify(input.name)
-    if (!slug) throw new ValidationError("Program name must contain letters or numbers.")
+    if (!slug) throw new ValidationError("Program name must contain letters or numbers.", {}, "programNameInvalid")
 
     const [existing] = await tx
       .select({ id: programs.id })
@@ -56,7 +56,7 @@ export async function createProgram(
       .where(and(eq(programs.workspaceId, workspaceId), eq(programs.slug, slug)))
       .limit(1)
 
-    if (existing) throw new ConflictError("A program with that name already exists.")
+    if (existing) throw new ConflictError("A program with that name already exists.", "programNameTaken")
 
     const [row] = await tx
       .insert(programs)
@@ -110,7 +110,7 @@ export async function updateProgram(
       .where(and(eq(programs.id, programId), eq(programs.workspaceId, workspaceId)))
       .limit(1)
 
-    if (!existing) throw new NotFoundError("Program not found.")
+    if (!existing) throw new NotFoundError("Program not found.", "programNotFound")
 
     await tx
       .update(programs)

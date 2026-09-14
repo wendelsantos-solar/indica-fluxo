@@ -1,5 +1,6 @@
 "use server"
 
+import { actionError, successMessage, translateFieldErrors } from "@/i18n/errors"
 import { getLocale } from "next-intl/server"
 
 import { redirect } from "@/i18n/navigation"
@@ -14,12 +15,12 @@ export interface AuthFormState {
 }
 
 const credentialsSchema = z.object({
-  email: z.string().email("Enter a valid e-mail address."),
-  password: z.string().min(8, "Use at least 8 characters."),
+  email: z.string().email("emailInvalid"),
+  password: z.string().min(8, "passwordLength"),
 })
 
 const signUpSchema = credentialsSchema.extend({
-  fullName: z.string().min(2, "Tell us your name.").max(120),
+  fullName: z.string().min(2, "fullName").max(120),
 })
 
 export async function signIn(
@@ -32,7 +33,9 @@ export async function signIn(
   })
 
   if (!parsed.success) {
-    return { fieldErrors: z.flattenError(parsed.error).fieldErrors }
+    return {
+      fieldErrors: await translateFieldErrors(z.flattenError(parsed.error).fieldErrors),
+    }
   }
 
   const supabase = await createClient()
@@ -40,7 +43,7 @@ export async function signIn(
 
   // Deliberately generic: distinguishing "no such user" from "wrong password"
   // is a user-enumeration oracle.
-  if (error) return { error: "Those credentials did not work. Try again." }
+  if (error) return { error: await actionError(null, "badCredentials") }
 
   return redirect({ href: "/app", locale: await getLocale() })
 }
@@ -56,7 +59,9 @@ export async function signUp(
   })
 
   if (!parsed.success) {
-    return { fieldErrors: z.flattenError(parsed.error).fieldErrors }
+    return {
+      fieldErrors: await translateFieldErrors(z.flattenError(parsed.error).fieldErrors),
+    }
   }
 
   const supabase = await createClient()
@@ -70,7 +75,7 @@ export async function signUp(
 
   // When e-mail confirmation is enabled there is no session yet.
   if (!data.session) {
-    return { message: "Check your inbox to confirm your e-mail, then sign in." }
+    return { message: await successMessage("confirmEmail") }
   }
 
   return redirect({ href: "/app", locale: await getLocale() })

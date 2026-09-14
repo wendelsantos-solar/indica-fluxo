@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 
 import { ReferralLinkField } from "@/components/data-display/copy-button"
 import { getFormatters } from "@/i18n/format"
@@ -11,10 +12,16 @@ import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
 import { listLinks, listParticipationsForUser } from "@/server/repositories/affiliates"
 
-export const metadata: Metadata = { title: "Links" }
 export const dynamic = "force-dynamic"
 
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("portal.links")
+  return { title: t("title") }
+}
+
 export default async function AffiliateLinksPage() {
+  const t = await getTranslations("portal.links")
+  const tc = await getTranslations("common.table")
   const f = await getFormatters()
   const user = await requireUser()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://example.com"
@@ -33,8 +40,8 @@ export default async function AffiliateLinksPage() {
   return (
     <>
       <PageHeader
-        title="Links"
-        description="Your default referral link works everywhere. Create named links to see which channel converts."
+        title={t("title")}
+        description={t("description")}
       />
 
       <div className="space-y-8">
@@ -44,7 +51,7 @@ export default async function AffiliateLinksPage() {
 
             <Card className="mb-3">
               <CardContent className="space-y-2">
-                <p className="text-meta text-muted-foreground">Default link</p>
+                <p className="text-meta text-muted-foreground">{t("defaultLink")}</p>
                 <ReferralLinkField url={buildReferralUrl(appUrl, participation.code)} />
               </CardContent>
             </Card>
@@ -54,10 +61,10 @@ export default async function AffiliateLinksPage() {
                 <Table>
                   <THead>
                     <tr>
-                      <TH>Name</TH>
-                      <TH>Destination</TH>
-                      <TH>Campaign</TH>
-                      <TH numeric>Clicks</TH>
+                      <TH>{tc("name")}</TH>
+                      <TH>{t("destination")}</TH>
+                      <TH>{t("campaign")}</TH>
+                      <TH numeric>{tc("clicks")}</TH>
                     </tr>
                   </THead>
                   <TBody>

@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useActionState, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -36,6 +37,8 @@ export function ProgramForm({
   defaultValues: ProgramFormValues
   mode: "create" | "edit"
 }) {
+  const t = useTranslations("forms.program")
+  const ts = useTranslations("status")
   const [state, action, pending] = useActionState(
     mode === "create" ? createProgramAction : updateProgramAction,
     INITIAL,
@@ -52,14 +55,14 @@ export function ProgramForm({
       <Card>
         <CardHeader bordered>
           <div>
-            <CardTitle>Basics</CardTitle>
-            <CardDescription>What affiliates will see when they join.</CardDescription>
+            <CardTitle>{t("basics.title")}</CardTitle>
+            <CardDescription>{t("basics.description")}</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
             <Field
-              label="Program name"
+              label={t("name")}
               htmlFor="name"
               required
               error={state.fieldErrors?.name?.[0]}
@@ -68,26 +71,26 @@ export function ProgramForm({
                 id="name"
                 name="name"
                 defaultValue={defaultValues.name}
-                placeholder="Acme Partners"
+                placeholder={t("namePlaceholder")}
                 required
                 invalid={Boolean(state.fieldErrors?.name)}
               />
             </Field>
 
-            <Field label="Status" htmlFor="status">
+            <Field label={t("status")} htmlFor="status">
               <Select id="status" name="status" defaultValue={defaultValues.status}>
-                <option value="draft">Draft</option>
-                <option value="active">Active</option>
-                <option value="paused">Paused</option>
-                <option value="archived">Archived</option>
+                <option value="draft">{ts("draft")}</option>
+                <option value="active">{ts("active")}</option>
+                <option value="paused">{ts("paused")}</option>
+                <option value="archived">{ts("archived")}</option>
               </Select>
             </Field>
           </div>
 
           <Field
-            label="Description"
+            label={t("description")}
             htmlFor="description"
-            hint="Optional. Shown to affiliates in their portal."
+            hint={t("descriptionHint")}
           >
             <Textarea
               id="description"
@@ -102,15 +105,15 @@ export function ProgramForm({
       <Card>
         <CardHeader bordered>
           <div>
-            <CardTitle>Commission</CardTitle>
+            <CardTitle>{t("commission.title")}</CardTitle>
             <CardDescription>
-              What an affiliate earns, and for how long after the first payment.
+              {t("commission.description")}
             </CardDescription>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Type" htmlFor="commissionType">
+            <Field label={t("type")} htmlFor="commissionType">
               <Select
                 id="commissionType"
                 name="commissionType"
@@ -119,13 +122,13 @@ export function ProgramForm({
                   setCommissionType(event.target.value as ProgramFormValues["commissionType"])
                 }
               >
-                <option value="percentage">Percentage of payment</option>
-                <option value="fixed">Fixed amount</option>
+                <option value="percentage">{t("typePercentage")}</option>
+                <option value="fixed">{t("typeFixed")}</option>
               </Select>
             </Field>
 
             <Field
-              label={commissionType === "percentage" ? "Rate (%)" : "Amount"}
+              label={commissionType === "percentage" ? t("rate") : t("amount")}
               htmlFor="commissionAmount"
               required
               error={state.fieldErrors?.commissionAmount?.[0]}
@@ -143,7 +146,7 @@ export function ProgramForm({
               />
             </Field>
 
-            <Field label="Currency" htmlFor="currency">
+            <Field label={t("currency")} htmlFor="currency">
               <Select id="currency" name="currency" defaultValue={defaultValues.currency}>
                 {CURRENCIES.map((currency) => (
                   <option key={currency.code} value={currency.code}>
@@ -155,7 +158,7 @@ export function ProgramForm({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Recurrence" htmlFor="recurrence">
+            <Field label={t("recurrence")} htmlFor="recurrence">
               <Select
                 id="recurrence"
                 name="recurrence"
@@ -164,15 +167,15 @@ export function ProgramForm({
                   setRecurrence(event.target.value as ProgramFormValues["recurrence"])
                 }
               >
-                <option value="first_only">First payment only</option>
-                <option value="months">For a number of months</option>
-                <option value="lifetime">Lifetime</option>
+                <option value="first_only">{t("recurrenceFirst")}</option>
+                <option value="months">{t("recurrenceMonths")}</option>
+                <option value="lifetime">{t("recurrenceLifetime")}</option>
               </Select>
             </Field>
 
             {recurrence === "months" ? (
               <Field
-                label="Duration (months)"
+                label={t("durationMonths")}
                 htmlFor="durationMonths"
                 error={state.fieldErrors?.durationMonths?.[0]}
               >
@@ -189,9 +192,9 @@ export function ProgramForm({
           </div>
 
           <Field
-            label="Hold period (days)"
+            label={t("holdDays")}
             htmlFor="commissionHoldDays"
-            hint="Commissions stay pending for this long before they can be paid — your refund window."
+            hint={t("holdDaysHint")}
           >
             <Input
               id="commissionHoldDays"
@@ -209,24 +212,24 @@ export function ProgramForm({
       <Card>
         <CardHeader bordered>
           <div>
-            <CardTitle>Attribution</CardTitle>
-            <CardDescription>Which affiliate gets credited when a visitor converts.</CardDescription>
+            <CardTitle>{t("attribution.title")}</CardTitle>
+            <CardDescription>{t("attribution.description")}</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Field label="Model" htmlFor="attributionModel">
+          <Field label={t("model")} htmlFor="attributionModel">
             <Select
               id="attributionModel"
               name="attributionModel"
               defaultValue={defaultValues.attributionModel}
             >
-              <option value="last_click">Last click</option>
-              <option value="first_click">First click</option>
+              <option value="last_click">{t("lastClick")}</option>
+              <option value="first_click">{t("firstClick")}</option>
             </Select>
           </Field>
 
           <Field
-            label="Attribution window (days)"
+            label={t("windowDays")}
             htmlFor="attributionWindowDays"
             error={state.fieldErrors?.attributionWindowDays?.[0]}
           >
@@ -256,7 +259,7 @@ export function ProgramForm({
 
       <div className="flex justify-end gap-2">
         <Button type="submit" variant="primary" loading={pending}>
-          {mode === "create" ? "Create program" : "Save changes"}
+          {mode === "create" ? t("submitCreate") : t("submitSave")}
         </Button>
       </div>
     </form>

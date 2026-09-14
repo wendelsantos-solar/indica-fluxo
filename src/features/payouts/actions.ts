@@ -1,10 +1,10 @@
 "use server"
 
+import { actionError, successMessage } from "@/i18n/errors"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { requireUser } from "@/server/auth/session"
-import { isAppError } from "@/server/policies/errors"
 import {
   cancelPayoutBatch,
   createPayoutBatch,
@@ -20,7 +20,7 @@ export interface PayoutFormState {
 const createSchema = z.object({
   workspaceSlug: z.string().min(1),
   currency: z.string().length(3),
-  participationIds: z.array(z.string().uuid()).min(1, "Select at least one affiliate."),
+  participationIds: z.array(z.string().uuid()).min(1, "selectAffiliate"),
 })
 
 export async function createPayoutBatchAction(
@@ -55,7 +55,7 @@ export async function createPayoutBatchAction(
     revalidatePath(`/${parsed.data.workspaceSlug}/payouts`)
     return { success: `Batch ${batch.reference} created.` }
   } catch (error) {
-    return { error: isAppError(error) ? error.message : "Could not create the batch." }
+    return { error: await actionError(error, "batchNotCreated") }
   }
 }
 
@@ -76,7 +76,7 @@ export async function markBatchPaidAction(
     externalReference: formData.get("externalReference") || undefined,
   })
 
-  if (!parsed.success) return { error: "Invalid request." }
+  if (!parsed.success) return { error: await actionError(null, "invalidRequest") }
 
   try {
     const workspace = await getWorkspaceForUser(user.id, parsed.data.workspaceSlug)
@@ -87,9 +87,9 @@ export async function markBatchPaidAction(
       parsed.data.externalReference ?? null,
     )
     revalidatePath(`/${parsed.data.workspaceSlug}/payouts`)
-    return { success: "Batch marked as paid." }
+    return { success: await successMessage("batchPaid") }
   } catch (error) {
-    return { error: isAppError(error) ? error.message : "Could not mark the batch as paid." }
+    return { error: await actionError(error, "batchNotPaid") }
   }
 }
 
@@ -103,14 +103,14 @@ export async function cancelBatchAction(
     batchId: formData.get("batchId"),
   })
 
-  if (!parsed.success) return { error: "Invalid request." }
+  if (!parsed.success) return { error: await actionError(null, "invalidRequest") }
 
   try {
     const workspace = await getWorkspaceForUser(user.id, parsed.data.workspaceSlug)
     await cancelPayoutBatch(user.id, workspace.id, parsed.data.batchId)
     revalidatePath(`/${parsed.data.workspaceSlug}/payouts`)
-    return { success: "Batch cancelled; commissions returned to available." }
+    return { success: await successMessage("batchCancelled") }
   } catch (error) {
-    return { error: isAppError(error) ? error.message : "Could not cancel the batch." }
+    return { error: await actionError(error, "batchNotCancelled") }
   }
 }

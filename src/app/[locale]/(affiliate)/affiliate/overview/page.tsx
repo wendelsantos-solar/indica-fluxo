@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 
 import { AreaChart, ChartLegend } from "@/components/data-display/area-chart"
 import { getFormatters } from "@/i18n/format"
@@ -16,17 +17,29 @@ import {
   participationStats,
 } from "@/server/repositories/affiliates"
 
-export const metadata: Metadata = { title: "Overview" }
 export const dynamic = "force-dynamic"
 
-function greeting(now = new Date()): string {
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("portal.overview")
+  return { title: t("title") }
+}
+
+/**
+ * Bucketed in UTC, which is wrong for an affiliate in São Paulo before 09:00
+ * local. Fixing it needs a timezone on the affiliate record, which does not
+ * exist yet; the bucket is cosmetic, so it is not worth a schema change today.
+ */
+function greetingKey(now = new Date()): "morning" | "afternoon" | "evening" {
   const hour = now.getUTCHours()
-  if (hour < 12) return "Good morning"
-  if (hour < 18) return "Good afternoon"
-  return "Good evening"
+  if (hour < 12) return "morning"
+  if (hour < 18) return "afternoon"
+  return "evening"
 }
 
 export default async function AffiliateOverviewPage() {
+  const t = await getTranslations("portal.overview")
+  const tc = await getTranslations("common.table")
+  const ts = await getTranslations("status")
   const f = await getFormatters()
   const user = await requireUser()
 
@@ -62,7 +75,7 @@ export default async function AffiliateOverviewPage() {
   const chartSeries = [
     {
       key: "commission",
-      label: "Commission",
+      label: tc("commission"),
       color: "var(--chart-2)",
       values: series.map((point) => point.commissionMinor),
     },
@@ -72,30 +85,30 @@ export default async function AffiliateOverviewPage() {
     <div className="space-y-6">
       <div className="space-y-1">
         <h1 className="text-subheading font-medium">
-          {greeting()}, {primary.affiliateName.split(" ")[0]}.
+          {t(`greeting.${greetingKey()}`, { name: primary.affiliateName.split(" ")[0] })}
         </h1>
         <p className="text-caption text-muted-foreground">
-          Here is how your referrals are performing.
+          {t("subtitle")}
         </p>
       </div>
 
       <Card>
         <CardContent className="space-y-5">
           <Metric
-            label="Unpaid earnings"
+            label={t("unpaidEarnings")}
             value={f.money(totals.pending, currency)}
-            comparison={`${f.money(totals.paid, currency)} paid out so far`}
+            comparison={t("paidSoFar", { amount: f.money(totals.paid, currency) })}
             size="lg"
           />
           <div className="grid grid-cols-2 gap-5 border-t border-border pt-5 sm:grid-cols-4">
-            <Metric label="Clicks" value={f.number(totals.clicks)} />
-            <Metric label="Customers" value={f.number(totals.customers)} />
+            <Metric label={tc("clicks")} value={f.number(totals.clicks)} />
+            <Metric label={tc("customers")} value={f.number(totals.customers)} />
             <Metric
-              label="Conversion"
+              label={tc("conversion")}
               value={f.rate(totals.customers, totals.clicks)}
             />
             <Metric
-              label="Revenue generated"
+              label={t("revenueGenerated")}
               value={f.money(totals.revenue, currency)}
             />
           </div>
@@ -103,7 +116,7 @@ export default async function AffiliateOverviewPage() {
       </Card>
 
       <section>
-        <SectionHeader title="Your referral links" />
+        <SectionHeader title={t("yourLinks")} />
         <div className="space-y-3">
           {participations.map((participation) => (
             <Card key={participation.participationId}>
@@ -115,19 +128,28 @@ export default async function AffiliateOverviewPage() {
                     </p>
                     <p className="text-meta text-muted-foreground">
                       {participation.customCommissionType && participation.customCommissionValue
-                        ? `${f.basisPoints(participation.customCommissionValue)} — your custom rate`
+                        ? t("customRate", {
+                            rate: f.basisPoints(participation.customCommissionValue),
+                          })
                         : participation.commissionType === "percentage"
-                          ? `${f.basisPoints(participation.commissionValue)} commission`
-                          : `${f.money(participation.commissionValue, participation.programCurrency)} per conversion`}
+                          ? t("percentageRate", {
+                              rate: f.basisPoints(participation.commissionValue),
+                            })
+                          : t("fixedRate", {
+                              amount: f.money(
+                                participation.commissionValue,
+                                participation.programCurrency,
+                              ),
+                            })}
                       {participation.commissionDurationMonths === null
-                        ? " · lifetime"
+                        ? ` · ${t("lifetime")}`
                         : participation.commissionDurationMonths === 1
-                          ? " · first payment"
-                          : ` · ${participation.commissionDurationMonths} months`}
+                          ? ` · ${t("firstPayment")}`
+                          : ` · ${t("nMonths", { count: participation.commissionDurationMonths })}`}
                     </p>
                   </div>
                   <Badge tone={participation.status === "approved" ? "success" : "warning"}>
-                    {participation.status}
+                    {ts(participation.status)}
                   </Badge>
                 </div>
 
@@ -146,7 +168,7 @@ export default async function AffiliateOverviewPage() {
       {series.length > 0 ? (
         <Card>
           <CardHeader bordered>
-            <CardTitle>Commission over time</CardTitle>
+            <CardTitle>{t("commissionOverTime")}</CardTitle>
             <ChartLegend series={chartSeries} />
           </CardHeader>
           <CardContent>

@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useActionState, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -34,6 +35,8 @@ export function PayableList({
   rows: PayableRow[]
   currency: string
 }) {
+  const t = useTranslations("forms.payable")
+  const tc = useTranslations("common.table")
   const f = useFormatters()
   const [selected, setSelected] = useState<string[]>(() => rows.map((r) => r.participationId))
   const [state, action, pending] = useActionState(createPayoutBatchAction, INITIAL)
@@ -61,7 +64,7 @@ export function PayableList({
               <TH className="w-10">
                 <input
                   type="checkbox"
-                  aria-label="Select all affiliates"
+                  aria-label={t("selectAll")}
                   checked={allSelected}
                   onChange={(event) =>
                     setSelected(event.target.checked ? rows.map((r) => r.participationId) : [])
@@ -69,9 +72,9 @@ export function PayableList({
                   className="size-3.5 accent-[var(--primary)]"
                 />
               </TH>
-              <TH>Affiliate</TH>
-              <TH numeric>Commissions</TH>
-              <TH numeric>Amount</TH>
+              <TH>{tc("affiliate")}</TH>
+              <TH numeric>{t("commissions")}</TH>
+              <TH numeric>{tc("amount")}</TH>
             </tr>
           </THead>
           <TBody>
@@ -119,7 +122,7 @@ export function PayableList({
           </span>
         </p>
         <Button type="submit" variant="primary" loading={pending} disabled={selected.length === 0}>
-          Create payout batch
+          {t("submit")}
         </Button>
       </div>
     </form>

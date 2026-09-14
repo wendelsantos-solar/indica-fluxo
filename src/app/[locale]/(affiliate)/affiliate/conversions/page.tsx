@@ -1,5 +1,6 @@
 import { Receipt } from "lucide-react"
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 
 import { EmptyState } from "@/components/feedback/empty-state"
 import { getFormatters } from "@/i18n/format"
@@ -12,10 +13,16 @@ import { withUser } from "@/server/db"
 import { listParticipationsForUser } from "@/server/repositories/affiliates"
 import { listCommissionsForAffiliate } from "@/server/repositories/commissions"
 
-export const metadata: Metadata = { title: "Conversions" }
 export const dynamic = "force-dynamic"
 
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("portal.conversions")
+  return { title: t("title") }
+}
+
 export default async function AffiliateConversionsPage() {
+  const t = await getTranslations("portal.conversions")
+  const tc = await getTranslations("common.table")
   const f = await getFormatters()
   const user = await requireUser()
 
@@ -32,16 +39,16 @@ export default async function AffiliateConversionsPage() {
   return (
     <>
       <PageHeader
-        title="Conversions"
-        description="Customers who signed up through your link and paid."
+        title={t("title")}
+        description={t("description")}
       />
 
       {conversions.length === 0 ? (
         <Card>
           <EmptyState
             icon={Receipt}
-            title="No conversions yet"
-            description="A conversion is recorded when someone who clicked your link becomes a paying customer."
+            title={t("empty.title")}
+            description={t("empty.description")}
           />
         </Card>
       ) : (
@@ -49,12 +56,12 @@ export default async function AffiliateConversionsPage() {
           <Table>
             <THead>
               <tr>
-                <TH>Date</TH>
-                <TH>Program</TH>
-                <TH>Customer</TH>
-                <TH numeric>Sale</TH>
-                <TH numeric>Your commission</TH>
-                <TH>Status</TH>
+                <TH>{tc("date")}</TH>
+                <TH>{tc("program")}</TH>
+                <TH>{tc("customer")}</TH>
+                <TH numeric>{t("sale")}</TH>
+                <TH numeric>{t("yourCommission")}</TH>
+                <TH>{tc("status")}</TH>
               </tr>
             </THead>
             <TBody>

@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useActionState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -27,6 +28,7 @@ export function StripePanel({
   providerAccountId: string | null
   webhookUrl: string
 }) {
+  const t = useTranslations("forms.stripe")
   const [connectState, connect, connecting] = useActionState(connectStripeAction, INITIAL)
   const [disconnectState, disconnect, disconnecting] = useActionState(
     disconnectStripeAction,
@@ -43,10 +45,7 @@ export function StripePanel({
             Stripe
             {status ? <StatusBadge status={status} /> : null}
           </CardTitle>
-          <CardDescription>
-            Indica reads payment events to calculate commissions. It never moves money and never
-            stores your Stripe secret key.
-          </CardDescription>
+          <CardDescription>{t("description")}</CardDescription>
         </div>
       </CardHeader>
 
@@ -56,13 +55,13 @@ export function StripePanel({
             <dl className="grid gap-3 sm:grid-cols-2">
               <div>
                 <dt className="text-label uppercase tracking-[0.02em] text-muted-foreground">
-                  Account
+                  {t("account")}
                 </dt>
                 <dd className="font-mono text-caption text-foreground">{providerAccountId}</dd>
               </div>
               <div>
                 <dt className="text-label uppercase tracking-[0.02em] text-muted-foreground">
-                  Webhook endpoint
+                  {t("webhook")}
                 </dt>
                 <dd className="break-all font-mono text-meta text-foreground-secondary">
                   {webhookUrl}
@@ -73,7 +72,7 @@ export function StripePanel({
             <form action={disconnect}>
               <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
               <Button type="submit" variant="danger" size="sm" loading={disconnecting}>
-                Disconnect Stripe
+                {t("disconnect")}
               </Button>
             </form>
 
@@ -87,16 +86,16 @@ export function StripePanel({
           <form action={connect} className="space-y-4">
             <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
             <Field
-              label="Stripe account id"
+              label={t("accountId")}
               htmlFor="providerAccountId"
               required
-              hint="Found in your Stripe dashboard under Settings → Account details."
+              hint={t("accountIdHint")}
               error={connectState.error}
             >
               <Input
                 id="providerAccountId"
                 name="providerAccountId"
-                placeholder="acct_1A2b3C4d5E"
+                placeholder={t("accountIdPlaceholder")}
                 className="font-mono sm:max-w-[320px]"
                 required
               />
@@ -104,7 +103,7 @@ export function StripePanel({
 
             <div className="rounded-control border border-border bg-surface-2 p-3">
               <p className="mb-1 text-meta font-medium text-foreground-secondary">
-                Then add this webhook endpoint in Stripe:
+                {t("thenAdd")}
               </p>
               <code className="block break-all font-mono text-meta text-foreground">
                 {webhookUrl}
@@ -116,7 +115,7 @@ export function StripePanel({
             </div>
 
             <Button type="submit" variant="primary" loading={connecting}>
-              Connect Stripe
+              {t("connect")}
             </Button>
           </form>
         )}

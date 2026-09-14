@@ -13,7 +13,12 @@
     "payouts": "Payouts",
     "integrations": "Integrations",
     "settings": "Settings",
-    "links": "Links"
+    "links": "Links",
+    "portalHome": "Affiliate portal home",
+    "affiliateSections": "Affiliate sections",
+    "open": "Open navigation",
+    "close": "Close navigation",
+    "main": "Main"
   },
   "marketing": {
     "home": {
@@ -454,5 +459,273 @@
     "title": "Create your workspace",
     "step": "Step 1 of 2",
     "description": "A workspace holds your programs, affiliates and commission ledger. You can rename it later; the currency sets the default for new programs."
+  },
+  "portal": {
+    "overview": {
+      "title": "Overview",
+      "subtitle": "Here is how your referrals are performing.",
+      "greeting": {
+        "morning": "Good morning, {name}.",
+        "afternoon": "Good afternoon, {name}.",
+        "evening": "Good evening, {name}."
+      },
+      "unpaidEarnings": "Unpaid earnings",
+      "paidSoFar": "{amount} paid out so far",
+      "revenueGenerated": "Revenue generated",
+      "yourLinks": "Your referral links",
+      "commissionOverTime": "Commission over time",
+      "customRate": "{rate} — your custom rate",
+      "percentageRate": "{rate} commission",
+      "fixedRate": "{amount} per conversion",
+      "lifetime": "lifetime",
+      "firstPayment": "first payment",
+      "nMonths": "{count, plural, one {# month} other {# months}}"
+    },
+    "links": {
+      "title": "Links",
+      "description": "Your default referral link works everywhere. Create named links to see which channel converts.",
+      "defaultLink": "Default link",
+      "destination": "Destination",
+      "campaign": "Campaign"
+    },
+    "commissions": {
+      "title": "Commissions",
+      "description": "Everything you have earned, and where each commission is in the payout cycle.",
+      "sale": "Sale",
+      "fixed": "Fixed",
+      "mobileSummary": "{date} · {amount} sale",
+      "empty": {
+        "title": "No commissions yet",
+        "description": "Share your referral link. Commissions appear here the moment a referred customer pays."
+      }
+    },
+    "conversions": {
+      "title": "Conversions",
+      "description": "Customers who signed up through your link and paid.",
+      "sale": "Sale",
+      "yourCommission": "Your commission",
+      "empty": {
+        "title": "No conversions yet",
+        "description": "A conversion is recorded when someone who clicked your link becomes a paying customer."
+      }
+    },
+    "payouts": {
+      "title": "Payout history",
+      "description": "Payments are sent by the program owner outside Indica. This is the record of what they marked as paid.",
+      "batch": "Batch",
+      "paid": "Paid",
+      "empty": {
+        "title": "No payouts yet",
+        "description": "Once your commissions clear their hold period and the program owner runs a payout, it appears here."
+      }
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Your affiliate profile and program memberships.",
+      "account": {
+        "title": "Account",
+        "description": "We store the minimum needed to pay you: a name, an e-mail address and your commission history.",
+        "name": "Name",
+        "email": "E-mail"
+      },
+      "programs": {
+        "title": "Programs",
+        "description": "Programs you are enrolled in and your referral code."
+      }
+    }
+  },
+  "forms": {
+    "program": {
+      "basics": {
+        "title": "Basics",
+        "description": "What affiliates will see when they join."
+      },
+      "name": "Program name",
+      "namePlaceholder": "Acme Partners",
+      "status": "Status",
+      "description": "Description",
+      "descriptionHint": "Optional. Shown to affiliates in their portal.",
+      "commission": {
+        "title": "Commission",
+        "description": "What an affiliate earns, and for how long after the first payment."
+      },
+      "type": "Type",
+      "typePercentage": "Percentage of payment",
+      "typeFixed": "Fixed amount",
+      "rate": "Rate (%)",
+      "amount": "Amount",
+      "currency": "Currency",
+      "recurrence": "Recurrence",
+      "recurrenceFirst": "First payment only",
+      "recurrenceMonths": "For a number of months",
+      "recurrenceLifetime": "Lifetime",
+      "durationMonths": "Duration (months)",
+      "holdDays": "Hold period (days)",
+      "holdDaysHint": "Commissions stay pending for this long before they can be paid — your refund window.",
+      "attribution": {
+        "title": "Attribution",
+        "description": "Which affiliate gets credited when a visitor converts."
+      },
+      "model": "Model",
+      "lastClick": "Last click",
+      "firstClick": "First click",
+      "windowDays": "Attribution window (days)",
+      "submitCreate": "Create program",
+      "submitSave": "Save changes"
+    },
+    "workspace": {
+      "title": "Workspace",
+      "description": "The default currency applies to new programs; existing programs keep their own.",
+      "name": "Name",
+      "currency": "Default currency",
+      "timezone": "Timezone",
+      "save": "Save changes"
+    },
+    "inviteMember": {
+      "label": "Invite by e-mail",
+      "placeholder": "teammate@company.com",
+      "role": "Role",
+      "submit": "Send invite"
+    },
+    "createWorkspace": {
+      "name": "Workspace name",
+      "nameHint": "Usually your company or product name.",
+      "namePlaceholder": "Acme SaaS",
+      "currency": "Default currency",
+      "timezone": "Timezone",
+      "submit": "Continue"
+    },
+    "createLink": {
+      "name": "Link name",
+      "namePlaceholder": "YouTube review",
+      "destination": "Destination",
+      "destinationPlaceholder": "https://acme.com/pricing",
+      "submit": "Create link"
+    },
+    "inviteAffiliate": {
+      "title": "Invite an affiliate",
+      "description": "They do not need an account yet. The record is claimed automatically the first time they sign in with this e-mail address.",
+      "program": "Program",
+      "name": "Name",
+      "email": "E-mail",
+      "code": "Referral code",
+      "codeHint": "Leave blank to derive it from the name.",
+      "codePlaceholder": "wendel",
+      "customRate": "Custom rate (%)",
+      "customRateHint": "Optional. Overrides the program rate.",
+      "company": "Company",
+      "optional": "Optional.",
+      "submit": "Add affiliate"
+    },
+    "apiKeys": {
+      "title": "API keys",
+      "description": "The publishable key goes in your tracking snippet. The secret key is for server-to-server calls to <code>/api/identify</code> only.",
+      "revealWarning": "Copy this key now — it will never be shown again.",
+      "key": "Key",
+      "type": "Type",
+      "lastUsed": "Last used",
+      "rotate": "Rotate",
+      "snippet": "Tracking snippet"
+    },
+    "payable": {
+      "selectAll": "Select all affiliates",
+      "commissions": "Commissions",
+      "submit": "Create payout batch"
+    },
+    "batch": {
+      "markPaid": "Mark as paid",
+      "confirmTitle": "Mark {reference} as paid?",
+      "confirmBody": "This records that you paid {count, plural, one {# affiliate} other {# affiliates}} a total of {amount} outside the platform. The commissions in this batch become <strong>paid</strong> and this cannot be undone.",
+      "reference": "Payment reference",
+      "referenceHint": "Optional. A Wise transfer id, bank reference or invoice number.",
+      "confirmAction": "Yes, mark as paid",
+      "cancelBatch": "Cancel"
+    },
+    "stripe": {
+      "description": "Indica reads payment events to calculate commissions. It never moves money and never stores your Stripe secret key.",
+      "accountId": "Stripe account id",
+      "accountIdHint": "Found in your Stripe dashboard under Settings → Account details.",
+      "accountIdPlaceholder": "acct_1A2b3C4d5E",
+      "account": "Account",
+      "webhook": "Webhook endpoint",
+      "disconnect": "Disconnect Stripe",
+      "thenAdd": "Then add this webhook endpoint in Stripe:",
+      "connect": "Connect Stripe"
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Try again.",
+    "unauthorized": "You must be signed in to do that.",
+    "forbidden": "You do not have access to this workspace.",
+    "notFound": "Not found.",
+    "validation": "Check the highlighted fields.",
+    "conflict": "That conflicts with the current state.",
+    "rateLimited": "Too many requests. Give it a moment.",
+    "invalidRequest": "Invalid request.",
+    "badCredentials": "Those credentials did not work. Try again.",
+    "missingProgram": "Missing program reference.",
+    "participationNotFound": "Affiliate participation not found.",
+    "percentageOver100": "A percentage commission cannot exceed 100%.",
+    "linkNotCreated": "Could not create the link.",
+    "programNotFound": "Program not found.",
+    "affiliateAlreadyInProgram": "That affiliate is already in this program.",
+    "customRateIncomplete": "A custom rate needs both a type and a value.",
+    "apiKeyMalformed": "Malformed API key.",
+    "apiKeyInvalid": "Invalid API key.",
+    "externalIdRequired": "externalId is required.",
+    "batchNotFound": "Payout batch not found.",
+    "batchAlreadyPaid": "That batch is already marked as paid.",
+    "batchCancelled": "That batch was cancelled.",
+    "paidBatchNotCancellable": "A paid batch cannot be cancelled; record an adjustment instead.",
+    "selectAffiliate": "Select at least one affiliate to pay.",
+    "nothingPayable": "Those affiliates have no payable commissions right now.",
+    "netsToZero": "The selected commissions net to zero or less.",
+    "commissionPositive": "Commission must be greater than zero.",
+    "programNameInvalid": "Program name must contain letters or numbers.",
+    "programNameTaken": "A program with that name already exists.",
+    "unknownReferralCode": "Unknown referral code.",
+    "invitePending": "That person already has a pending invitation.",
+    "workspaceNameInvalid": "Workspace name must contain letters or numbers.",
+    "workspaceNotCreated": "Could not create the workspace.",
+    "workspaceNotFound": "Workspace not found, or you do not have access to it.",
+    "workspaceNotSaved": "Could not save the workspace.",
+    "inviteNotSent": "Could not send the invitation.",
+    "stripeNotConnected": "Could not connect Stripe.",
+    "stripeNotDisconnected": "Could not disconnect Stripe.",
+    "keyNotRotated": "Could not rotate the key.",
+    "affiliateNotAdded": "Could not add the affiliate.",
+    "rateNotUpdated": "Could not update the rate.",
+    "batchNotCreated": "Could not create the batch.",
+    "programNotSaved": "Could not save the program.",
+    "fields": {
+      "urlRequired": "Enter a full URL, including https://",
+      "emailInvalid": "Enter a valid e-mail address.",
+      "affiliateName": "Enter the affiliate's name.",
+      "programName": "Give the program a name.",
+      "workspaceName": "Give your workspace a name.",
+      "linkName": "Name the link.",
+      "selectAffiliate": "Select at least one affiliate.",
+      "fullName": "Tell us your name.",
+      "passwordLength": "Use at least 8 characters.",
+      "commissionPositive": "Commission must be greater than zero.",
+      "percentageOver100": "A percentage commission cannot exceed 100%.",
+      "customRatePositive": "A custom rate must be greater than zero."
+    }
+  },
+  "success": {
+    "programSaved": "Program saved.",
+    "workspaceUpdated": "Workspace updated.",
+    "rateUpdated": "Rate updated.",
+    "linkCreated": "Link created.",
+    "stripeConnected": "Stripe connected. Point your webhook at /api/webhooks/stripe.",
+    "stripeDisconnected": "Stripe disconnected.",
+    "keyRotated": "Key rotated. Copy it now — it is not shown again.",
+    "batchPaid": "Batch marked as paid.",
+    "batchCancelled": "Batch cancelled; commissions returned to available.",
+    "inviteSent": "Invitation sent.",
+    "affiliateAdded": "Affiliate added.",
+    "affiliateUpdated": "Affiliate updated.",
+    "batchCreated": "Payout batch created.",
+    "confirmEmail": "Check your inbox to confirm your e-mail, then sign in."
   }
 }
