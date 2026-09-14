@@ -1,0 +1,150 @@
+/* ---------------------------------------------------------------------------
+ * tokens.css — primitives + semantic tokens.
+ * Components must NEVER reference a primitive. Use semantic tokens only.
+ * See DESIGN.md §2.
+ * ------------------------------------------------------------------------- */
+
+:root {
+  /* ---- primitives: neutral ---- */
+  --black-950: #08090a;
+  --black-900: #0f1011;
+  --gray-850: #161718;
+  --gray-800: #1c1d1f;
+  --gray-750: #23252a;
+  --gray-700: #383b3f;
+  --gray-600: #4d5157;
+  --gray-500: #6b7078;
+  --gray-400: #8a8f98;
+  --gray-300: #a8adb6;
+  --gray-200: #d0d6e0;
+  --gray-150: #e4e6e9;
+  --gray-100: #f2f3f5;
+  --gray-050: #f7f8f8;
+  --white: #ffffff;
+
+  /* ---- primitives: accent ---- */
+  --lime-300: #eef94f;
+  --lime-400: #e4f222;
+  --lime-500: #d2e016;
+  --lime-600: #9aa50a;
+
+  /* ---- primitives: status ---- */
+  --green-500: #3fb950;
+  --green-700: #1a7f37;
+  --amber-500: #d8a13a;
+  --amber-700: #9a6b00;
+  --red-500: #f2555a;
+  --red-700: #cf2f36;
+  --blue-500: #4ea7fc;
+  --blue-700: #1668c4;
+
+  /* ---- primitives: chart ---- */
+  --viz-lime: #d4e017;
+  --viz-cyan: #4cc9d6;
+  --viz-violet: #9b8cf0;
+  --viz-amber: #e0a33c;
+  --viz-rose: #ef7089;
+  --viz-teal: #46b08a;
+}
+
+/* =======================================================================
+ * LIGHT THEME (default)
+ * ===================================================================== */
+:root {
+  --background: var(--gray-050);
+  --foreground: #0c0d0e;
+  --foreground-secondary: #3c4149;
+
+  --surface-1: var(--white);
+  --surface-2: var(--gray-100);
+  --surface-3: var(--white);
+
+  --muted: var(--gray-100);
+  --muted-foreground: #6a6f78;
+
+  --border: var(--gray-150);
+  --border-strong: #c6cad0;
+
+  --primary: var(--lime-500);
+  --primary-hover: #c2cf10;
+  --primary-foreground: #14160a;
+
+  --success: var(--green-700);
+  --success-subtle: color-mix(in oklab, var(--green-700) 12%, transparent);
+  --success-foreground: #14622c;
+
+  --warning: var(--amber-700);
+  --warning-subtle: color-mix(in oklab, var(--amber-700) 14%, transparent);
+  --warning-foreground: #7a5400;
+
+  --danger: var(--red-700);
+  --danger-subtle: color-mix(in oklab, var(--red-700) 10%, transparent);
+  --danger-foreground: #a8242a;
+
+  --info: var(--blue-700);
+  --info-subtle: color-mix(in oklab, var(--blue-700) 10%, transparent);
+  --info-foreground: #12559f;
+
+  --ring: color-mix(in oklab, var(--foreground) 45%, transparent);
+  --scrim: oklch(0 0 0 / 0.35);
+  --shadow-overlay: 0 8px 24px -8px oklch(0 0 0 / 0.16), 0 2px 6px -2px oklch(0 0 0 / 0.1);
+  --skeleton-shimmer: color-mix(in oklab, var(--white) 70%, transparent);
+
+  --chart-1: var(--viz-lime);
+  --chart-2: var(--viz-cyan);
+  --chart-3: var(--viz-violet);
+  --chart-4: var(--viz-amber);
+  --chart-5: var(--viz-rose);
+  --chart-6: var(--viz-teal);
+}
+
+/* =======================================================================
+ * DARK THEME (the primary experience)
+ * ===================================================================== */
+.dark {
+  --background: var(--black-950);
+  --foreground: var(--white);
+  --foreground-secondary: var(--gray-200);
+
+  --surface-1: var(--black-900);
+  --surface-2: var(--gray-850);
+  --surface-3: var(--gray-800);
+
+  --muted: var(--gray-850);
+  --muted-foreground: var(--gray-400);
+
+  --border: var(--gray-750);
+  --border-strong: var(--gray-700);
+
+  --primary: var(--lime-400);
+  --primary-hover: var(--lime-300);
+  --primary-foreground: #14160a;
+
+  --success: var(--green-500);
+  --success-subtle: color-mix(in oklab, var(--green-500) 16%, transparent);
+  --success-foreground: #63d178;
+
+  --warning: var(--amber-500);
+  --warning-subtle: color-mix(in oklab, var(--amber-500) 16%, transparent);
+  --warning-foreground: #e6b862;
+
+  --danger: var(--red-500);
+  --danger-subtle: color-mix(in oklab, var(--red-500) 16%, transparent);
+  --danger-foreground: #ff8084;
+
+  --info: var(--blue-500);
+  --info-subtle: color-mix(in oklab, var(--blue-500) 16%, transparent);
+  --info-foreground: #7cbeff;
+
+  --ring: color-mix(in oklab, var(--white) 55%, transparent);
+  --scrim: oklch(0 0 0 / 0.6);
+  --shadow-overlay: 0 12px 32px -12px oklch(0 0 0 / 0.6), 0 2px 8px -4px oklch(0 0 0 / 0.5);
+  --skeleton-shimmer: color-mix(in oklab, var(--white) 6%, transparent);
+
+  --chart-1: var(--viz-lime);
+  --chart-2: var(--viz-cyan);
+  --chart-3: var(--viz-violet);
+  --chart-4: var(--viz-amber);
+  --chart-5: var(--viz-rose);
+  --chart-6: var(--viz-teal);
+}
