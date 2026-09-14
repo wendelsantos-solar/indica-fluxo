@@ -43,7 +43,7 @@ export default async function AffiliateLinksPage() {
 
             <Card className="mb-3">
               <CardContent className="space-y-2">
-                <p className="text-[12px] text-muted-foreground">Default link</p>
+                <p className="text-meta text-muted-foreground">Default link</p>
                 <ReferralLinkField url={buildReferralUrl(appUrl, participation.code)} />
               </CardContent>
             </Card>

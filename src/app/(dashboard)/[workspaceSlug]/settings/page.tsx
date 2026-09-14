@@ -65,7 +65,7 @@ export default async function SettingsPage({ params }: PageProps<"/[workspaceSlu
                       <TD className="text-foreground">
                         {member.fullName ?? "Pending profile"}
                         {member.userId === user.id ? (
-                          <span className="ml-2 text-[11px] text-muted-foreground">(you)</span>
+                          <span className="ml-2 text-label text-muted-foreground">(you)</span>
                         ) : null}
                       </TD>
                       <TD>

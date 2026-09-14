@@ -36,13 +36,13 @@ export function WorkspaceSwitcher({
       <DropdownTrigger asChild>
         <button
           type="button"
-          className="flex w-full items-center gap-2 rounded-[6px] px-2 py-1.5 text-left transition-colors duration-[120ms] hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="flex w-full items-center gap-2 rounded-control px-2 py-1.5 text-left transition-colors duration-[120ms] hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           aria-label={`Current workspace: ${current.name}. Switch workspace`}
         >
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-[5px] bg-primary text-[10px] font-medium text-primary-foreground">
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-control bg-primary text-micro font-medium text-primary-foreground">
             {initials(current.name)}
           </span>
-          <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">
+          <span className="min-w-0 flex-1 truncate text-caption font-medium text-foreground">
             {current.name}
           </span>
           <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -58,7 +58,7 @@ export function WorkspaceSwitcher({
             className="justify-between"
           >
             <span className="flex min-w-0 items-center gap-2">
-              <span className="flex size-5 shrink-0 items-center justify-center rounded-[4px] bg-surface-2 text-[9px] font-medium text-foreground-secondary">
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-badge bg-surface-2 text-micro font-medium text-foreground-secondary">
                 {initials(workspace.name)}
               </span>
               <span className="truncate">{workspace.name}</span>

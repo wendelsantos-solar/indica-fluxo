@@ -96,21 +96,21 @@ export default async function AffiliateCommissionsPage() {
                   <CardContent className="space-y-2 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate text-[13px] font-medium text-foreground">
+                        <p className="truncate text-caption font-medium text-foreground">
                           {row.programName}
                         </p>
-                        <p className="font-mono text-[11px] text-muted-foreground">
+                        <p className="font-mono text-label text-muted-foreground">
                           {row.customerRef}
                         </p>
                       </div>
                       <StatusBadge status={row.status} />
                     </div>
                     <div className="flex items-baseline justify-between gap-3">
-                      <span className="text-[12px] text-muted-foreground">
+                      <span className="text-meta text-muted-foreground">
                         {row.createdAt.toISOString().slice(0, 10)} ·{" "}
                         {formatMoney(row.baseAmountMinor, row.currency)} sale
                       </span>
-                      <span className="text-[15px] font-medium tabular-nums text-foreground">
+                      <span className="text-body-sm font-medium tabular-nums text-foreground">
                         {formatMoney(row.commissionAmountMinor, row.currency)}
                       </span>
                     </div>

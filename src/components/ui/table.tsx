@@ -16,7 +16,7 @@ export function TableContainer({
     <div
       data-slot="scrollable"
       className={cn(
-        "overflow-hidden rounded-xl border border-border bg-surface-1",
+        "overflow-hidden rounded-panel border border-border bg-surface-1",
         scrollable && "overflow-x-auto",
         className,
       )}
@@ -28,7 +28,7 @@ export function TableContainer({
 export function Table({ className, ...props }: React.TableHTMLAttributes<HTMLTableElement>) {
   return (
     <table
-      className={cn("w-full border-collapse text-[13px] tabular-nums", className)}
+      className={cn("w-full border-collapse text-caption tabular-nums", className)}
       {...props}
     />
   )
@@ -47,7 +47,7 @@ export function TH({
     <th
       scope="col"
       className={cn(
-        "h-9 px-4 text-left align-middle text-[11px] font-medium uppercase tracking-[0.02em] text-muted-foreground",
+        "h-9 px-4 text-left align-middle text-label font-medium uppercase tracking-[0.02em] text-muted-foreground",
         numeric && "text-right",
         className,
       )}
@@ -89,7 +89,7 @@ export function TD({
       className={cn(
         "h-12 px-4 align-middle text-foreground-secondary",
         numeric && "text-right",
-        mono && "font-mono text-[12px]",
+        mono && "font-mono text-meta",
         className,
       )}
       {...props}

@@ -70,10 +70,10 @@ export default async function AffiliateOverviewPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-[22px] font-medium tracking-[-0.02em]">
+        <h1 className="text-subheading font-medium">
           {greeting()}, {primary.affiliateName.split(" ")[0]}.
         </h1>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-caption text-muted-foreground">
           Here is how your referrals are performing.
         </p>
       </div>
@@ -109,10 +109,10 @@ export default async function AffiliateOverviewPage() {
               <CardContent className="space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="text-[13px] font-medium text-foreground">
+                    <p className="text-caption font-medium text-foreground">
                       {participation.programName}
                     </p>
-                    <p className="text-[12px] text-muted-foreground">
+                    <p className="text-meta text-muted-foreground">
                       {participation.customCommissionType && participation.customCommissionValue
                         ? `${formatBasisPoints(participation.customCommissionValue)} — your custom rate`
                         : participation.commissionType === "percentage"

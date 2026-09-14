@@ -134,7 +134,7 @@ export default async function PayoutsPage({ params }: PageProps<"/[workspaceSlug
                               />
                             </>
                           ) : batch.paidAt ? (
-                            <span className="text-[12px] text-muted-foreground">
+                            <span className="text-meta text-muted-foreground">
                               Paid {batch.paidAt.toISOString().slice(0, 10)}
                             </span>
                           ) : null}

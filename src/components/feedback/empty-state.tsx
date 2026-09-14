@@ -27,12 +27,12 @@ export function EmptyState({
         className,
       )}
     >
-      <div className="flex size-10 items-center justify-center rounded-[8px] border border-border bg-surface-2">
+      <div className="flex size-10 items-center justify-center rounded-control border border-border bg-surface-2">
         <Icon className="size-5 text-muted-foreground" aria-hidden="true" />
       </div>
       <div className="space-y-1">
-        <p className="text-[15px] font-medium text-foreground">{title}</p>
-        <p className="mx-auto max-w-sm text-[13px] leading-relaxed text-muted-foreground">
+        <p className="text-body-sm font-medium text-foreground">{title}</p>
+        <p className="mx-auto max-w-sm text-caption leading-relaxed text-muted-foreground">
           {description}
         </p>
       </div>
@@ -55,14 +55,14 @@ export function ErrorState({
       role="alert"
       className="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center"
     >
-      <div className="flex size-10 items-center justify-center rounded-[8px] bg-danger-subtle">
-        <span aria-hidden="true" className="text-[15px] text-danger-foreground">
+      <div className="flex size-10 items-center justify-center rounded-control bg-danger-subtle">
+        <span aria-hidden="true" className="text-body-sm text-danger-foreground">
           !
         </span>
       </div>
       <div className="space-y-1">
-        <p className="text-[15px] font-medium text-foreground">{title}</p>
-        <p className="mx-auto max-w-sm text-[13px] leading-relaxed text-muted-foreground">
+        <p className="text-body-sm font-medium text-foreground">{title}</p>
+        <p className="mx-auto max-w-sm text-caption leading-relaxed text-muted-foreground">
           {description}
         </p>
       </div>

@@ -33,18 +33,18 @@ export default async function AffiliateSettingsPage() {
           <CardContent>
             <dl className="grid gap-4 sm:grid-cols-2">
               <div>
-                <dt className="text-[11px] uppercase tracking-[0.02em] text-muted-foreground">
+                <dt className="text-label uppercase tracking-[0.02em] text-muted-foreground">
                   Name
                 </dt>
-                <dd className="text-[13px] text-foreground">
+                <dd className="text-caption text-foreground">
                   {participations[0]?.affiliateName ?? "—"}
                 </dd>
               </div>
               <div>
-                <dt className="text-[11px] uppercase tracking-[0.02em] text-muted-foreground">
+                <dt className="text-label uppercase tracking-[0.02em] text-muted-foreground">
                   E-mail
                 </dt>
-                <dd className="text-[13px] text-foreground">{user.email}</dd>
+                <dd className="text-caption text-foreground">{user.email}</dd>
               </div>
             </dl>
           </CardContent>
@@ -64,8 +64,8 @@ export default async function AffiliateSettingsPage() {
                   key={participation.participationId}
                   className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
                 >
-                  <span className="text-[13px] text-foreground">{participation.programName}</span>
-                  <code className="font-mono text-[12px] text-muted-foreground">
+                  <span className="text-caption text-foreground">{participation.programName}</span>
+                  <code className="font-mono text-meta text-muted-foreground">
                     {participation.code}
                   </code>
                 </li>

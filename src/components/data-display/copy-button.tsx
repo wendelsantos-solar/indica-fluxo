@@ -58,11 +58,11 @@ export function ReferralLinkField({ url, className }: { url: string; className?:
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-[6px] border border-border bg-surface-2 p-1 pl-3",
+        "flex items-center gap-2 rounded-control border border-border bg-surface-2 p-1 pl-3",
         className,
       )}
     >
-      <code className="min-w-0 flex-1 truncate font-mono text-[12px] text-foreground-secondary">
+      <code className="min-w-0 flex-1 truncate font-mono text-meta text-foreground-secondary">
         {url}
       </code>
       <CopyButton value={url} />

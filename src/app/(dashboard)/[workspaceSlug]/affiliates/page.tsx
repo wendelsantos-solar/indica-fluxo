@@ -140,7 +140,7 @@ export default async function AffiliatesPage({
                   <TR key={`${row.affiliateId}-${row.participationId ?? "none"}`} interactive>
                     <TD>
                       <span className="block font-medium text-foreground">{row.name}</span>
-                      <span className="block font-mono text-[11px] text-muted-foreground">
+                      <span className="block font-mono text-label text-muted-foreground">
                         {row.code ?? row.email}
                       </span>
                     </TD>
@@ -164,7 +164,7 @@ export default async function AffiliatesPage({
           {pages > 1 ? (
             <nav
               aria-label="Pagination"
-              className="mt-3 flex items-center justify-between text-[12px] text-muted-foreground"
+              className="mt-3 flex items-center justify-between text-meta text-muted-foreground"
             >
               <span>
                 Page {page} of {pages} · {formatNumber(result.total)} affiliates

@@ -75,7 +75,7 @@ export default async function ProgramsPage({ params }: PageProps<"/[workspaceSlu
                     >
                       {program.name}
                     </Link>
-                    <span className="block font-mono text-[11px] text-muted-foreground">
+                    <span className="block font-mono text-label text-muted-foreground">
                       {program.slug}
                     </span>
                   </TD>

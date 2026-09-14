@@ -24,7 +24,7 @@ export function Tooltip({
           side={side}
           sideOffset={6}
           className={cn(
-            "z-50 rounded-[6px] border border-border bg-surface-3 px-2 py-1 text-[12px]",
+            "z-50 rounded-control border border-border bg-surface-3 px-2 py-1 text-meta",
             "text-foreground-secondary shadow-[var(--shadow-overlay)]",
             "data-[state=delayed-open]:animate-[popover-in_140ms_var(--ease-out-quint)]",
           )}

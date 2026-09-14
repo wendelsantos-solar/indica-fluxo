@@ -198,7 +198,7 @@ async function OverviewContent({ slug }: { slug: string }) {
                     <TR key={affiliate.participationId}>
                       <TD>
                         <span className="block text-foreground">{affiliate.name}</span>
-                        <span className="font-mono text-[11px] text-muted-foreground">
+                        <span className="font-mono text-label text-muted-foreground">
                           {affiliate.code}
                         </span>
                       </TD>
@@ -266,14 +266,14 @@ async function OverviewContent({ slug }: { slug: string }) {
         <Card>
           <CardContent className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <span className="flex size-9 items-center justify-center rounded-[8px] bg-surface-2">
+              <span className="flex size-9 items-center justify-center rounded-control bg-surface-2">
                 <Coins className="size-4 text-muted-foreground" aria-hidden="true" />
               </span>
               <div>
-                <p className="text-[13px] font-medium">
+                <p className="text-caption font-medium">
                   {formatMoney(overview.availableCommissionMinor, overview.currency)} ready to pay
                 </p>
-                <p className="text-[12px] text-muted-foreground">
+                <p className="text-meta text-muted-foreground">
                   {formatMoney(overview.pendingCommissionMinor, overview.currency)} still inside the
                   hold period.
                 </p>
@@ -292,7 +292,7 @@ async function OverviewContent({ slug }: { slug: string }) {
 function OverviewSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3">
+      <div className="grid gap-px overflow-hidden rounded-panel border border-border bg-border sm:grid-cols-3">
         <MetricSkeleton />
         <MetricSkeleton />
         <MetricSkeleton />

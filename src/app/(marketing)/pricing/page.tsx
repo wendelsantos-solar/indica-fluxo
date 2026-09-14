@@ -59,10 +59,10 @@ export default function PricingPage() {
   return (
     <div className="mx-auto w-full max-w-[1200px] px-4 py-16 sm:px-6 sm:py-24">
       <div className="max-w-2xl">
-        <h1 className="text-[40px] font-medium leading-[1.05] tracking-[-0.03em]">
+        <h1 className="text-heading-sm font-medium sm:text-heading">
           Priced like a tool, not a tax.
         </h1>
-        <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
+        <p className="mt-4 text-body-sm leading-relaxed text-muted-foreground">
           We do not take a percentage of your affiliate revenue, because we never touch the money.
           You pay for the infrastructure and keep the upside.
         </p>
@@ -73,33 +73,33 @@ export default function PricingPage() {
           <div
             key={plan.name}
             className={cn(
-              "flex flex-col rounded-xl border bg-surface-1 p-6",
+              "flex flex-col rounded-panel border bg-surface-1 p-6",
               plan.featured ? "border-border-strong" : "border-border",
             )}
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-[15px] font-medium">{plan.name}</h2>
+              <h2 className="text-body-sm font-medium">{plan.name}</h2>
               {plan.featured ? (
-                <span className="rounded-[4px] bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-foreground">
+                <span className="rounded-badge bg-primary/15 px-2 py-0.5 text-label font-medium text-foreground">
                   Most popular
                 </span>
               ) : null}
             </div>
 
             <p className="mt-4 flex items-baseline gap-1.5">
-              <span className="text-[36px] font-medium tabular-nums tracking-tight">
+              <span className="text-heading-sm font-medium tabular-nums tracking-tight">
                 {plan.price}
               </span>
-              <span className="text-[13px] text-muted-foreground">{plan.cadence}</span>
+              <span className="text-caption text-muted-foreground">{plan.cadence}</span>
             </p>
 
-            <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
+            <p className="mt-3 text-caption leading-relaxed text-muted-foreground">
               {plan.description}
             </p>
 
             <ul className="mt-6 flex-1 space-y-2.5">
               {plan.features.map((feature) => (
-                <li key={feature} className="flex items-start gap-2 text-[13px]">
+                <li key={feature} className="flex items-start gap-2 text-caption">
                   <Check className="mt-0.5 size-3.5 shrink-0 text-primary" aria-hidden="true" />
                   <span className="text-foreground-secondary">{feature}</span>
                 </li>

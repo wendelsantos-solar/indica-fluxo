@@ -23,10 +23,10 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
   return (
     <div className="space-y-5">
       <div className="space-y-1.5 text-center">
-        <h1 className="text-[22px] font-medium tracking-[-0.02em]">
+        <h1 className="text-subheading font-medium">
           {signup ? "Create your account" : "Welcome back"}
         </h1>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-caption text-muted-foreground">
           {signup
             ? "Set up an affiliate program in a few minutes."
             : "Sign in to your workspace."}
@@ -82,13 +82,13 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
             </Field>
 
             {state.error ? (
-              <p role="alert" className="rounded-[6px] bg-danger-subtle px-3 py-2 text-[12px] text-danger-foreground">
+              <p role="alert" className="rounded-control bg-danger-subtle px-3 py-2 text-meta text-danger-foreground">
                 {state.error}
               </p>
             ) : null}
 
             {state.message ? (
-              <p role="status" className="rounded-[6px] bg-success-subtle px-3 py-2 text-[12px] text-success-foreground">
+              <p role="status" className="rounded-control bg-success-subtle px-3 py-2 text-meta text-success-foreground">
                 {state.message}
               </p>
             ) : null}
@@ -100,7 +100,7 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
         </CardContent>
       </Card>
 
-      <p className="text-center text-[13px] text-muted-foreground">
+      <p className="text-center text-caption text-muted-foreground">
         {signup ? "Already have an account? " : "No account yet? "}
         <Link
           href={signup ? "/login" : "/signup"}

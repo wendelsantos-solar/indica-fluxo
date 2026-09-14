@@ -243,13 +243,13 @@ export function ProgramForm({
       </Card>
 
       {state.error ? (
-        <p role="alert" className="rounded-[6px] bg-danger-subtle px-3 py-2 text-[13px] text-danger-foreground">
+        <p role="alert" className="rounded-control bg-danger-subtle px-3 py-2 text-caption text-danger-foreground">
           {state.error}
         </p>
       ) : null}
 
       {state.success ? (
-        <p role="status" className="rounded-[6px] bg-success-subtle px-3 py-2 text-[13px] text-success-foreground">
+        <p role="status" className="rounded-control bg-success-subtle px-3 py-2 text-caption text-success-foreground">
           {state.success}
         </p>
       ) : null}

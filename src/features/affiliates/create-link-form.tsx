@@ -48,7 +48,7 @@ export function CreateLinkForm({ participationId }: { participationId: string })
       </Button>
 
       {state.error ? (
-        <p role="alert" className="w-full text-[12px] text-danger-foreground">
+        <p role="alert" className="w-full text-meta text-danger-foreground">
           {state.error}
         </p>
       ) : null}

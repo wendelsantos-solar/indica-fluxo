@@ -19,11 +19,11 @@ export function PageHeader({
     <header className={cn("mb-6 flex flex-wrap items-start justify-between gap-4", className)}>
       <div className="min-w-0 space-y-1">
         <div className="flex flex-wrap items-center gap-2.5">
-          <h1 className="text-[22px] font-medium tracking-[-0.02em] text-foreground">{title}</h1>
+          <h1 className="text-subheading font-medium text-foreground">{title}</h1>
           {meta}
         </div>
         {description ? (
-          <p className="max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
+          <p className="max-w-2xl text-caption leading-relaxed text-muted-foreground">
             {description}
           </p>
         ) : null}
@@ -44,7 +44,7 @@ export function SectionHeader({
 }) {
   return (
     <div className={cn("mb-3 flex items-center justify-between gap-3", className)}>
-      <h2 className="text-[13px] font-medium tracking-tight text-foreground">{title}</h2>
+      <h2 className="text-caption font-medium tracking-tight text-foreground">{title}</h2>
       {action}
     </div>
   )

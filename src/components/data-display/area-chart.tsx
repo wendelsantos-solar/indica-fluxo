@@ -121,23 +121,23 @@ export function AreaChart({
         ))}
       </svg>
 
-      <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
+      <div className="mt-1 flex justify-between text-label text-muted-foreground">
         <span>{labels[0]}</span>
         <span>{labels[labels.length - 1]}</span>
       </div>
 
       {hover !== null ? (
         <div
-          className="pointer-events-none absolute top-0 rounded-[6px] border border-border bg-surface-3 px-2.5 py-2 shadow-[var(--shadow-overlay)]"
+          className="pointer-events-none absolute top-0 rounded-control border border-border bg-surface-3 px-2.5 py-2 shadow-[var(--shadow-overlay)]"
           style={{
             left: `calc(${((hover / Math.max(1, count - 1)) * 100).toFixed(2)}% - 60px)`,
           }}
         >
-          <p className="mb-1 text-[11px] text-muted-foreground">{labels[hover]}</p>
+          <p className="mb-1 text-label text-muted-foreground">{labels[hover]}</p>
           {[...series]
             .sort((a, b) => (b.values[hover] ?? 0) - (a.values[hover] ?? 0))
             .map((s) => (
-              <p key={s.key} className="flex items-center gap-2 text-[12px]">
+              <p key={s.key} className="flex items-center gap-2 text-meta">
                 <span
                   className="size-1.5 rounded-full"
                   style={{ backgroundColor: s.color }}
@@ -159,7 +159,7 @@ export function ChartLegend({ series }: { series: Pick<Series, "key" | "label" |
   return (
     <ul className="flex flex-wrap items-center gap-4">
       {series.map((s) => (
-        <li key={s.key} className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+        <li key={s.key} className="flex items-center gap-1.5 text-meta text-muted-foreground">
           <span
             className="size-1.5 rounded-full"
             style={{ backgroundColor: s.color }}

@@ -26,13 +26,13 @@ export function Funnel({
         return (
           <li key={step.label} className="space-y-1.5">
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-[13px] text-foreground-secondary">{step.label}</span>
+              <span className="text-caption text-foreground-secondary">{step.label}</span>
               <span className="flex items-baseline gap-2">
                 <span className="font-medium tabular-nums text-foreground">
                   {formatNumber(step.value)}
                 </span>
                 {previous !== null ? (
-                  <span className="text-[12px] tabular-nums text-muted-foreground">
+                  <span className="text-meta tabular-nums text-muted-foreground">
                     {formatRate(step.value, previous)}
                   </span>
                 ) : null}

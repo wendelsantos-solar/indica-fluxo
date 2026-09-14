@@ -18,7 +18,7 @@ export function Toaster() {
       toastOptions={{
         classNames: {
           toast:
-            "!bg-surface-3 !border-border !text-foreground !rounded-[8px] !shadow-[var(--shadow-overlay)] !text-[13px]",
+            "!bg-surface-3 !border-border !text-foreground !rounded-panel !shadow-[var(--shadow-overlay)] !text-caption",
           description: "!text-muted-foreground",
           actionButton: "!bg-primary !text-primary-foreground",
         },

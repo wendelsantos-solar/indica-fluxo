@@ -46,12 +46,12 @@ export function ApiKeysPanel({
 
       <CardContent className="space-y-5">
         {state.revealedKey ? (
-          <div className="space-y-2 rounded-[6px] border border-border bg-warning-subtle p-3">
-            <p className="text-[12px] font-medium text-warning-foreground">
+          <div className="space-y-2 rounded-control border border-border bg-warning-subtle p-3">
+            <p className="text-meta font-medium text-warning-foreground">
               Copy this key now — it will never be shown again.
             </p>
             <div className="flex items-center gap-2">
-              <code className="min-w-0 flex-1 break-all font-mono text-[12px] text-foreground">
+              <code className="min-w-0 flex-1 break-all font-mono text-meta text-foreground">
                 {state.revealedKey}
               </code>
               <CopyButton value={state.revealedKey} />
@@ -60,7 +60,7 @@ export function ApiKeysPanel({
         ) : null}
 
         {state.error ? (
-          <p role="alert" className="text-[12px] text-danger-foreground">
+          <p role="alert" className="text-meta text-danger-foreground">
             {state.error}
           </p>
         ) : null}
@@ -99,14 +99,14 @@ export function ApiKeysPanel({
         </TableContainer>
 
         <div>
-          <p className="mb-2 text-[13px] font-medium">Tracking snippet</p>
-          <div className="flex items-start gap-2 rounded-[6px] border border-border bg-surface-2 p-3">
-            <code className="min-w-0 flex-1 break-all font-mono text-[12px] leading-relaxed text-foreground-secondary">
+          <p className="mb-2 text-caption font-medium">Tracking snippet</p>
+          <div className="flex items-start gap-2 rounded-control border border-border bg-surface-2 p-3">
+            <code className="min-w-0 flex-1 break-all font-mono text-meta leading-relaxed text-foreground-secondary">
               {snippet}
             </code>
             <CopyButton value={snippet} />
           </div>
-          <p className="mt-2 text-[12px] text-muted-foreground">
+          <p className="mt-2 text-meta text-muted-foreground">
             Paste it before <code className="font-mono">&lt;/head&gt;</code> on the site your
             affiliates link to. It sets a first-party cookie and reports the referral code.
           </p>

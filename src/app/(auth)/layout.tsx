@@ -15,7 +15,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
       <main className="flex flex-1 items-center justify-center px-4 py-10">
         <div className="w-full max-w-[380px]">{children}</div>
       </main>
-      <footer className="px-6 py-6 text-center text-[12px] text-muted-foreground">
+      <footer className="px-6 py-6 text-center text-meta text-muted-foreground">
         Referral infrastructure for SaaS.
       </footer>
     </div>

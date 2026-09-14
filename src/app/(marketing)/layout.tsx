@@ -15,13 +15,13 @@ export default function MarketingLayout({ children }: LayoutProps<"/">) {
           <nav aria-label="Marketing" className="hidden items-center gap-1 sm:flex">
             <Link
               href="/pricing"
-              className="rounded-[6px] px-2.5 py-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+              className="rounded-control px-2.5 py-1.5 text-caption text-muted-foreground transition-colors hover:text-foreground"
             >
               Pricing
             </Link>
             <Link
               href="/docs"
-              className="rounded-[6px] px-2.5 py-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+              className="rounded-control px-2.5 py-1.5 text-caption text-muted-foreground transition-colors hover:text-foreground"
             >
               Docs
             </Link>
@@ -43,7 +43,7 @@ export default function MarketingLayout({ children }: LayoutProps<"/">) {
       <footer className="border-t border-border">
         <div className="mx-auto flex w-full max-w-[1200px] flex-wrap items-center justify-between gap-4 px-4 py-8 sm:px-6">
           <Logo />
-          <p className="text-[12px] text-muted-foreground">
+          <p className="text-meta text-muted-foreground">
             Indica is the source of truth for your commissions. You keep paying affiliates your way.
           </p>
         </div>

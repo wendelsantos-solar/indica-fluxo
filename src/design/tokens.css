@@ -1,150 +1,205 @@
 /* ---------------------------------------------------------------------------
  * tokens.css — primitives + semantic tokens.
+ *
+ * Primitives carry the reference palette's own names (void → paper). They are
+ * the vocabulary of the style guide, and renaming them would make every future
+ * comparison against it a translation exercise.
+ *
  * Components must NEVER reference a primitive. Use semantic tokens only.
  * See DESIGN.md §2.
  * ------------------------------------------------------------------------- */
 
 :root {
-  /* ---- primitives: neutral ---- */
-  --black-950: #08090a;
-  --black-900: #0f1011;
-  --gray-850: #161718;
-  --gray-800: #1c1d1f;
-  --gray-750: #23252a;
-  --gray-700: #383b3f;
-  --gray-600: #4d5157;
-  --gray-500: #6b7078;
-  --gray-400: #8a8f98;
-  --gray-300: #a8adb6;
-  --gray-200: #d0d6e0;
-  --gray-150: #e4e6e9;
-  --gray-100: #f2f3f5;
-  --gray-050: #f7f8f8;
-  --white: #ffffff;
+  /* ====================================================================
+   * PRIMITIVES — neutral ramp.
+   * A single ramp serves both themes: dark reads it bottom-up (void as
+   * canvas, paper as type), light reads it top-down.
+   * ================================================================== */
+  --color-void: #08090a;
+  --color-carbon: #0f1011;
+  --color-obsidian: #161718;
+  --color-graphite: #23252a;
+  --color-smoke: #383b3f;
+  --color-ash: #62666d;
+  --color-fog: #8a8f98;
+  --color-mist: #d0d6e0;
+  --color-bone: #e5e5e6;
+  --color-paper: #ffffff;
 
-  /* ---- primitives: accent ---- */
-  --lime-300: #eef94f;
-  --lime-400: #e4f222;
-  --lime-500: #d2e016;
-  --lime-600: #9aa50a;
+  /* Light-theme extensions. The reference is dark-only, so these three do
+   * not exist in it; they give light mode the same number of surface steps
+   * the dark ramp has instead of collapsing everything onto white. */
+  --color-chalk: #eceef0;
+  --color-porcelain: #f4f5f6;
+  --color-quartz: #f8f9f9;
 
-  /* ---- primitives: status ---- */
-  --green-500: #3fb950;
-  --green-700: #1a7f37;
-  --amber-500: #d8a13a;
-  --amber-700: #9a6b00;
-  --red-500: #f2555a;
-  --red-700: #cf2f36;
-  --blue-500: #4ea7fc;
-  --blue-700: #1668c4;
+  /* ====================================================================
+   * PRIMITIVES — accent.
+   * Acid lime is the single chromatic action colour in the system.
+   * ================================================================== */
+  --color-acid-lime: #e4f222;
+  /* Extensions: a brighter step for dark hover, a deeper one so the fill
+   * still reads as a control against a white canvas. */
+  --color-acid-lime-bright: #eef94f;
+  --color-acid-lime-deep: #c2cf10;
 
-  /* ---- primitives: chart ---- */
-  --viz-lime: #d4e017;
-  --viz-cyan: #4cc9d6;
-  --viz-violet: #9b8cf0;
-  --viz-amber: #e0a33c;
-  --viz-rose: #ef7089;
-  --viz-teal: #46b08a;
+  /* ====================================================================
+   * PRIMITIVES — supporting chroma.
+   *
+   * The reference calls these decorative and explicitly says not to use them
+   * as status colours. We deviate deliberately: this is a financial ledger,
+   * not a marketing site, and "reversed" versus "paid" has to be legible at a
+   * glance. The hues are taken from the reference so the product stays in the
+   * same chromatic world; amber has no reference equivalent and is tuned to
+   * sit between the lime and the coral without competing with either.
+   * ================================================================== */
+  --color-pulse-green: #27a644;
+  --color-coral-red: #eb5757;
+  --color-signal-teal: #02b8cc;
+  --color-iris-violet: #6366f1;
+  --color-lavender: #8b5cf6;
+  --color-amber: #d8a13a;
+
+  /* Lighter counterparts, for chromatic text on a dark canvas where the
+   * base hue would fall below 4.5:1. */
+  --color-pulse-green-light: #4ecb6b;
+  --color-coral-red-light: #ff8084;
+  --color-signal-teal-light: #4cc9d6;
+  --color-amber-light: #e6b862;
+
+  /* Darker counterparts, for the same problem inverted on white. */
+  --color-pulse-green-deep: #14622c;
+  --color-coral-red-deep: #c0292e;
+  --color-signal-teal-deep: #0a6f7c;
+  --color-amber-deep: #7a5400;
+  --color-iris-violet-deep: #4348c9;
 }
 
-/* =======================================================================
- * LIGHT THEME (default)
- * ===================================================================== */
+/* =========================================================================
+ * LIGHT THEME
+ *
+ * The reference ships no light theme. This is a derivation, not a copy: the
+ * same ramp read from the other end, with the same density, radii and
+ * hierarchy. Contrast is verified in DESIGN.md §2.6.
+ * ======================================================================= */
 :root {
-  --background: var(--gray-050);
-  --foreground: #0c0d0e;
+  --background: var(--color-quartz);
+  --foreground: var(--color-void);
   --foreground-secondary: #3c4149;
 
-  --surface-1: var(--white);
-  --surface-2: var(--gray-100);
-  --surface-3: var(--white);
+  --surface-1: var(--color-paper);
+  --surface-2: var(--color-porcelain);
+  --surface-3: var(--color-paper);
 
-  --muted: var(--gray-100);
-  --muted-foreground: #6a6f78;
+  --muted: var(--color-porcelain);
+  --muted-foreground: var(--color-ash);
 
-  --border: var(--gray-150);
+  --border: var(--color-bone);
   --border-strong: #c6cad0;
 
-  --primary: var(--lime-500);
-  --primary-hover: #c2cf10;
-  --primary-foreground: #14160a;
+  --primary: var(--color-acid-lime-deep);
+  --primary-hover: #b0bc0d;
+  --primary-foreground: var(--color-void);
 
-  --success: var(--green-700);
-  --success-subtle: color-mix(in oklab, var(--green-700) 12%, transparent);
-  --success-foreground: #14622c;
+  --success: var(--color-pulse-green-deep);
+  --success-subtle: color-mix(in oklab, var(--color-pulse-green) 14%, transparent);
+  --success-foreground: var(--color-pulse-green-deep);
 
-  --warning: var(--amber-700);
-  --warning-subtle: color-mix(in oklab, var(--amber-700) 14%, transparent);
-  --warning-foreground: #7a5400;
+  --warning: var(--color-amber-deep);
+  --warning-subtle: color-mix(in oklab, var(--color-amber) 18%, transparent);
+  --warning-foreground: var(--color-amber-deep);
 
-  --danger: var(--red-700);
-  --danger-subtle: color-mix(in oklab, var(--red-700) 10%, transparent);
-  --danger-foreground: #a8242a;
+  --danger: var(--color-coral-red-deep);
+  --danger-subtle: color-mix(in oklab, var(--color-coral-red) 12%, transparent);
+  --danger-foreground: var(--color-coral-red-deep);
 
-  --info: var(--blue-700);
-  --info-subtle: color-mix(in oklab, var(--blue-700) 10%, transparent);
-  --info-foreground: #12559f;
+  --info: var(--color-signal-teal-deep);
+  --info-subtle: color-mix(in oklab, var(--color-signal-teal) 12%, transparent);
+  --info-foreground: var(--color-signal-teal-deep);
 
   --ring: color-mix(in oklab, var(--foreground) 45%, transparent);
   --scrim: oklch(0 0 0 / 0.35);
-  --shadow-overlay: 0 8px 24px -8px oklch(0 0 0 / 0.16), 0 2px 6px -2px oklch(0 0 0 / 0.1);
-  --skeleton-shimmer: color-mix(in oklab, var(--white) 70%, transparent);
+  --skeleton-shimmer: color-mix(in oklab, var(--color-paper) 70%, transparent);
 
-  --chart-1: var(--viz-lime);
-  --chart-2: var(--viz-cyan);
-  --chart-3: var(--viz-violet);
-  --chart-4: var(--viz-amber);
-  --chart-5: var(--viz-rose);
-  --chart-6: var(--viz-teal);
+  /* Elevation. The reference builds depth from hairline borders and inset
+   * rings rather than shadow stacks; `--elevation-ring` is the inset hairline
+   * that defines a card edge, and is the workhorse. */
+  --elevation-ring: inset 0 0 0 1px var(--border);
+  --elevation-raised: 0 1px 2px 0 oklch(0 0 0 / 0.06), inset 0 0 0 1px var(--border);
+  --elevation-overlay:
+    0 8px 24px -8px oklch(0 0 0 / 0.16), 0 2px 6px -2px oklch(0 0 0 / 0.1);
+  --elevation-control:
+    0 1px 1px 0 oklch(0 0 0 / 0.07), 0 3px 2px 0 oklch(0 0 0 / 0.04),
+    0 5px 2px 0 oklch(0 0 0 / 0.01);
+
+  --chart-1: var(--color-acid-lime-deep);
+  --chart-2: var(--color-signal-teal-deep);
+  --chart-3: var(--color-iris-violet-deep);
+  --chart-4: var(--color-amber-deep);
+  --chart-5: var(--color-coral-red-deep);
+  --chart-6: var(--color-pulse-green-deep);
 }
 
-/* =======================================================================
- * DARK THEME (the primary experience)
- * ===================================================================== */
+/* =========================================================================
+ * DARK THEME — the primary experience, and the one the reference describes.
+ *
+ * Surface progression void → carbon → obsidian → graphite is doing the work
+ * that shadows usually would.
+ * ======================================================================= */
 .dark {
-  --background: var(--black-950);
-  --foreground: var(--white);
-  --foreground-secondary: var(--gray-200);
+  --background: var(--color-void);
+  --foreground: var(--color-paper);
+  --foreground-secondary: var(--color-mist);
 
-  --surface-1: var(--black-900);
-  --surface-2: var(--gray-850);
-  --surface-3: var(--gray-800);
+  --surface-1: var(--color-carbon);
+  --surface-2: var(--color-obsidian);
+  --surface-3: var(--color-graphite);
 
-  --muted: var(--gray-850);
-  --muted-foreground: var(--gray-400);
+  --muted: var(--color-obsidian);
+  --muted-foreground: var(--color-fog);
 
-  --border: var(--gray-750);
-  --border-strong: var(--gray-700);
+  --border: var(--color-graphite);
+  --border-strong: var(--color-smoke);
 
-  --primary: var(--lime-400);
-  --primary-hover: var(--lime-300);
-  --primary-foreground: #14160a;
+  --primary: var(--color-acid-lime);
+  --primary-hover: var(--color-acid-lime-bright);
+  --primary-foreground: var(--color-void);
 
-  --success: var(--green-500);
-  --success-subtle: color-mix(in oklab, var(--green-500) 16%, transparent);
-  --success-foreground: #63d178;
+  --success: var(--color-pulse-green-light);
+  --success-subtle: color-mix(in oklab, var(--color-pulse-green) 22%, transparent);
+  --success-foreground: var(--color-pulse-green-light);
 
-  --warning: var(--amber-500);
-  --warning-subtle: color-mix(in oklab, var(--amber-500) 16%, transparent);
-  --warning-foreground: #e6b862;
+  --warning: var(--color-amber-light);
+  --warning-subtle: color-mix(in oklab, var(--color-amber) 20%, transparent);
+  --warning-foreground: var(--color-amber-light);
 
-  --danger: var(--red-500);
-  --danger-subtle: color-mix(in oklab, var(--red-500) 16%, transparent);
-  --danger-foreground: #ff8084;
+  --danger: var(--color-coral-red-light);
+  --danger-subtle: color-mix(in oklab, var(--color-coral-red) 20%, transparent);
+  --danger-foreground: var(--color-coral-red-light);
 
-  --info: var(--blue-500);
-  --info-subtle: color-mix(in oklab, var(--blue-500) 16%, transparent);
-  --info-foreground: #7cbeff;
+  --info: var(--color-signal-teal-light);
+  --info-subtle: color-mix(in oklab, var(--color-signal-teal) 20%, transparent);
+  --info-foreground: var(--color-signal-teal-light);
 
-  --ring: color-mix(in oklab, var(--white) 55%, transparent);
+  --ring: color-mix(in oklab, var(--color-paper) 55%, transparent);
   --scrim: oklch(0 0 0 / 0.6);
-  --shadow-overlay: 0 12px 32px -12px oklch(0 0 0 / 0.6), 0 2px 8px -4px oklch(0 0 0 / 0.5);
-  --skeleton-shimmer: color-mix(in oklab, var(--white) 6%, transparent);
+  --skeleton-shimmer: color-mix(in oklab, var(--color-paper) 6%, transparent);
 
-  --chart-1: var(--viz-lime);
-  --chart-2: var(--viz-cyan);
-  --chart-3: var(--viz-violet);
-  --chart-4: var(--viz-amber);
-  --chart-5: var(--viz-rose);
-  --chart-6: var(--viz-teal);
+  /* `--elevation-ring` is the reference's `--shadow-subtle`:
+   * rgb(35,37,42) 0 0 0 1px inset — the card edge, drawn as an inner ring. */
+  --elevation-ring: inset 0 0 0 1px var(--color-graphite);
+  --elevation-raised: 0 2px 4px 0 oklch(0 0 0 / 0.4), inset 0 0 0 1px var(--color-graphite);
+  --elevation-overlay: 0 4px 32px 0 color-mix(in oklab, var(--color-void) 60%, transparent);
+  /* The reference applies a real shadow stack in exactly one place: the
+   * acid-lime CTA. This is it. */
+  --elevation-control:
+    inset 0 0 0 1px oklch(1 0 0 / 0.03), inset 0 1px 0 0 oklch(1 0 0 / 0.04),
+    0 0 0 1px oklch(0 0 0 / 0.6), 0 4px 4px 0 oklch(0 0 0 / 0.1);
+
+  --chart-1: var(--color-acid-lime);
+  --chart-2: var(--color-signal-teal-light);
+  --chart-3: var(--color-lavender);
+  --chart-4: var(--color-amber-light);
+  --chart-5: var(--color-coral-red-light);
+  --chart-6: var(--color-pulse-green-light);
 }

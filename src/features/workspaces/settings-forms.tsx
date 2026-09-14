@@ -80,12 +80,12 @@ export function WorkspaceSettingsForm({
           </div>
 
           {state.error ? (
-            <p role="alert" className="text-[12px] text-danger-foreground">
+            <p role="alert" className="text-meta text-danger-foreground">
               {state.error}
             </p>
           ) : null}
           {state.success ? (
-            <p role="status" className="text-[12px] text-success-foreground">
+            <p role="status" className="text-meta text-success-foreground">
               {state.success}
             </p>
           ) : null}
@@ -131,12 +131,12 @@ export function InviteMemberForm({ workspaceId }: { workspaceId: string }) {
       </Button>
 
       {state.success ? (
-        <p role="status" className="w-full text-[12px] text-success-foreground">
+        <p role="status" className="w-full text-meta text-success-foreground">
           {state.success}
         </p>
       ) : null}
       {state.error ? (
-        <p role="alert" className="w-full text-[12px] text-danger-foreground">
+        <p role="alert" className="w-full text-meta text-danger-foreground">
           {state.error}
         </p>
       ) : null}

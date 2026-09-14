@@ -1,13 +1,24 @@
 /* ---------------------------------------------------------------------------
  * theme.css — maps semantic tokens into Tailwind v4 and sets base styles.
+ *
+ * The type scale below is the whole scale. A component that needs a size not
+ * listed here is a component that has not decided what it is. No `text-[13px]`.
  * ------------------------------------------------------------------------- */
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* The reference specifies Berkeley Mono, which is commercial; it names
+   * JetBrains Mono as the substitute. Reserved for IDs, shortcuts and
+   * technical metadata — never headings or marketing copy. */
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo,
+    monospace;
 
+  /* ====================================================================
+   * COLOUR
+   * ================================================================== */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-foreground-secondary: var(--foreground-secondary);
@@ -22,6 +33,7 @@
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-ring: var(--ring);
+  --color-scrim: var(--scrim);
 
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
@@ -50,22 +62,150 @@
   --color-chart-5: var(--chart-5);
   --color-chart-6: var(--chart-6);
 
+  /* ====================================================================
+   * TYPE SCALE
+   *
+   * Sizes, line heights and weights come from the style reference. Steps
+   * marked (+) are product-UI additions the reference's marketing-site scale
+   * does not cover — a dense financial table needs rungs below 13px.
+   *
+   * Tracking follows the reference rule: −0.022em at 32px and above,
+   * −0.012em from 20–24px, −0.011em at 15px, −0.010em at 14–16px, none
+   * below 14px, where Inter's own sidebearings are already correct.
+   * ================================================================== */
+
+  /* (+) numeric badges, dense table affixes */
+  --text-micro: 10px;
+  --text-micro--line-height: 1.5;
+  --text-micro--font-weight: 510;
+
+  /* (+) column headers, overline labels */
+  --text-label: 11px;
+  --text-label--line-height: 1.4;
+  --text-label--font-weight: 400;
+
+  /* (+) table metadata, secondary chrome */
+  --text-meta: 12px;
+  --text-meta--line-height: 1.4;
+  --text-meta--font-weight: 400;
+
+  /* The product's workhorse: table cells, descriptions, nav links, badges.
+   *
+   * Deviation, stated openly: the reference's named export puts caption at
+   * line-height 1.2, but its own token dump carries 13px at both 1.5 and 1.2.
+   * 1.2 is right for a single-line nav item and wrong for a two-line table
+   * description, which is most of this product. 1.5 is the default here;
+   * single-line chrome adds `leading-tight`. */
+  --text-caption: 13px;
+  --text-caption--line-height: 1.5;
+  --text-caption--font-weight: 400;
+
+  /* (+) the product's default: table cells, form fields, buttons */
+  --text-ui: 14px;
+  --text-ui--line-height: 1.5;
+  --text-ui--letter-spacing: -0.01em;
+  --text-ui--font-weight: 400;
+
+  /* body copy in dense contexts */
+  --text-body-sm: 15px;
+  --text-body-sm--line-height: 1.6;
+  --text-body-sm--letter-spacing: -0.011em;
+  --text-body-sm--font-weight: 400;
+
+  /* (+) marketing body copy */
+  --text-body: 16px;
+  --text-body--line-height: 1.5;
+  --text-body--letter-spacing: -0.01em;
+  --text-body--font-weight: 400;
+
+  /* (+) body emphasis — the reference's 17px/590 step */
+  --text-body-md: 17px;
+  --text-body-md--line-height: 1.6;
+  --text-body-md--font-weight: 590;
+
+  /* lead paragraphs, large metric labels */
+  --text-body-lg: 20px;
+  --text-body-lg--line-height: 1.33;
+  --text-body-lg--letter-spacing: -0.012em;
+  --text-body-lg--font-weight: 590;
+
+  /* card titles, section headings in-product */
+  --text-subheading: 24px;
+  --text-subheading--line-height: 1.33;
+  --text-subheading--letter-spacing: -0.012em;
+  --text-subheading--font-weight: 400;
+
+  /* page titles, headline metrics */
+  --text-heading-sm: 32px;
+  --text-heading-sm--line-height: 1.13;
+  --text-heading-sm--letter-spacing: -0.022em;
+  --text-heading-sm--font-weight: 400;
+
+  /* marketing section headings */
+  --text-heading: 48px;
+  --text-heading--line-height: 1;
+  --text-heading--letter-spacing: -0.022em;
+  --text-heading--font-weight: 510;
+
+  --text-heading-lg: 64px;
+  --text-heading-lg--line-height: 1;
+  --text-heading-lg--letter-spacing: -0.022em;
+  --text-heading-lg--font-weight: 510;
+
+  --text-display: 72px;
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.022em;
+  --text-display--font-weight: 510;
+
+  /* ====================================================================
+   * WEIGHT
+   * The band is 300–590. There is no bold in this system: 590 is the top,
+   * and it is an emphasis weight, not a heading weight.
+   * ================================================================== */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 510;
+  --font-weight-semibold: 590;
+
+  /* ====================================================================
+   * SHAPE — three radii are the entire vocabulary, plus badges and pills.
+   * ================================================================== */
+  --radius-hairline: 2px;
   --radius-badge: 4px;
   --radius-control: 6px;
   --radius-panel: 12px;
 
-  --shadow-overlay: var(--shadow-overlay);
+  /* ====================================================================
+   * LAYOUT — the reference's page rhythm, as tokens rather than one-offs.
+   * ================================================================== */
+  --container-page: 1200px;
+  --container-reading: 720px;
 
+  /* ====================================================================
+   * ELEVATION — borders and inset rings, not shadow stacks.
+   * ================================================================== */
+  --shadow-ring: var(--elevation-ring);
+  --shadow-raised: var(--elevation-raised);
+  --shadow-overlay: var(--elevation-overlay);
+  --shadow-control: var(--elevation-control);
+
+  /* ====================================================================
+   * MOTION — 120–220ms, never bouncy. A financial product signals precision.
+   * ================================================================== */
   --ease-out-quint: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 
-  --text-display: 4.25rem;
-  --text-display--line-height: 1;
-  --text-display--letter-spacing: -0.035em;
-  --text-display--font-weight: 500;
-
   --animate-shimmer: shimmer 1.6s linear infinite;
   --animate-fade-in: fade-in 140ms var(--ease-out-quint);
+}
+
+/* Spacing rhythm. Tailwind's 4px base already matches the reference's unit,
+ * so the ladder needs no redefinition — only the named rhythm values the
+ * reference calls out, for layouts that must not drift. */
+@theme {
+  --spacing-element: 8px;
+  --spacing-card: 24px;
+  --spacing-section: 96px;
 }
 
 @keyframes shimmer {
@@ -134,19 +274,34 @@
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
-    font-feature-settings: "cv11", "ss01";
+    /* cv01 (single-storey a alternates), ss03 (curved-tail glyphs) and zero
+     * (slashed zero) are the reference's typographic signature. Without these
+     * three the face is Inter, but it is not this system's Inter. */
+    font-feature-settings: "cv01" on, "ss03" on, "zero" on;
     font-variation-settings: "opsz" 32;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
 
-  /* Headings carry tighter tracking; 500 is the heaviest weight in product UI. */
+  /* Monospace carries the same alternates minus the slashed zero, which the
+   * face already draws. */
+  code,
+  kbd,
+  samp,
+  pre,
+  .font-mono {
+    font-feature-settings: "cv01" on, "ss03" on;
+  }
+
+  /* Headings inherit size, weight and tracking from the scale. They must not
+   * carry a weight of their own — 590 is emphasis, never a heading. */
   h1,
   h2,
   h3,
-  h4 {
-    font-weight: 500;
-    letter-spacing: -0.02em;
+  h4,
+  h5,
+  h6 {
+    font-weight: inherit;
   }
 
   ::selection {
@@ -179,6 +334,11 @@
 
   .text-pretty {
     text-wrap: pretty;
+  }
+
+  /* The card edge, drawn as an inner hairline rather than an outer shadow. */
+  .ring-hairline {
+    box-shadow: var(--elevation-ring);
   }
 
   /* Edge fade for horizontally scrollable tables on small screens. */

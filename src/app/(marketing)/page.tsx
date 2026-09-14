@@ -12,16 +12,16 @@ export default function MarketingHomePage() {
     <>
       <section className="mx-auto w-full max-w-[1200px] px-4 pb-16 pt-16 sm:px-6 sm:pb-24 sm:pt-24">
         <div className="max-w-3xl">
-          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-surface-1 px-3 py-1 text-[12px] text-muted-foreground">
+          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-surface-1 px-3 py-1 text-meta text-muted-foreground">
             <span className="size-1.5 rounded-full bg-primary" aria-hidden="true" />
             Referral infrastructure for SaaS
           </p>
 
-          <h1 className="text-balance text-[40px] font-medium leading-[1.05] tracking-[-0.035em] sm:text-[64px]">
+          <h1 className="text-balance text-heading-sm font-medium sm:text-heading-lg">
             Turn referrals into a growth channel.
           </h1>
 
-          <p className="mt-5 max-w-2xl text-pretty text-[16px] leading-relaxed text-muted-foreground sm:text-[17px]">
+          <p className="mt-5 max-w-2xl text-pretty text-body leading-relaxed text-muted-foreground sm:text-body-md">
             Track every click, conversion and recurring commission without building affiliate
             infrastructure yourself. Connect billing, choose a commission, install one snippet —
             then invite affiliates and watch the ledger fill in.
@@ -39,7 +39,7 @@ export default function MarketingHomePage() {
             </Button>
           </div>
 
-          <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-[13px] text-muted-foreground">
+          <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-caption text-muted-foreground">
             {["No payment processing", "Your Stripe stays yours", "Live in under an hour"].map(
               (item) => (
                 <li key={item} className="flex items-center gap-1.5">
@@ -71,23 +71,23 @@ export default function MarketingHomePage() {
             },
           ].map((feature) => (
             <div key={feature.title} className="bg-surface-1 px-6 py-8">
-              <h2 className="mb-2 text-[15px] font-medium tracking-tight">{feature.title}</h2>
-              <p className="text-[13px] leading-relaxed text-muted-foreground">{feature.body}</p>
+              <h2 className="mb-2 text-body-sm font-medium tracking-tight">{feature.title}</h2>
+              <p className="text-caption leading-relaxed text-muted-foreground">{feature.body}</p>
             </div>
           ))}
         </div>
       </section>
 
       <section className="mx-auto w-full max-w-[1200px] px-4 py-16 sm:px-6 sm:py-24">
-        <h2 className="mb-2 text-[32px] font-medium tracking-[-0.025em]">
+        <h2 className="mb-2 text-heading-sm font-medium">
           Four steps, then it runs itself.
         </h2>
-        <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
+        <p className="mb-10 max-w-2xl text-body-sm leading-relaxed text-muted-foreground">
           Most founders are live the same afternoon. Nothing here requires a migration or a
           contract.
         </p>
 
-        <ol className="grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
+        <ol className="grid gap-px overflow-hidden rounded-panel border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
           {[
             { step: "01", title: "Connect billing", body: "Point your Stripe webhook at Indica. We read payment events; we never hold your keys." },
             { step: "02", title: "Choose a commission", body: "30% for 12 months, a flat fee, or a custom rate for your best partner." },
@@ -95,9 +95,9 @@ export default function MarketingHomePage() {
             { step: "04", title: "Invite affiliates", body: "They get a link and a portal. You get a ledger and a payout list." },
           ].map((item) => (
             <li key={item.step} className="bg-surface-1 px-6 py-7">
-              <span className="font-mono text-[12px] text-primary">{item.step}</span>
-              <h3 className="mb-1.5 mt-3 text-[15px] font-medium tracking-tight">{item.title}</h3>
-              <p className="text-[13px] leading-relaxed text-muted-foreground">{item.body}</p>
+              <span className="font-mono text-meta text-primary">{item.step}</span>
+              <h3 className="mb-1.5 mt-3 text-body-sm font-medium tracking-tight">{item.title}</h3>
+              <p className="text-caption leading-relaxed text-muted-foreground">{item.body}</p>
             </li>
           ))}
         </ol>
@@ -106,10 +106,10 @@ export default function MarketingHomePage() {
       <section className="border-t border-border">
         <div className="mx-auto flex w-full max-w-[1200px] flex-wrap items-center justify-between gap-6 px-4 py-16 sm:px-6">
           <div className="max-w-xl">
-            <h2 className="text-[28px] font-medium tracking-[-0.025em]">
+            <h2 className="text-heading-sm font-medium">
               The simplest way to put a referral program live.
             </h2>
-            <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
+            <p className="mt-2 text-ui leading-relaxed text-muted-foreground">
               Connect billing, choose a commission, install tracking, invite affiliates. Done.
             </p>
           </div>
@@ -130,12 +130,12 @@ function DashboardPreview() {
   const bars = [32, 41, 38, 55, 48, 62, 58, 71, 66, 84, 78, 96]
 
   return (
-    <div className="mt-14 overflow-hidden rounded-xl border border-border bg-surface-1">
+    <div className="mt-14 overflow-hidden rounded-panel border border-border bg-surface-1">
       <div className="flex items-center gap-2 border-b border-border bg-surface-2 px-4 py-2.5">
         <span className="size-2 rounded-full bg-border-strong" aria-hidden="true" />
         <span className="size-2 rounded-full bg-border-strong" aria-hidden="true" />
         <span className="size-2 rounded-full bg-border-strong" aria-hidden="true" />
-        <span className="ml-2 font-mono text-[11px] text-muted-foreground">
+        <span className="ml-2 font-mono text-label text-muted-foreground">
           acme.indica.app/overview
         </span>
       </div>
@@ -147,21 +147,21 @@ function DashboardPreview() {
           { label: "Active affiliates", value: "34", delta: "+6" },
         ].map((metric) => (
           <div key={metric.label} className="bg-surface-1 px-5 py-4">
-            <p className="text-[11px] uppercase tracking-[0.02em] text-muted-foreground">
+            <p className="text-label uppercase tracking-[0.02em] text-muted-foreground">
               {metric.label}
             </p>
-            <p className="mt-1.5 text-[26px] font-medium tabular-nums tracking-tight">
+            <p className="mt-1.5 text-subheading font-medium tabular-nums tracking-tight">
               {metric.value}
             </p>
-            <p className="mt-1 text-[12px] text-success-foreground">{metric.delta}</p>
+            <p className="mt-1 text-meta text-success-foreground">{metric.delta}</p>
           </div>
         ))}
       </div>
 
       <div className="border-t border-border px-5 py-5">
         <div className="mb-3 flex items-center justify-between">
-          <p className="text-[13px] font-medium">Revenue over time</p>
-          <div className="flex gap-3 text-[11px] text-muted-foreground">
+          <p className="text-caption font-medium">Revenue over time</p>
+          <div className="flex gap-3 text-label text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <span className="size-1.5 rounded-full bg-chart-1" aria-hidden="true" />
               Revenue
@@ -180,7 +180,7 @@ function DashboardPreview() {
       </div>
 
       <div className="border-t border-border">
-        <div className="grid grid-cols-[1.4fr_1fr_1fr] gap-4 bg-surface-2 px-5 py-2 text-[11px] uppercase tracking-[0.02em] text-muted-foreground">
+        <div className="grid grid-cols-[1.4fr_1fr_1fr] gap-4 bg-surface-2 px-5 py-2 text-label uppercase tracking-[0.02em] text-muted-foreground">
           <span>Affiliate</span>
           <span className="text-right">Revenue</span>
           <span className="text-right">Commission</span>
@@ -192,7 +192,7 @@ function DashboardPreview() {
         ].map(([name, revenue, commission]) => (
           <div
             key={name}
-            className="grid grid-cols-[1.4fr_1fr_1fr] gap-4 border-t border-border px-5 py-3 text-[13px] tabular-nums"
+            className="grid grid-cols-[1.4fr_1fr_1fr] gap-4 border-t border-border px-5 py-3 text-caption tabular-nums"
           >
             <span className="text-foreground">{name}</span>
             <span className="text-right text-muted-foreground">{revenue}</span>

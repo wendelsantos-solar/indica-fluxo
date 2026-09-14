@@ -20,11 +20,11 @@ export default async function OnboardingPage() {
 
       <main className="mx-auto flex w-full max-w-[460px] flex-1 flex-col justify-center px-4 py-10">
         <div className="mb-6 space-y-2">
-          <p className="text-[12px] font-medium uppercase tracking-[0.02em] text-muted-foreground">
+          <p className="text-meta font-medium uppercase tracking-[0.02em] text-muted-foreground">
             Step 1 of 2
           </p>
-          <h1 className="text-[26px] font-medium tracking-[-0.02em]">Create your workspace</h1>
-          <p className="text-[13px] leading-relaxed text-muted-foreground">
+          <h1 className="text-subheading font-medium">Create your workspace</h1>
+          <p className="text-caption leading-relaxed text-muted-foreground">
             A workspace holds your programs, affiliates and commission ledger. You can rename it
             later; the currency sets the default for new programs.
           </p>

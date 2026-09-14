@@ -9,12 +9,12 @@ export function Logo({ className, compact = false }: { className?: string; compa
     <span className={cn("flex items-center gap-2", className)}>
       <span
         aria-hidden="true"
-        className="relative flex size-5 items-center justify-center rounded-[5px] bg-primary"
+        className="relative flex size-5 items-center justify-center rounded-control bg-primary"
       >
-        <span className="size-1.5 rounded-[1px] bg-primary-foreground" />
+        <span className="size-1.5 rounded-hairline bg-primary-foreground" />
       </span>
       {!compact ? (
-        <span className="text-[14px] font-medium tracking-[-0.02em] text-foreground">Indica</span>
+        <span className="text-ui font-medium text-foreground">Indica</span>
       ) : null}
     </span>
   )

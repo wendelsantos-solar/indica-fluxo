@@ -11,8 +11,8 @@ import { cn } from "@/lib/utils"
  */
 const buttonVariants = cva(
   [
-    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[6px]",
-    "text-[13px] font-medium leading-none select-none",
+    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-control",
+    "text-caption font-medium leading-none select-none",
     "transition-colors duration-[120ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
     "disabled:pointer-events-none disabled:opacity-50",
@@ -32,7 +32,7 @@ const buttonVariants = cva(
         link: "text-foreground underline-offset-4 hover:underline px-0",
       },
       size: {
-        sm: "h-7 px-2.5 gap-1.5 text-[12px]",
+        sm: "h-7 px-2.5 gap-1.5 text-meta",
         md: "h-8 px-3",
         lg: "h-10 px-4 text-sm",
         icon: "size-8 p-0",

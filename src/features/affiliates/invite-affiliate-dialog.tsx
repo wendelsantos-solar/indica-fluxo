@@ -113,7 +113,7 @@ export function InviteAffiliateDialog({
             </Field>
 
             {state.error ? (
-              <p role="alert" className="rounded-[6px] bg-danger-subtle px-3 py-2 text-[12px] text-danger-foreground">
+              <p role="alert" className="rounded-control bg-danger-subtle px-3 py-2 text-meta text-danger-foreground">
                 {state.error}
               </p>
             ) : null}

@@ -77,7 +77,7 @@ export default async function CommissionsPage({
         description="Every commission the engine has calculated, with the rule that produced it."
         meta={
           result.total > 0 ? (
-            <span className="text-[13px] tabular-nums text-muted-foreground">
+            <span className="text-caption tabular-nums text-muted-foreground">
               {formatMoney(result.totalAmountMinor, workspace.defaultCurrency)} across{" "}
               {formatNumber(result.total)} entries
             </span>
@@ -151,7 +151,7 @@ export default async function CommissionsPage({
                   <TR key={row.id} interactive>
                     <TD>
                       <span className="block text-foreground">{row.affiliateName}</span>
-                      <span className="block font-mono text-[11px] text-muted-foreground">
+                      <span className="block font-mono text-label text-muted-foreground">
                         {row.affiliateCode}
                       </span>
                     </TD>
@@ -190,7 +190,7 @@ export default async function CommissionsPage({
           {pages > 1 ? (
             <nav
               aria-label="Pagination"
-              className="mt-3 flex items-center justify-between text-[12px] text-muted-foreground"
+              className="mt-3 flex items-center justify-between text-meta text-muted-foreground"
             >
               <span>
                 Page {page} of {pages}

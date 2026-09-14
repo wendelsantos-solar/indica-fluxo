@@ -60,7 +60,7 @@ export function Sidebar({
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex items-center gap-2.5 rounded-[6px] px-2 py-1.5 text-[13px]",
+              "flex items-center gap-2.5 rounded-control px-2 py-1.5 text-caption",
               "transition-colors duration-[120ms]",
               active
                 ? "bg-surface-2 font-medium text-foreground"
@@ -86,7 +86,7 @@ export function Sidebar({
         >
           <Menu aria-hidden="true" />
         </Button>
-        <span className="text-[13px] font-medium">{current.name}</span>
+        <span className="text-caption font-medium">{current.name}</span>
       </div>
 
       {open ? (

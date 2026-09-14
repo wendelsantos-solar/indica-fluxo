@@ -30,19 +30,19 @@ export function Metric({
 
   return (
     <div className={cn("space-y-1.5", className)}>
-      <p className="text-[11px] font-medium uppercase tracking-[0.02em] text-muted-foreground">
+      <p className="text-label font-medium uppercase tracking-[0.02em] text-muted-foreground">
         {label}
       </p>
       <p
         className={cn(
           "font-medium tabular-nums tracking-tight text-foreground",
-          size === "lg" ? "text-[40px] leading-none" : "text-[26px] leading-none",
+          size === "lg" ? "text-heading-sm leading-none" : "text-subheading leading-none",
         )}
       >
         {value}
       </p>
       {hasDelta || comparison ? (
-        <p className="flex items-center gap-1.5 text-[12px]">
+        <p className="flex items-center gap-1.5 text-meta">
           {hasDelta ? (
             <span
               className={cn(
@@ -73,7 +73,7 @@ export function MetricGrid({ className, ...props }: React.HTMLAttributes<HTMLDiv
   return (
     <div
       className={cn(
-        "grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border",
+        "grid grid-cols-2 gap-px overflow-hidden rounded-panel border border-border bg-border",
         "lg:grid-cols-3",
         className,
       )}

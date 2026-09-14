@@ -6,15 +6,23 @@ import { Toaster } from "@/components/feedback/toaster"
 
 import "./globals.css"
 
+/**
+ * Inter Variable. `opsz` is requested explicitly so `font-variation-settings:
+ * "opsz" 32` in theme.css has an axis to act on — without it the browser gets
+ * a static instance and the optical sizing silently does nothing.
+ *
+ * `latin-ext` carries the accented glyphs Portuguese needs (ã, ç, õ, ê).
+ */
 const inter = Inter({
   variable: "--font-inter",
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
+  axes: ["opsz"],
   display: "swap",
 })
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   display: "swap",
 })
 

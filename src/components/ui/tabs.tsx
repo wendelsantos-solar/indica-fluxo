@@ -24,7 +24,7 @@ export function TabsTrigger({
   return (
     <Primitive.Trigger
       className={cn(
-        "relative -mb-px px-3 py-2 text-[13px] font-medium text-muted-foreground",
+        "relative -mb-px px-3 py-2 text-caption font-medium text-muted-foreground",
         "transition-colors duration-[120ms]",
         "hover:text-foreground-secondary",
         "data-[state=active]:text-foreground",
@@ -48,7 +48,7 @@ export function TabLink({
     <a
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative -mb-px px-3 py-2 text-[13px] font-medium transition-colors duration-[120ms]",
+        "relative -mb-px px-3 py-2 text-caption font-medium transition-colors duration-[120ms]",
         active
           ? "text-foreground after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-foreground"
           : "text-muted-foreground hover:text-foreground-secondary",

@@ -95,7 +95,7 @@ export function PayableList({
                   </TD>
                   <TD>
                     <span className="block text-foreground">{row.affiliateName}</span>
-                    <span className="block font-mono text-[11px] text-muted-foreground">
+                    <span className="block font-mono text-label text-muted-foreground">
                       {row.code}
                     </span>
                   </TD>
@@ -111,7 +111,7 @@ export function PayableList({
       </TableContainer>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-caption text-muted-foreground">
           {selected.length} of {rows.length} selected ·{" "}
           <span className="font-medium tabular-nums text-foreground">
             {formatMoney(total, currency)}

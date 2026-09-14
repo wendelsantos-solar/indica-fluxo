@@ -55,16 +55,16 @@ export function StripePanel({
           <>
             <dl className="grid gap-3 sm:grid-cols-2">
               <div>
-                <dt className="text-[11px] uppercase tracking-[0.02em] text-muted-foreground">
+                <dt className="text-label uppercase tracking-[0.02em] text-muted-foreground">
                   Account
                 </dt>
-                <dd className="font-mono text-[13px] text-foreground">{providerAccountId}</dd>
+                <dd className="font-mono text-caption text-foreground">{providerAccountId}</dd>
               </div>
               <div>
-                <dt className="text-[11px] uppercase tracking-[0.02em] text-muted-foreground">
+                <dt className="text-label uppercase tracking-[0.02em] text-muted-foreground">
                   Webhook endpoint
                 </dt>
-                <dd className="break-all font-mono text-[12px] text-foreground-secondary">
+                <dd className="break-all font-mono text-meta text-foreground-secondary">
                   {webhookUrl}
                 </dd>
               </div>
@@ -78,7 +78,7 @@ export function StripePanel({
             </form>
 
             {disconnectState.error ? (
-              <p role="alert" className="text-[12px] text-danger-foreground">
+              <p role="alert" className="text-meta text-danger-foreground">
                 {disconnectState.error}
               </p>
             ) : null}
@@ -102,14 +102,14 @@ export function StripePanel({
               />
             </Field>
 
-            <div className="rounded-[6px] border border-border bg-surface-2 p-3">
-              <p className="mb-1 text-[12px] font-medium text-foreground-secondary">
+            <div className="rounded-control border border-border bg-surface-2 p-3">
+              <p className="mb-1 text-meta font-medium text-foreground-secondary">
                 Then add this webhook endpoint in Stripe:
               </p>
-              <code className="block break-all font-mono text-[12px] text-foreground">
+              <code className="block break-all font-mono text-meta text-foreground">
                 {webhookUrl}
               </code>
-              <p className="mt-2 text-[12px] text-muted-foreground">
+              <p className="mt-2 text-meta text-muted-foreground">
                 Events: invoice.payment_succeeded, charge.refunded, charge.dispute.created,
                 customer.subscription.updated, customer.subscription.deleted.
               </p>
@@ -122,7 +122,7 @@ export function StripePanel({
         )}
 
         {connectState.success ? (
-          <p role="status" className="text-[12px] text-success-foreground">
+          <p role="status" className="text-meta text-success-foreground">
             {connectState.success}
           </p>
         ) : null}

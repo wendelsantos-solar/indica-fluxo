@@ -23,7 +23,7 @@ export function AffiliateNav({ items }: { items: { href: string; label: string }
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative block whitespace-nowrap px-3 py-2.5 text-[13px] font-medium transition-colors duration-[120ms]",
+                  "relative block whitespace-nowrap px-3 py-2.5 text-caption font-medium transition-colors duration-[120ms]",
                   active
                     ? "text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-foreground"
                     : "text-muted-foreground hover:text-foreground-secondary",

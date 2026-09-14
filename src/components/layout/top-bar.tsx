@@ -32,7 +32,7 @@ export function TopBar({
         <DropdownTrigger asChild>
           <button
             type="button"
-            className="flex size-7 items-center justify-center rounded-full bg-surface-2 text-[10px] font-medium text-foreground-secondary transition-colors hover:bg-surface-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="flex size-7 items-center justify-center rounded-full bg-surface-2 text-micro font-medium text-foreground-secondary transition-colors hover:bg-surface-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             aria-label="Account menu"
           >
             {initials(name || email)}
@@ -40,7 +40,7 @@ export function TopBar({
         </DropdownTrigger>
         <DropdownContent align="end" className="w-[220px]">
           <DropdownLabel>Signed in as</DropdownLabel>
-          <p className="truncate px-2 pb-2 text-[13px] text-foreground-secondary">{email}</p>
+          <p className="truncate px-2 pb-2 text-caption text-foreground-secondary">{email}</p>
           <DropdownSeparator />
           {!affiliatePortal ? (
             <DropdownItem asChild>

@@ -76,7 +76,7 @@ export default async function ProgramDetailPage({
         }
       />
 
-      <dl className="mb-6 flex flex-wrap gap-x-8 gap-y-3 rounded-xl border border-border bg-surface-1 px-5 py-4">
+      <dl className="mb-6 flex flex-wrap gap-x-8 gap-y-3 rounded-panel border border-border bg-surface-1 px-5 py-4">
         <SummaryItem
           label="Commission"
           value={
@@ -200,7 +200,7 @@ export default async function ProgramDetailPage({
               action={
                 <Link
                   href={`/${workspaceSlug}/integrations`}
-                  className="text-[13px] text-foreground underline-offset-4 hover:underline"
+                  className="text-caption text-foreground underline-offset-4 hover:underline"
                 >
                   Check your billing connection
                 </Link>
@@ -273,8 +273,8 @@ export default async function ProgramDetailPage({
 function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[11px] uppercase tracking-[0.02em] text-muted-foreground">{label}</dt>
-      <dd className="text-[13px] font-medium text-foreground">{value}</dd>
+      <dt className="text-label uppercase tracking-[0.02em] text-muted-foreground">{label}</dt>
+      <dd className="text-caption font-medium text-foreground">{value}</dd>
     </div>
   )
 }

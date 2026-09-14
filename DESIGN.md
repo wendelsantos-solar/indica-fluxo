@@ -5,6 +5,26 @@ The single source of truth for the visual language of this product.
 
 ---
 
+## 0. Provenance
+
+The visual language is derived from a published style reference, vendored at
+`docs/linear-style-reference.md`. That file is the *source*; this file is the
+*system*. When they disagree, this file wins, because it carries the four things
+the reference does not cover: a light theme, functional status colour, the sub-13px
+rungs a financial table needs, and accessibility floors.
+
+Deviations from the reference, all deliberate:
+
+| Deviation | Why |
+| --- | --- |
+| A light theme exists | The reference is dark-only. CLAUDE.md's definition of done requires light and dark per feature. Light is derived from the same ramp read in the other direction, not invented. |
+| Supporting chroma is used for status | The reference calls green/red/teal/violet decorative and says not to use them as status. This is a ledger: "reversed" versus "paid" must be legible at a glance. The hues are kept; the role is not. |
+| `caption` (13px) is line-height 1.5, not 1.2 | The reference's named export says 1.2, but its own token dump carries 13px at both 1.5 and 1.2. 1.2 suits a single-line nav item and breaks a two-line table description, which is most of this product. |
+| Steps below 13px exist (`micro`, `label`, `meta`) | The reference describes a marketing site. A dense table needs rungs its scale does not have. |
+| Amber | The reference has no warning hue. Tuned to sit between the lime and the coral without competing with either. |
+
+---
+
 ## 1. Design philosophy
 
 This is a financial instrument disguised as a growth tool. Founders look at it
@@ -51,20 +71,51 @@ Five principles, in priority order:
 
 ### 2.2 Primitives
 
-Declared in `src/design/tokens.css`.
+Declared in `src/design/tokens.css`. They carry the reference's own names so a
+future comparison against it is a lookup, not a translation.
+
+**Neutral ramp** — one ramp, both themes. Dark reads it bottom-up, light top-down.
 
 ```
---black-950  #08090a    --lime-300  #eef94f
---black-900  #0f1011    --lime-400  #e4f222   ← accent
---gray-850   #161718    --lime-500  #c4d10c
---gray-800   #1c1d1f    --lime-600  #9aa50a
---gray-750   #23252a
---gray-700   #383b3f    --green-500 #3fb950
---gray-500   #6b7078    --amber-500 #d8a13a
---gray-400   --8a8f98   --red-500   #f2555a
---gray-200   #d0d6e0    --blue-500  #4ea7fc
---white      #ffffff
+--color-void       #08090a   canvas (dark)
+--color-carbon     #0f1011   card surface (dark)
+--color-obsidian   #161718   elevated panel (dark)
+--color-graphite   #23252a   hairline border (dark)
+--color-smoke      #383b3f   emphasised border (dark)
+--color-ash        #62666d   muted text (light)
+--color-fog        #8a8f98   muted text (dark)
+--color-mist       #d0d6e0   secondary text (dark)
+--color-bone       #e5e5e6   hairline border (light)
+--color-paper      #ffffff   primary text (dark) / card surface (light)
 ```
+
+**Light extensions** — not in the reference; they give light mode the same
+number of surface steps the dark ramp has.
+
+```
+--color-chalk      #eceef0
+--color-porcelain  #f4f5f6
+--color-quartz     #f8f9f9
+```
+
+**Accent** — the one chromatic action colour in the system.
+
+```
+--color-acid-lime         #e4f222   ← the accent
+--color-acid-lime-bright  #eef94f   dark-mode hover
+--color-acid-lime-deep    #c2cf10   light-mode fill, so it reads as a control on white
+```
+
+**Supporting chroma** — reference hues, used functionally (see §0).
+
+```
+--color-pulse-green  #27a644    --color-iris-violet  #6366f1
+--color-coral-red    #eb5757    --color-lavender     #8b5cf6
+--color-signal-teal  #02b8cc    --color-amber        #d8a13a  (extension)
+```
+
+Each has a `-light` step for chromatic text on dark and a `-deep` step for the
+same problem on white, because a single hue cannot clear 4.5:1 against both.
 
 ### 2.3 Semantic tokens
 
@@ -93,48 +144,44 @@ Every one of these is defined for **both** themes. If you add a token, add it tw
 ### 2.4 Dark theme (the primary experience)
 
 ```
-background            #08090a
-surface-1             #0f1011
-surface-2             #161718
-surface-3             #1c1d1f
-border                #23252a
-border-strong         #383b3f
-foreground            #ffffff
-foreground-secondary  #d0d6e0
-muted-foreground      #8a8f98
-primary               #e4f222
-primary-foreground    #14160a
-success               #3fb950
-warning               #d8a13a
-danger                #f2555a
-info                  #4ea7fc
+background            void       #08090a
+surface-1             carbon     #0f1011
+surface-2             obsidian   #161718
+surface-3             graphite   #23252a
+border                graphite   #23252a
+border-strong         smoke      #383b3f
+foreground            paper      #ffffff
+foreground-secondary  mist       #d0d6e0
+muted-foreground      fog        #8a8f98
+primary               acid-lime  #e4f222
+primary-foreground    void       #08090a
+success               #4ecb6b    warning  #e6b862
+danger                #ff8084    info     #4cc9d6
 ```
 
-Subtle status fills in dark are the hue at ~14% alpha over the surface, never a
+Subtle status fills are the base hue at ~20% alpha over the surface, never a
 flat tint, so they survive on `surface-1` and `surface-2` alike.
 
 ### 2.5 Light theme
 
-Light is **not** "white background, black text". It is the same system with the
-planes inverted in depth order: the canvas is a cool off-white and elevated
-surfaces are *lighter* (pure white), which keeps the "raised" metaphor intact.
+Light is **not** "white background, black text". It is the same ramp read from
+the other end: the canvas is a cool off-white and elevated surfaces are
+*lighter* (pure white), which keeps the "raised" metaphor intact.
 
 ```
-background            #f7f8f8
-surface-1             #ffffff
-surface-2             #f2f3f5
-surface-3             #ffffff
-border                #e4e6e9
+background            quartz     #f8f9f9
+surface-1             paper      #ffffff
+surface-2             porcelain  #f4f5f6
+surface-3             paper      #ffffff
+border                bone       #e5e5e6
 border-strong         #c6cad0
-foreground            #0c0d0e
+foreground            void       #08090a
 foreground-secondary  #3c4149
-muted-foreground      #6a6f78
-primary               #d2e016     (darkened lime, for edge definition on white)
-primary-foreground    #14160a
-success               #1a7f37
-warning               #9a6b00
-danger                #cf2f36
-info                  #1668c4
+muted-foreground      ash        #62666d
+primary               acid-lime-deep  #c2cf10   (so the fill reads as a control on white)
+primary-foreground    void       #08090a
+success               #14622c    warning  #7a5400
+danger                #c0292e    info     #0a6f7c
 ```
 
 Typography, density, radii, spacing and component anatomy are **identical**
@@ -164,24 +211,50 @@ layout shift, no third-party request).
 
 ### Scale
 
-| Role | Size / line-height | Weight | Tracking |
-| --- | --- | --- | --- |
-| Display | 64–72 / 1.0 | 500 | −0.035em |
-| H1 | 48 / 1.05 | 500 | −0.03em |
-| H2 | 32 / 1.15 | 500 | −0.025em |
-| H3 | 24 / 1.25 | 500 | −0.02em |
-| H4 / section | 18 / 1.35 | 500 | −0.01em |
-| Body | 16 / 1.6 | 400 | 0 |
-| Body small | 14 / 1.55 | 400 | 0 |
-| Label | 13 / 1.4 | 500 | 0 |
-| Micro / table header | 12 / 1.3 | 500 | +0.02em, uppercase |
-| Mono | 13 / 1.4 | 450 | 0, `tabular-nums` |
+This table **is** the scale. It is expressed as Tailwind tokens in
+`src/design/theme.css`, so every step is a class. A size that is not on this
+table does not exist: there is no `text-[13px]` in this codebase, and adding one
+is a review comment.
+
+Each token carries its own line-height, tracking and weight. Write
+`text-caption`, not `text-caption leading-normal tracking-tight`.
+
+| Token | Size | Line-height | Tracking | Weight | Used for |
+| --- | --- | --- | --- | --- | --- |
+| `text-micro` | 10 | 1.5 | — | 510 | numeric affixes, avatar initials |
+| `text-label` | 11 | 1.4 | — | 400 | column headers, overlines |
+| `text-meta` | 12 | 1.4 | — | 400 | table metadata, secondary chrome |
+| `text-caption` | 13 | 1.5 | — | 400 | **the workhorse**: table cells, descriptions, nav |
+| `text-ui` | 14 | 1.5 | −0.01em | 400 | form fields, buttons |
+| `text-body-sm` | 15 | 1.6 | −0.011em | 400 | body copy in dense contexts |
+| `text-body` | 16 | 1.5 | −0.01em | 400 | marketing body copy |
+| `text-body-md` | 17 | 1.6 | — | 590 | body emphasis |
+| `text-body-lg` | 20 | 1.33 | −0.012em | 590 | lead paragraphs |
+| `text-subheading` | 24 | 1.33 | −0.012em | 400 | card titles, in-product page titles |
+| `text-heading-sm` | 32 | 1.13 | −0.022em | 400 | headline metrics, mobile marketing headings |
+| `text-heading` | 48 | 1.0 | −0.022em | 510 | marketing section headings |
+| `text-heading-lg` | 64 | 1.0 | −0.022em | 510 | hero |
+| `text-display` | 72 | 1.0 | −0.022em | 510 | reserved |
+
+**Weights are 300 / 400 / 510 / 590.** `font-medium` is 510, `font-semibold` is
+590. There is no bold: 590 is an *emphasis* weight, not a heading weight, and
+700+ does not exist in this system.
+
+Note the counter-intuitive part, which is deliberate and comes from the
+reference: the **largest** headings (48–72) are 510, while the **mid** headings
+(24–32) drop to 400. Size carries the hierarchy; weight does not have to.
+
+**OpenType features are not optional.** `font-feature-settings: "cv01" on,
+"ss03" on, "zero" on` is set on `body` in `theme.css`. Without those three
+alternates the face is Inter, but it is not this system's Inter.
 
 ### Rules
 
-- **500 is the heaviest weight in the product UI.** 600 is allowed only on the
-  marketing display headline. 700/800/900 are never used.
-- Headings get *negative* tracking; micro-labels get *positive* tracking.
+- **590 is the heaviest weight in the system**, and it means emphasis, not
+  heading. 700/800/900 do not exist here.
+- Never restate a token's own line-height, tracking or weight next to it.
+- Headings get *negative* tracking; micro-labels may take *positive* tracking
+  when uppercased.
 - All numerals in tables, KPIs and charts use `font-variant-numeric: tabular-nums`
   so columns align. This is non-negotiable in financial tables.
 - Mono is for identifiers and machine values: `AFF-2034`, `TRX-92813`,
@@ -211,14 +284,21 @@ Strict **4px grid**. Allowed steps:
 
 ## 5. Radius
 
-| Element | Radius |
-| --- | --- |
-| Badge, tag, chip | 4px |
-| Button, input, select, small control | 6px |
-| Card, panel, dialog, popover, table container | 12px |
-| Avatar, pill toggle | full |
+Three radii plus a badge and a pill are the entire vocabulary. Each is a token;
+arbitrary values are banned, and so are Tailwind's own `rounded-lg` / `rounded-xl`,
+because they say nothing about what the element *is*.
 
-`rounded-3xl`, `rounded-[30px]` and friends are banned.
+| Token | Radius | Element |
+| --- | --- | --- |
+| `rounded-hairline` | 2px | decorative marks, the logo glyph |
+| `rounded-badge` | 4px | badge, tag, chip |
+| `rounded-control` | 6px | button, input, select, icon tile |
+| `rounded-panel` | 12px | card, dialog, popover, dropdown, table container |
+| `rounded-full` | full | avatar, pill toggle |
+
+12px is the **maximum**. `rounded-2xl`, `rounded-3xl` and `rounded-[30px]` are
+banned — large radii read as consumer-app friendliness, which is the opposite of
+what a ledger should project.
 
 ---
 

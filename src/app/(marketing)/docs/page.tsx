@@ -40,21 +40,21 @@ result 1470  → $14.70`,
 export default function DocsPage() {
   return (
     <div className="mx-auto w-full max-w-[760px] px-4 py-16 sm:px-6 sm:py-24">
-      <h1 className="text-[40px] font-medium leading-[1.05] tracking-[-0.03em]">
+      <h1 className="text-heading-sm font-medium sm:text-heading">
         Integration guide
       </h1>
-      <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
+      <p className="mt-4 text-body-sm leading-relaxed text-muted-foreground">
         Four steps between a fresh workspace and a working referral program.
       </p>
 
       <div className="mt-12 space-y-10">
         {SECTIONS.map((section) => (
           <section key={section.title}>
-            <h2 className="text-[18px] font-medium tracking-tight">{section.title}</h2>
-            <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">{section.body}</p>
+            <h2 className="text-body-lg font-medium tracking-tight">{section.title}</h2>
+            <p className="mt-2 text-ui leading-relaxed text-muted-foreground">{section.body}</p>
             <pre
               data-slot="scrollable"
-              className="mt-4 overflow-x-auto rounded-xl border border-border bg-surface-1 p-4 font-mono text-[12px] leading-relaxed text-foreground-secondary"
+              className="mt-4 overflow-x-auto rounded-panel border border-border bg-surface-1 p-4 font-mono text-meta leading-relaxed text-foreground-secondary"
             >
               <code>{section.code}</code>
             </pre>

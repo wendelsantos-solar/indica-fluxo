@@ -27,7 +27,7 @@ export function DialogContent({
         className={cn(
           "fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-[480px]",
           "-translate-x-1/2 -translate-y-1/2",
-          "rounded-xl border border-border bg-surface-3 shadow-[var(--shadow-overlay)]",
+          "rounded-panel border border-border bg-surface-3 shadow-[var(--shadow-overlay)]",
           "data-[state=open]:animate-[dialog-in_180ms_var(--ease-out-quint)]",
           className,
         )}
@@ -35,7 +35,7 @@ export function DialogContent({
       >
         {children}
         <DialogPrimitive.Close
-          className="absolute right-3 top-3 rounded-[4px] p-1 text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+          className="absolute right-3 top-3 rounded-badge p-1 text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
           aria-label="Close dialog"
         >
           <X className="size-4" aria-hidden="true" />
@@ -55,7 +55,7 @@ export function DialogTitle({
 }: React.ComponentProps<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
-      className={cn("pr-8 text-[15px] font-medium tracking-tight", className)}
+      className={cn("pr-8 text-body-sm font-medium tracking-tight", className)}
       {...props}
     />
   )
@@ -67,7 +67,7 @@ export function DialogDescription({
 }: React.ComponentProps<typeof DialogPrimitive.Description>) {
   return (
     <DialogPrimitive.Description
-      className={cn("text-[13px] leading-relaxed text-muted-foreground", className)}
+      className={cn("text-caption leading-relaxed text-muted-foreground", className)}
       {...props}
     />
   )

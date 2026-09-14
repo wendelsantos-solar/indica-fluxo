@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 
 /** DESIGN.md §9. Status vocabulary is fixed — never invent a new tone. */
 const badgeVariants = cva(
-  "inline-flex items-center gap-1.5 rounded-[4px] px-2 h-5 text-[12px] font-medium leading-none whitespace-nowrap",
+  "inline-flex items-center gap-1.5 rounded-badge px-2 h-5 text-meta font-medium leading-none whitespace-nowrap",
   {
     variants: {
       tone: {
