@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1789406150298,
+      "tag": "0000_absurd_bushwacker",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789406151298,
+      "tag": "0001_rls_and_triggers",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789406152298,
+      "tag": "0002_tighten_rls_and_invites",
+      "breakpoints": true
+    }
+  ]
+}
