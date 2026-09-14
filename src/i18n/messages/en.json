@@ -14,5 +14,178 @@
     "integrations": "Integrations",
     "settings": "Settings",
     "links": "Links"
+  },
+  "marketing": {
+    "home": {
+      "eyebrow": "Referral infrastructure for SaaS",
+      "headline": "Turn referrals into a growth channel.",
+      "subhead": "Track every click, conversion and recurring commission without building affiliate infrastructure yourself. Connect billing, choose a commission, install one snippet — then invite affiliates and watch the ledger fill in.",
+      "ctaPrimary": "Start free",
+      "ctaSecondary": "View the docs",
+      "promises": {
+        "noProcessing": "No payment processing",
+        "stripeStaysYours": "Your Stripe stays yours",
+        "liveInAnHour": "Live in under an hour"
+      },
+      "pillars": {
+        "attribution": {
+          "title": "Attribution that holds up",
+          "body": "First-click or last-click, a configurable window, and a deterministic resolver that is unit-tested against every edge case — including the one where two affiliates claim the same visitor."
+        },
+        "ledger": {
+          "title": "A ledger, not a counter",
+          "body": "Every commission records the rule that produced it. Refunds create a reversal instead of deleting history, so your numbers still reconcile six months later."
+        },
+        "rails": {
+          "title": "You keep the money rails",
+          "body": "Indica never touches a payment. It tells you exactly what you owe and to whom; you pay through Wise, Pix, PayPal or a bank transfer and mark the batch as paid."
+        }
+      },
+      "steps": {
+        "title": "Four steps, then it runs itself.",
+        "subtitle": "Most founders are live the same afternoon. Nothing here requires a migration or a contract.",
+        "connect": {
+          "title": "Connect billing",
+          "body": "Point your Stripe webhook at Indica. We read payment events; we never hold your keys."
+        },
+        "commission": {
+          "title": "Choose a commission",
+          "body": "30% for 12 months, a flat fee, or a custom rate for your best partner."
+        },
+        "tracking": {
+          "title": "Install tracking",
+          "body": "One script tag sets a first-party cookie and reports the referral code."
+        },
+        "invite": {
+          "title": "Invite affiliates",
+          "body": "They get a link and a portal. You get a ledger and a payout list."
+        }
+      },
+      "closing": {
+        "title": "The simplest way to put a referral program live.",
+        "body": "Connect billing, choose a commission, install tracking, invite affiliates. Done."
+      }
+    },
+    "preview": {
+      "metrics": {
+        "revenue": "Affiliate revenue",
+        "commissions": "Commissions",
+        "affiliates": "Active affiliates"
+      },
+      "chartTitle": "Revenue over time",
+      "legendRevenue": "Revenue",
+      "legendCommission": "Commission",
+      "columns": {
+        "affiliate": "Affiliate",
+        "revenue": "Revenue",
+        "commission": "Commission"
+      }
+    },
+    "chrome": {
+      "home": "Indica home",
+      "navLabel": "Marketing",
+      "pricing": "Pricing",
+      "docs": "Docs",
+      "signIn": "Sign in",
+      "startFree": "Start free",
+      "footer": "Indica is the source of truth for your commissions. You keep paying affiliates your way.",
+      "tagline": "Referral infrastructure for SaaS."
+    }
+  },
+  "common": {
+    "locale": {
+      "label": "Language",
+      "current": "current"
+    }
+  },
+  "auth": {
+    "fields": {
+      "fullName": "Full name",
+      "email": "E-mail",
+      "password": "Password",
+      "passwordHint": "At least 8 characters."
+    },
+    "signin": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to your workspace.",
+      "submit": "Sign in",
+      "switchPrompt": "No account yet?",
+      "switchAction": "Create one"
+    },
+    "signup": {
+      "title": "Create your account",
+      "subtitle": "Set up an affiliate program in a few minutes.",
+      "submit": "Create account",
+      "switchPrompt": "Already have an account?",
+      "switchAction": "Sign in"
+    }
+  },
+  "pricing": {
+    "metaTitle": "Pricing",
+    "title": "Priced like a tool, not a tax.",
+    "subtitle": "We do not take a percentage of your affiliate revenue, because we never touch the money. You pay for the infrastructure and keep the upside.",
+    "mostPopular": "Most popular",
+    "cta": "Start free",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "cadence": "while you validate",
+        "description": "Everything you need to run one program and prove the channel works.",
+        "features": {
+          "programs": "1 program",
+          "affiliates": "Up to 10 affiliates",
+          "tracking": "Click tracking and attribution",
+          "ledger": "Commission ledger",
+          "payouts": "Manual payouts"
+        }
+      },
+      "growth": {
+        "name": "Growth",
+        "cadence": "per month",
+        "description": "For a program that is already producing revenue you care about.",
+        "features": {
+          "programs": "Unlimited programs",
+          "affiliates": "Unlimited affiliates",
+          "rates": "Custom affiliate rates",
+          "batches": "Payout batches and history",
+          "team": "Team members and audit log"
+        }
+      },
+      "scale": {
+        "name": "Scale",
+        "cadence": "per month",
+        "description": "Multiple products, a partnerships hire, and reporting people rely on.",
+        "features": {
+          "everything": "Everything in Growth",
+          "workspaces": "Multiple workspaces",
+          "support": "Priority support",
+          "retention": "Extended data retention",
+          "onboarding": "Onboarding help"
+        }
+      }
+    }
+  },
+  "docs": {
+    "metaTitle": "Docs",
+    "title": "Integration guide",
+    "subtitle": "Four steps between a fresh workspace and a working referral program.",
+    "sections": {
+      "install": {
+        "title": "Install the tracker",
+        "body": "Paste the snippet before </head> on the site your affiliates link to. It reads ?ref= from the URL, sets a first-party cookie called _referral_id (SameSite=Lax, one year) and posts the click to Indica."
+      },
+      "identify": {
+        "title": "Identify the customer",
+        "body": "A click alone proves nothing. When someone signs up, call identify from YOUR SERVER with your secret key. Never from the browser: a customer id posted by a browser could be used to reassign commissions."
+      },
+      "webhook": {
+        "title": "Point your webhook at Indica",
+        "body": "Add the endpoint in Stripe and subscribe to invoice.payment_succeeded, charge.refunded, charge.dispute.created, customer.subscription.updated and customer.subscription.deleted. Every event is verified, then claimed exactly once, so a redelivery can never create a second commission."
+      },
+      "commission": {
+        "title": "Read the commission",
+        "body": "When Stripe confirms $49.00 on a 30% program, Indica writes a commission of $14.70 against the affiliate that owns the attribution, holds it for the program's hold period, and then makes it payable. A refund adds a −$14.70 reversal and marks the original reversed; nothing is ever deleted."
+      }
+    }
   }
 }

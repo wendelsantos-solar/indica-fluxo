@@ -14,5 +14,178 @@
     "integrations": "Integrações",
     "settings": "Configurações",
     "links": "Links"
+  },
+  "marketing": {
+    "home": {
+      "eyebrow": "Infraestrutura de indicação para SaaS",
+      "headline": "Transforme indicações em canal de crescimento.",
+      "subhead": "Acompanhe cada clique, conversão e comissão recorrente sem construir a infraestrutura de afiliados por conta própria. Conecte a cobrança, escolha a comissão, instale um snippet — depois convide afiliados e veja o ledger se preencher.",
+      "ctaPrimary": "Começar grátis",
+      "ctaSecondary": "Ver a documentação",
+      "promises": {
+        "noProcessing": "Sem processar pagamento",
+        "stripeStaysYours": "Seu Stripe continua seu",
+        "liveInAnHour": "No ar em menos de uma hora"
+      },
+      "pillars": {
+        "attribution": {
+          "title": "Atribuição que se sustenta",
+          "body": "First-click ou last-click, janela configurável e um resolvedor determinístico testado contra cada caso de borda — inclusive aquele em que dois afiliados reivindicam o mesmo visitante."
+        },
+        "ledger": {
+          "title": "Um ledger, não um contador",
+          "body": "Cada comissão registra a regra que a produziu. Estorno cria uma reversão em vez de apagar histórico, então seus números continuam batendo seis meses depois."
+        },
+        "rails": {
+          "title": "O dinheiro continua com você",
+          "body": "A Indica nunca toca em um pagamento. Ela diz exatamente quanto você deve e para quem; você paga por Wise, Pix, PayPal ou transferência e marca o lote como pago."
+        }
+      },
+      "steps": {
+        "title": "Quatro passos, e depois roda sozinho.",
+        "subtitle": "A maioria dos founders entra no ar na mesma tarde. Nada aqui exige migração ou contrato.",
+        "connect": {
+          "title": "Conecte a cobrança",
+          "body": "Aponte o webhook do Stripe para a Indica. Lemos eventos de pagamento; nunca guardamos suas chaves."
+        },
+        "commission": {
+          "title": "Escolha a comissão",
+          "body": "30% por 12 meses, valor fixo, ou uma taxa especial para o seu melhor parceiro."
+        },
+        "tracking": {
+          "title": "Instale o tracking",
+          "body": "Uma tag de script grava um cookie first-party e reporta o código de indicação."
+        },
+        "invite": {
+          "title": "Convide afiliados",
+          "body": "Eles ganham um link e um portal. Você ganha um ledger e uma lista de pagamentos."
+        }
+      },
+      "closing": {
+        "title": "O jeito mais simples de colocar um programa de indicação no ar.",
+        "body": "Conecte a cobrança, escolha a comissão, instale o tracking, convide afiliados. Pronto."
+      }
+    },
+    "preview": {
+      "metrics": {
+        "revenue": "Receita de afiliados",
+        "commissions": "Comissões",
+        "affiliates": "Afiliados ativos"
+      },
+      "chartTitle": "Receita ao longo do tempo",
+      "legendRevenue": "Receita",
+      "legendCommission": "Comissão",
+      "columns": {
+        "affiliate": "Afiliado",
+        "revenue": "Receita",
+        "commission": "Comissão"
+      }
+    },
+    "chrome": {
+      "home": "Início da Indica",
+      "navLabel": "Navegação",
+      "pricing": "Preços",
+      "docs": "Documentação",
+      "signIn": "Entrar",
+      "startFree": "Começar grátis",
+      "footer": "A Indica é a fonte de verdade das suas comissões. Você continua pagando os afiliados do seu jeito.",
+      "tagline": "Infraestrutura de indicação para SaaS."
+    }
+  },
+  "common": {
+    "locale": {
+      "label": "Idioma",
+      "current": "atual"
+    }
+  },
+  "auth": {
+    "fields": {
+      "fullName": "Nome completo",
+      "email": "E-mail",
+      "password": "Senha",
+      "passwordHint": "Pelo menos 8 caracteres."
+    },
+    "signin": {
+      "title": "Bem-vindo de volta",
+      "subtitle": "Entre no seu workspace.",
+      "submit": "Entrar",
+      "switchPrompt": "Ainda não tem conta?",
+      "switchAction": "Criar uma"
+    },
+    "signup": {
+      "title": "Crie sua conta",
+      "subtitle": "Monte um programa de afiliados em alguns minutos.",
+      "submit": "Criar conta",
+      "switchPrompt": "Já tem uma conta?",
+      "switchAction": "Entrar"
+    }
+  },
+  "pricing": {
+    "metaTitle": "Preços",
+    "title": "Preço de ferramenta, não de imposto.",
+    "subtitle": "Não ficamos com um percentual da sua receita de afiliados, porque nunca tocamos no dinheiro. Você paga pela infraestrutura e fica com o ganho.",
+    "mostPopular": "Mais popular",
+    "cta": "Começar grátis",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "cadence": "enquanto você valida",
+        "description": "Tudo que você precisa para rodar um programa e provar que o canal funciona.",
+        "features": {
+          "programs": "1 programa",
+          "affiliates": "Até 10 afiliados",
+          "tracking": "Tracking de cliques e atribuição",
+          "ledger": "Ledger de comissões",
+          "payouts": "Pagamentos manuais"
+        }
+      },
+      "growth": {
+        "name": "Growth",
+        "cadence": "por mês",
+        "description": "Para um programa que já gera receita com a qual você se importa.",
+        "features": {
+          "programs": "Programas ilimitados",
+          "affiliates": "Afiliados ilimitados",
+          "rates": "Taxas personalizadas por afiliado",
+          "batches": "Lotes de pagamento e histórico",
+          "team": "Membros de time e log de auditoria"
+        }
+      },
+      "scale": {
+        "name": "Scale",
+        "cadence": "por mês",
+        "description": "Vários produtos, alguém dedicado a parcerias e relatórios em que as pessoas confiam.",
+        "features": {
+          "everything": "Tudo do Growth",
+          "workspaces": "Múltiplos workspaces",
+          "support": "Suporte prioritário",
+          "retention": "Retenção de dados estendida",
+          "onboarding": "Ajuda no onboarding"
+        }
+      }
+    }
+  },
+  "docs": {
+    "metaTitle": "Documentação",
+    "title": "Guia de integração",
+    "subtitle": "Quatro passos entre um workspace novo e um programa de indicação funcionando.",
+    "sections": {
+      "install": {
+        "title": "Instale o tracker",
+        "body": "Cole o snippet antes de </head> no site para onde seus afiliados apontam. Ele lê ?ref= da URL, grava um cookie first-party chamado _referral_id (SameSite=Lax, um ano) e envia o clique para a Indica."
+      },
+      "identify": {
+        "title": "Identifique o cliente",
+        "body": "Um clique sozinho não prova nada. Quando alguém se cadastrar, chame o identify A PARTIR DO SEU SERVIDOR com a sua chave secreta. Nunca do navegador: um id de cliente enviado pelo browser poderia ser usado para redirecionar comissões."
+      },
+      "webhook": {
+        "title": "Aponte seu webhook para a Indica",
+        "body": "Adicione o endpoint no Stripe e assine invoice.payment_succeeded, charge.refunded, charge.dispute.created, customer.subscription.updated e customer.subscription.deleted. Todo evento é verificado e depois reivindicado exatamente uma vez, então uma reentrega nunca cria uma segunda comissão."
+      },
+      "commission": {
+        "title": "Leia a comissão",
+        "body": "Quando o Stripe confirma R$ 49,00 num programa de 30%, a Indica grava uma comissão de R$ 14,70 para o afiliado dono da atribuição, segura pelo período de retenção do programa e então libera para pagamento. Um estorno adiciona uma reversão de −R$ 14,70 e marca a original como revertida; nada é apagado."
+      }
+    }
   }
 }

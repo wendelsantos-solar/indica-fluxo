@@ -2,6 +2,7 @@ import { LogOut, User } from "lucide-react"
 import { Link } from "@/i18n/navigation"
 import * as React from "react"
 
+import { LocaleSwitcher } from "@/components/layout/locale-switcher"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import {
   Dropdown,
@@ -27,6 +28,7 @@ export function TopBar({
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/85 px-4 backdrop-blur-[2px] sm:px-6">
       <div className="min-w-0 flex-1">{children}</div>
+      <LocaleSwitcher />
       <ThemeToggle />
       <Dropdown>
         <DropdownTrigger asChild>

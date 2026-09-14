@@ -70,6 +70,13 @@ This project uses Supabase's current API-key model, never the legacy
 - Money formatting always goes through `src/lib/money.ts`.
 - Seed/demo data lives only in `src/server/db/seed/` and must never be imported
   by production code paths.
+- **No user-facing string is written in a component.** Every one comes from
+  `src/i18n/messages/<locale>.json`, and both catalogues change together.
+- **Never import `Link`, `redirect`, `usePathname` or `useRouter` from `next/*`
+  inside a localised route.** Use `@/i18n/navigation`, or the locale prefix is
+  dropped and the link 404s. See ARCHITECTURE.md §6b.
+- **No `text-[13px]`, no `rounded-[8px]`.** The type scale and the radius
+  vocabulary in `src/design/theme.css` are the whole set. See DESIGN.md §3, §5.
 
 ## Commands
 

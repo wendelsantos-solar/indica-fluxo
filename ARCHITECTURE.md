@@ -256,6 +256,43 @@ Lists are cursor/offset paginated with a hard `LIMIT`. There is no unbounded
 
 ---
 
+## 6b. Internationalisation
+
+Two locales, `pt-br` (default) and `en`, configured in `src/i18n/routing.ts`.
+
+**Every locale is prefixed, including the default.** `/pt-br/precos` and
+`/en/pricing` both exist; `/precos` does not. An unprefixed default makes a
+page's canonical URL depend on which locale it is in, which is what breaks
+hreflang and sitemaps.
+
+**Pathnames are translated, not merely prefixed.** `routing.ts` is the single
+place a route's spelling lives. Components write canonical hrefs
+(`/[workspaceSlug]/commissions`) and the navigation helpers resolve them.
+
+| Instead of | Import from | Why |
+| --- | --- | --- |
+| `next/link` | `@/i18n/navigation` | a raw `Link` drops the locale prefix and 404s |
+| `redirect`, `usePathname`, `useRouter` | `@/i18n/navigation` | same |
+| a template-literal href | a typed `{ pathname, params }` object | the compiler cannot check a string |
+
+That last row is enforced by types: `Link` accepts only canonical pathnames, so
+`` href={`/${slug}/affiliates`} `` fails to compile. The one gap is `TabLink`,
+which renders a plain anchor — it resolves its href through `getPathname()`.
+
+**Formatting.** `lib/money.ts` is pure and takes a locale; `getFormatters()`
+(server) and `useFormatters()` (client) bind it once per render. The ledger's
+currency is a fact, not a preference: a commission recorded in USD stays USD for
+a pt-BR reader, and only the formatting changes. Rendering it as `R$` would
+invent an exchange rate nobody applied — asserted in `lib/__tests__/money.test.ts`.
+
+**Catalogues** live in `src/i18n/messages/<locale>.json`. A missing key does not
+crash — next-intl renders the key path — so parity, blank values and
+copy-paste-without-translating are guarded in `src/i18n/__tests__/catalogues.test.ts`.
+
+`app/api/**` and `/t.js` stay outside the locale segment: they have no reader.
+
+---
+
 ## 7. Rendering
 
 Server Components by default. `"use client"` only for genuine interactivity —

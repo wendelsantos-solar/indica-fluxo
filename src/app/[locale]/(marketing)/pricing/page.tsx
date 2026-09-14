@@ -1,107 +1,93 @@
 import { ArrowRight, Check } from "lucide-react"
 import type { Metadata } from "next"
-import { Link } from "@/i18n/navigation"
+import { getLocale, getTranslations, setRequestLocale } from "next-intl/server"
 
+import { Link } from "@/i18n/navigation"
+import { getFormatters } from "@/i18n/format"
+import { DEFAULT_CURRENCY, type Locale } from "@/i18n/routing"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-export const metadata: Metadata = { title: "Pricing" }
+export async function generateMetadata({
+  params,
+}: PageProps<"/[locale]/pricing">): Promise<Metadata> {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: "pricing" })
+  return { title: t("metaTitle") }
+}
+
+/**
+ * Prices are per-locale amounts in minor units, not one number converted at
+ * render time: a Brazilian plan is priced in reais as a commercial decision,
+ * not as today's exchange rate applied to a dollar figure.
+ */
+const PRICE_MINOR: Record<Locale, Record<string, number>> = {
+  "pt-br": { starter: 0, growth: 19700, scale: 59700 },
+  en: { starter: 0, growth: 4900, scale: 14900 },
+}
 
 const PLANS = [
-  {
-    name: "Starter",
-    price: "$0",
-    cadence: "while you validate",
-    description: "Everything you need to run one program and prove the channel works.",
-    features: [
-      "1 program",
-      "Up to 10 affiliates",
-      "Click tracking and attribution",
-      "Commission ledger",
-      "Manual payouts",
-    ],
-    cta: "Start free",
-    featured: false,
-  },
-  {
-    name: "Growth",
-    price: "$49",
-    cadence: "per month",
-    description: "For a program that is already producing revenue you care about.",
-    features: [
-      "Unlimited programs",
-      "Unlimited affiliates",
-      "Custom affiliate rates",
-      "Payout batches and history",
-      "Team members and audit log",
-    ],
-    cta: "Start free",
-    featured: true,
-  },
-  {
-    name: "Scale",
-    price: "$149",
-    cadence: "per month",
-    description: "Multiple products, a partnerships hire, and reporting people rely on.",
-    features: [
-      "Everything in Growth",
-      "Multiple workspaces",
-      "Priority support",
-      "Extended data retention",
-      "Onboarding help",
-    ],
-    cta: "Start free",
-    featured: false,
-  },
-]
+  { key: "starter", featured: false, features: ["programs", "affiliates", "tracking", "ledger", "payouts"] },
+  { key: "growth", featured: true, features: ["programs", "affiliates", "rates", "batches", "team"] },
+  { key: "scale", featured: false, features: ["everything", "workspaces", "support", "retention", "onboarding"] },
+] as const
 
-export default function PricingPage() {
+export default async function PricingPage({ params }: PageProps<"/[locale]/pricing">) {
+  const { locale } = await params
+  setRequestLocale(locale)
+
+  const t = await getTranslations("pricing")
+  const f = await getFormatters()
+  const currency = DEFAULT_CURRENCY[(await getLocale()) as Locale]
+  const prices = PRICE_MINOR[locale as Locale]
+
   return (
-    <div className="mx-auto w-full max-w-[1200px] px-4 py-16 sm:px-6 sm:py-24">
+    <div className="mx-auto w-full max-w-page px-4 py-16 sm:px-6 sm:py-24">
       <div className="max-w-2xl">
-        <h1 className="text-heading-sm font-medium sm:text-heading">
-          Priced like a tool, not a tax.
-        </h1>
+        <h1 className="text-heading-sm font-medium sm:text-heading">{t("title")}</h1>
         <p className="mt-4 text-body-sm leading-relaxed text-muted-foreground">
-          We do not take a percentage of your affiliate revenue, because we never touch the money.
-          You pay for the infrastructure and keep the upside.
+          {t("subtitle")}
         </p>
       </div>
 
       <div className="mt-12 grid gap-4 lg:grid-cols-3">
         {PLANS.map((plan) => (
           <div
-            key={plan.name}
+            key={plan.key}
             className={cn(
               "flex flex-col rounded-panel border bg-surface-1 p-6",
               plan.featured ? "border-border-strong" : "border-border",
             )}
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-body-sm font-medium">{plan.name}</h2>
+              <h2 className="text-body-sm font-medium">{t(`plans.${plan.key}.name`)}</h2>
               {plan.featured ? (
                 <span className="rounded-badge bg-primary/15 px-2 py-0.5 text-label font-medium text-foreground">
-                  Most popular
+                  {t("mostPopular")}
                 </span>
               ) : null}
             </div>
 
             <p className="mt-4 flex items-baseline gap-1.5">
               <span className="text-heading-sm font-medium tabular-nums tracking-tight">
-                {plan.price}
+                {f.money(prices[plan.key] ?? 0, currency)}
               </span>
-              <span className="text-caption text-muted-foreground">{plan.cadence}</span>
+              <span className="text-caption text-muted-foreground">
+                {t(`plans.${plan.key}.cadence`)}
+              </span>
             </p>
 
             <p className="mt-3 text-caption leading-relaxed text-muted-foreground">
-              {plan.description}
+              {t(`plans.${plan.key}.description`)}
             </p>
 
             <ul className="mt-6 flex-1 space-y-2.5">
               {plan.features.map((feature) => (
                 <li key={feature} className="flex items-start gap-2 text-caption">
                   <Check className="mt-0.5 size-3.5 shrink-0 text-primary" aria-hidden="true" />
-                  <span className="text-foreground-secondary">{feature}</span>
+                  <span className="text-foreground-secondary">
+                    {t(`plans.${plan.key}.features.${feature}`)}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -113,7 +99,7 @@ export default function PricingPage() {
               className="mt-6 w-full"
             >
               <Link href="/signup">
-                {plan.cta}
+                {t("cta")}
                 <ArrowRight aria-hidden="true" />
               </Link>
             </Button>

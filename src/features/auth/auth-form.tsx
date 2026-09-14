@@ -1,7 +1,9 @@
 "use client"
 
-import { Link } from "@/i18n/navigation"
+import { useTranslations } from "next-intl"
 import { useActionState } from "react"
+
+import { Link } from "@/i18n/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -13,6 +15,7 @@ import { signIn, signUp, type AuthFormState } from "./actions"
 const INITIAL: AuthFormState = {}
 
 export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
+  const t = useTranslations("auth")
   const [state, action, pending] = useActionState(
     mode === "signin" ? signIn : signUp,
     INITIAL,
@@ -24,12 +27,10 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
     <div className="space-y-5">
       <div className="space-y-1.5 text-center">
         <h1 className="text-subheading font-medium">
-          {signup ? "Create your account" : "Welcome back"}
+          {signup ? t("signup.title") : t("signin.title")}
         </h1>
         <p className="text-caption text-muted-foreground">
-          {signup
-            ? "Set up an affiliate program in a few minutes."
-            : "Sign in to your workspace."}
+          {signup ? t("signup.subtitle") : t("signin.subtitle")}
         </p>
       </div>
 
@@ -38,7 +39,7 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
           <form action={action} className="space-y-4" noValidate>
             {signup ? (
               <Field
-                label="Full name"
+                label={t("fields.fullName")}
                 htmlFor="fullName"
                 required
                 error={state.fieldErrors?.fullName?.[0]}
@@ -53,7 +54,7 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
               </Field>
             ) : null}
 
-            <Field label="E-mail" htmlFor="email" required error={state.fieldErrors?.email?.[0]}>
+            <Field label={t("fields.email")} htmlFor="email" required error={state.fieldErrors?.email?.[0]}>
               <Input
                 id="email"
                 name="email"
@@ -65,10 +66,10 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
             </Field>
 
             <Field
-              label="Password"
+              label={t("fields.password")}
               htmlFor="password"
               required
-              hint={signup ? "At least 8 characters." : undefined}
+              hint={signup ? t("fields.passwordHint") : undefined}
               error={state.fieldErrors?.password?.[0]}
             >
               <Input
@@ -94,19 +95,19 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
             ) : null}
 
             <Button type="submit" variant="primary" size="lg" className="w-full" loading={pending}>
-              {signup ? "Create account" : "Sign in"}
+              {signup ? t("signup.submit") : t("signin.submit")}
             </Button>
           </form>
         </CardContent>
       </Card>
 
       <p className="text-center text-caption text-muted-foreground">
-        {signup ? "Already have an account? " : "No account yet? "}
+        {signup ? t("signup.switchPrompt") : t("signin.switchPrompt")}{" "}
         <Link
           href={signup ? "/login" : "/signup"}
           className="text-foreground underline-offset-4 hover:underline"
         >
-          {signup ? "Sign in" : "Create one"}
+          {signup ? t("signup.switchAction") : t("signin.switchAction")}
         </Link>
       </p>
     </div>
