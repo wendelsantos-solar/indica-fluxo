@@ -504,25 +504,283 @@
     }
   },
   "docs": {
-    "metaTitle": "Docs",
-    "title": "Integration guide",
-    "subtitle": "Four steps between a fresh workspace and a working referral program.",
-    "sections": {
-      "install": {
-        "title": "Install the tracker",
-        "body": "Paste the snippet before </head> on the site your affiliates link to. It reads ?ref= from the URL, sets a first-party cookie called _referral_id (SameSite=Lax, one year) and posts the click to IndicaFluxo."
+    "metaTitle": "Integration guide",
+    "metaDescription": "Install the tracker, identify customers from your server, receive Stripe payments and see the first commission recorded in IndicaFluxo.",
+    "header": {
+      "docs": "Docs",
+      "dashboard": "Dashboard",
+      "signUp": "Create account",
+      "openMenu": "Open documentation navigation",
+      "closeMenu": "Close navigation"
+    },
+    "nav": {
+      "label": "Documentation",
+      "onThisPage": "On this page",
+      "groups": {
+        "start": "Getting started",
+        "quickstart": "Quickstart",
+        "concepts": "Concepts",
+        "security": "Security",
+        "reference": "Reference"
       },
-      "identify": {
-        "title": "Identify the customer",
-        "body": "A click alone proves nothing. When someone signs up, call identify from YOUR SERVER with your secret key. Never from the browser: a customer id posted by a browser could be used to reassign commissions."
+      "sections": {
+        "introduction": "Introduction",
+        "howItWorks": "How it works",
+        "prerequisites": "Before you start",
+        "installTracker": "Install the tracker",
+        "identifyCustomer": "Identify the customer",
+        "connectStripe": "Connect Stripe",
+        "commission": "Commission maths",
+        "verify": "Verify the integration",
+        "attribution": "Attribution",
+        "holdPeriod": "Hold period",
+        "apiKeys": "API keys",
+        "identifyApi": "Identify API",
+        "webhookEvents": "Stripe events",
+        "errors": "Errors"
       },
-      "webhook": {
-        "title": "Point your webhook at IndicaFluxo",
-        "body": "Add the endpoint in Stripe and subscribe to invoice.payment_succeeded, charge.refunded, charge.dispute.created, customer.subscription.updated and customer.subscription.deleted. Every event is verified, then claimed exactly once, so a redelivery can never create a second commission."
+      "subsections": {
+        "trackerDetails": "What the tracker does",
+        "visitorId": "Where visitorId comes from",
+        "identifyFields": "Fields",
+        "commissionLifecycle": "Commission lifecycle",
+        "attributionWindow": "Attribution window",
+        "firstClick": "First click",
+        "lastClick": "Last click"
+      }
+    },
+    "breadcrumb": {
+      "docs": "Docs",
+      "current": "Integration guide",
+      "label": "Breadcrumb"
+    },
+    "code": {
+      "copy": "Copy",
+      "samples": "Code samples"
+    },
+    "heading": {
+      "copyLink": "Copy link to “{title}”",
+      "copied": "Link copied"
+    },
+    "footer": {
+      "rights": "© {year} IndicaFluxo",
+      "pricing": "Pricing",
+      "dashboard": "Dashboard",
+      "home": "Website"
+    },
+    "intro": {
+      "title": "Integration guide",
+      "lead": "Integrate IndicaFluxo with your SaaS: record affiliate clicks, identify who became a customer and watch the first commission show up in your dashboard.",
+      "outcome": "By the end you will have an attributed click, an identified customer and a pending commission under Commissions."
+    },
+    "howItWorks": {
+      "title": "How it works",
+      "lead": "A referral goes through five moments. You handle two of them in code; IndicaFluxo does the rest.",
+      "flowLabel": "Flow of a referral",
+      "you": "You",
+      "platform": "IndicaFluxo",
+      "steps": {
+        "click": {
+          "title": "Click",
+          "body": "The visitor lands on your site through the affiliate's link, with <code>?ref=code</code>."
+        },
+        "track": {
+          "title": "Visit recorded",
+          "body": "The tracker stores a visitor id and records the click."
+        },
+        "identify": {
+          "title": "Sign-up",
+          "body": "Your server says who the customer is with <code>POST /api/identify</code>."
+        },
+        "payment": {
+          "title": "Payment",
+          "body": "Stripe sends the payment by webhook."
+        },
+        "commission": {
+          "title": "Commission",
+          "body": "The program rule calculates and records the affiliate's commission."
+        }
+      }
+    },
+    "prerequisites": {
+      "title": "Before you start",
+      "items": {
+        "program": "An <strong>active program</strong> with its product website filled in (Programs → New program).",
+        "affiliate": "At least <strong>one approved affiliate</strong> — only approved participations earn commissions.",
+        "keys": "The <strong>publishable key</strong> and the <strong>secret key</strong>, generated under Integrations.",
+        "stripe": "Your <strong>Stripe account</strong> entered under Integrations.",
+        "access": "Access to your site's HTML and your backend code."
       },
-      "commission": {
-        "title": "Read the commission",
-        "body": "When Stripe confirms $49.00 on a 30% program, IndicaFluxo writes a commission of $14.70 against the affiliate that owns the attribution, holds it for the program's hold period, and then makes it payable. A refund adds a −$14.70 reversal and marks the original reversed; nothing is ever deleted."
+      "keysOnceTitle": "Keys are shown once",
+      "keysOnceBody": "A key is only displayed when it is generated. Keep the secret one in a secrets manager; if you lose it, generate a new one (the previous key stops working immediately)."
+    },
+    "installTracker": {
+      "title": "Install the tracker on your site",
+      "lead": "Paste the tag before <code>{head}</code> on every page your affiliates link to. Use the publishable key.",
+      "filename": "index.html",
+      "detailsTitle": "What the tracker does",
+      "details": {
+        "params": "Looks for the referral code in the <params></params> URL parameters.",
+        "cookie": "Stores a visitor id (<code>v_…</code>) in the <code>{cookie}</code> cookie on your own domain for {days} days, with <code>SameSite=Lax</code> (and <code>Secure</code> over HTTPS).",
+        "send": "When the URL has a code, sends the click to <code>/api/track</code> and exposes <code>window.Referral.visitorId</code> to the page.",
+        "noRef": "Without a code in the URL it only renews the cookie — nothing is sent."
+      },
+      "testTitle": "Try it now",
+      "testBody": "Open your site with <code>?ref=</code> followed by an affiliate's code. The click shows up under Affiliates, in the Clicks column."
+    },
+    "identifyCustomer": {
+      "title": "Identify the customer from your server",
+      "lead": "A click alone earns nothing. When the visitor signs up — or when you create the customer in Stripe — call <code>POST /api/identify</code> from your backend with the secret key. That links the visitor to the customer.",
+      "securityTitle": "Server-side only",
+      "securityBody": "Never send the secret key to the browser or call <code>/api/identify</code> from the front end. The route rejects browser requests on purpose: a customer id coming from the browser would let anyone redirect commissions.",
+      "visitorIdTitle": "Where visitorId comes from",
+      "visitorIdBody": "The tracker writes the <code>{cookie}</code> cookie on your site's domain. If your backend handles sign-up on the same domain, the cookie already arrives with the request — read its value. Otherwise, send <code>window.Referral?.visitorId</code> along with the sign-up form.",
+      "response": "Response",
+      "responseBody": "<code>attributionsBound</code> is how many open attributions for this visitor were linked to the customer. <code>0</code> means the visitor did not arrive through an active affiliate link.",
+      "fieldsTitle": "Fields",
+      "stripeIdTitle": "Send providerCustomerId",
+      "stripeIdBody": "A Stripe payment finds the affiliate through the Stripe customer id. Without <code>providerCustomerId</code>, the payment is recorded with no commission. If the Stripe customer does not exist yet at sign-up, call identify again when you create it, with the same <code>externalId</code>."
+    },
+    "fields": {
+      "name": "Field",
+      "type": "Type",
+      "description": "Description",
+      "required": "required",
+      "optional": "optional",
+      "visitorId": "Visitor id: <code>v_</code> followed by 16 to 48 lowercase letters or digits.",
+      "externalId": "Your user's id (up to 200 characters). Repeated calls with the same value update the same customer.",
+      "providerCustomerId": "The Stripe customer id (<code>cus_…</code>). Required to earn a commission.",
+      "email": "The customer's e-mail. Stored only as a hash.",
+      "provider": "Billing provider. Defaults to <code>stripe</code>, the only one integrated today."
+    },
+    "connectStripe": {
+      "title": "Connect Stripe and receive payments",
+      "lead": "The Stripe webhook is how IndicaFluxo learns that a customer paid. Under Integrations:",
+      "steps": {
+        "account": "Enter your <strong>Stripe account ID</strong> (<code>acct_…</code>) and connect.",
+        "webhook": "In Stripe, add the webhook URL below and subscribe to the events listed in <a>Stripe events</a>."
+      },
+      "urlLabel": "Webhook URL",
+      "idempotentTitle": "Redeliveries never duplicate a commission",
+      "idempotentBody": "Every event is verified by its signature and recorded exactly once. If Stripe sends it again, it is acknowledged and ignored.",
+      "currencyTitle": "Same currency as the program",
+      "currencyBody": "A payment only earns a commission in the program's currency. A BRL program ignores USD payments."
+    },
+    "commission": {
+      "title": "How the commission is calculated",
+      "lead": "On a 30% program, a confirmed payment earns the commission below for the affiliate who owns the attribution.",
+      "payment": "Payment",
+      "rate": "Commission",
+      "result": "Result",
+      "implementation": "How it is stored",
+      "implementationBody": "Money is stored in the currency's minor units (cents) and percentages in basis points (1% = 100). Rounding is always half-up on integers — never floating point.",
+      "conditionsTitle": "A commission is only earned when",
+      "conditions": {
+        "approved": "the affiliate's participation is approved;",
+        "currency": "the payment is in the program's currency;",
+        "window": "the first payment happens within the attribution window;",
+        "duration": "renewals happen within the program's duration (first payment, N months or for as long as the customer pays)."
+      },
+      "lifecycleTitle": "Commission lifecycle",
+      "lifecycle": {
+        "pending": "<strong>Pending</strong> — during the program's hold period.",
+        "available": "<strong>Available</strong> — can go into a payout batch.",
+        "approved": "<strong>Approved</strong> — in a batch awaiting payment.",
+        "paid": "<strong>Paid</strong> — the batch was marked as paid.",
+        "reversed": "<strong>Reversed</strong> — a refund created a negative reversal. Nothing is deleted."
+      }
+    },
+    "verify": {
+      "title": "Verify the integration",
+      "lead": "Walk the whole path with a test affiliate:",
+      "steps": {
+        "click": "Open your site with <code>?ref=</code> and the affiliate's code. <strong>Affiliates</strong> shows the click.",
+        "identify": "Create a test account. Identify responds with <code>attributionsBound</code> greater than zero.",
+        "payment": "Make a test payment in Stripe for that customer. <strong>Conversions</strong> shows the payment.",
+        "commission": "<strong>Commissions</strong> shows the commission as Pending."
+      },
+      "doneTitle": "Integration complete",
+      "doneBody": "A pending commission under Commissions means the click, identification, webhook and calculation all worked end to end."
+    },
+    "attribution": {
+      "title": "Attribution",
+      "lead": "Attribution decides which affiliate gets credit for a customer. Each program picks the model and the window.",
+      "windowTitle": "Attribution window",
+      "windowBody": "How many days may pass between the click and the first payment for the sale to count for the affiliate. Once the customer converts, renewals follow the program's duration, not the window. New programs start at 60 days.",
+      "firstClickTitle": "First click",
+      "firstClickBody": "The first affiliate who brought the visitor keeps the credit while the window is open, even if another link is clicked later.",
+      "lastClickTitle": "Last click",
+      "lastClickBody": "The affiliate of the most recent click gets the credit, and the window restarts with every new click. This is the default for new programs."
+    },
+    "holdPeriod": {
+      "title": "Hold period",
+      "body": "How many days a commission stays pending before it can be paid. It covers refunds: if the payment is refunded during this period, the commission is reversed before anyone is paid. New programs start at 30 days."
+    },
+    "apiKeys": {
+      "title": "API keys",
+      "lead": "Each workspace has two kinds of key, generated under Integrations.",
+      "publishable": {
+        "title": "Publishable key",
+        "where": "Safe in the browser",
+        "uses": {
+          "tracker": "In your site's tracker (<code>data-key</code>).",
+          "clicks": "Only records clicks; it cannot read or change data."
+        }
+      },
+      "secret": {
+        "title": "Secret key",
+        "where": "Server only",
+        "uses": {
+          "identify": "In your backend's calls to <code>/api/identify</code>.",
+          "env": "In environment variables — never in the repository or the browser bundle."
+        }
+      },
+      "rotateTitle": "Generating a new key invalidates the old one",
+      "rotateBody": "The switch is immediate. Update the tracker (publishable key) or your server variables (secret key) right after."
+    },
+    "identifyApi": {
+      "title": "Identify API",
+      "method": "Method",
+      "endpoint": "Endpoint",
+      "auth": "Authentication",
+      "authValue": "<code>Authorization: Bearer sk_live_…</code> (secret key)",
+      "body": "Body",
+      "bodyValue": "JSON — see <a>Fields</a>",
+      "rateLimit": "Rate limit",
+      "rateLimitValue": "{count} requests per minute per IP",
+      "cors": "CORS",
+      "corsValue": "Not enabled — server-to-server call"
+    },
+    "webhookEvents": {
+      "title": "Stripe events",
+      "lead": "Subscribe to these events on the webhook endpoint. Other events are received and ignored.",
+      "event": "Event",
+      "records": "What it records",
+      "types": {
+        "payment": "Invoice payment → may earn a commission",
+        "oneOffPayment": "One-off payment (no invoice) → may earn a commission",
+        "refund": "Refund → commission reversal",
+        "chargeback": "Dispute → commission reversal",
+        "subscription": "Subscription created or changed",
+        "subscriptionCancelled": "Subscription cancelled"
+      }
+    },
+    "errors": {
+      "title": "Errors",
+      "lead": "The APIs respond with JSON <code>{json}</code> and the matching HTTP status.",
+      "code": "Code",
+      "status": "HTTP",
+      "meaning": "When it happens",
+      "items": {
+        "missing_credentials": "The <code>Authorization: Bearer</code> header was not sent.",
+        "unauthorized": "The key is malformed, invalid or not a secret key.",
+        "invalid_payload": "The body is not valid JSON for the contract.",
+        "invalid_visitor": "<code>visitorId</code> does not follow the <code>v_…</code> format.",
+        "validation_error": "A required field is empty.",
+        "unknown_key": "Tracker: the publishable key belongs to no workspace.",
+        "invalid_ref": "Tracker: the referral code has an invalid format.",
+        "rate_limited": "Limit exceeded. Honour the <code>Retry-After</code> header.",
+        "internal_error": "Unexpected failure on our side. Try again."
       }
     }
   },

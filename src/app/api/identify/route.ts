@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { z } from "zod"
 
+import { IDENTIFY_RATE_LIMIT, identifyBodySchema } from "@/lib/api/contract"
 import { logger } from "@/lib/logger"
 import { clientIp, rateLimit } from "@/lib/rate-limit"
 import { isValidVisitorId } from "@/lib/tracking/visitor"
@@ -16,17 +17,11 @@ export const dynamic = "force-dynamic"
  * reassign commissions, so this endpoint accepts a SECRET key and nothing else
  * — and deliberately sends no CORS headers. See ARCHITECTURE.md §3.2.
  */
-const bodySchema = z.object({
-  visitorId: z.string().min(4).max(64),
-  externalId: z.string().min(1).max(200),
-  providerCustomerId: z.string().max(200).nullish(),
-  provider: z.enum(["stripe", "paddle", "manual"]).optional(),
-  email: z.string().email().max(320).nullish(),
-})
+const bodySchema = identifyBodySchema
 
 export async function POST(request: NextRequest) {
   const limit = rateLimit(`identify:${clientIp(request.headers)}`, {
-    limit: 120,
+    limit: IDENTIFY_RATE_LIMIT,
     windowSeconds: 60,
   })
   if (!limit.ok) {

@@ -504,25 +504,283 @@
     }
   },
   "docs": {
-    "metaTitle": "Documentação",
-    "title": "Guia de integração",
-    "subtitle": "Quatro passos entre um workspace novo e um programa de indicação funcionando.",
-    "sections": {
-      "install": {
-        "title": "Instale o tracker",
-        "body": "Cole o snippet antes de </head> no site para onde seus afiliados apontam. Ele lê ?ref= da URL, grava um cookie first-party chamado _referral_id (SameSite=Lax, um ano) e envia o clique para o IndicaFluxo."
+    "metaTitle": "Guia de integração",
+    "metaDescription": "Instale o tracker, identifique clientes no servidor, receba os pagamentos do Stripe e veja a primeira comissão registrada no IndicaFluxo.",
+    "header": {
+      "docs": "Docs",
+      "dashboard": "Painel",
+      "signUp": "Criar conta",
+      "openMenu": "Abrir navegação da documentação",
+      "closeMenu": "Fechar navegação"
+    },
+    "nav": {
+      "label": "Documentação",
+      "onThisPage": "Nesta página",
+      "groups": {
+        "start": "Começando",
+        "quickstart": "Guia rápido",
+        "concepts": "Conceitos",
+        "security": "Segurança",
+        "reference": "Referência"
       },
-      "identify": {
-        "title": "Identifique o cliente",
-        "body": "Um clique sozinho não prova nada. Quando alguém se cadastrar, chame o identify A PARTIR DO SEU SERVIDOR com a sua chave secreta. Nunca do navegador: um id de cliente enviado pelo browser poderia ser usado para redirecionar comissões."
+      "sections": {
+        "introduction": "Introdução",
+        "howItWorks": "Como funciona",
+        "prerequisites": "Antes de começar",
+        "installTracker": "Instalar o tracker",
+        "identifyCustomer": "Identificar o cliente",
+        "connectStripe": "Conectar o Stripe",
+        "commission": "Calcular a comissão",
+        "verify": "Validar a integração",
+        "attribution": "Atribuição",
+        "holdPeriod": "Período de retenção",
+        "apiKeys": "Chaves de API",
+        "identifyApi": "API de identificação",
+        "webhookEvents": "Eventos do Stripe",
+        "errors": "Erros"
       },
-      "webhook": {
-        "title": "Aponte seu webhook para o IndicaFluxo",
-        "body": "Adicione o endpoint no Stripe e assine invoice.payment_succeeded, charge.refunded, charge.dispute.created, customer.subscription.updated e customer.subscription.deleted. Todo evento é verificado e depois reivindicado exatamente uma vez, então uma reentrega nunca cria uma segunda comissão."
+      "subsections": {
+        "trackerDetails": "O que o tracker faz",
+        "visitorId": "De onde vem o visitorId",
+        "identifyFields": "Campos",
+        "commissionLifecycle": "Ciclo da comissão",
+        "attributionWindow": "Janela de atribuição",
+        "firstClick": "Primeiro clique",
+        "lastClick": "Último clique"
+      }
+    },
+    "breadcrumb": {
+      "docs": "Docs",
+      "current": "Guia de integração",
+      "label": "Trilha de navegação"
+    },
+    "code": {
+      "copy": "Copiar",
+      "samples": "Exemplos de código"
+    },
+    "heading": {
+      "copyLink": "Copiar link para “{title}”",
+      "copied": "Link copiado"
+    },
+    "footer": {
+      "rights": "© {year} IndicaFluxo",
+      "pricing": "Preços",
+      "dashboard": "Painel",
+      "home": "Site"
+    },
+    "intro": {
+      "title": "Guia de integração",
+      "lead": "Integre o IndicaFluxo ao seu SaaS: registre cliques de afiliados, identifique quem virou cliente e veja a primeira comissão aparecer no painel.",
+      "outcome": "Ao final você terá um clique atribuído, um cliente identificado e uma comissão pendente em Comissões."
+    },
+    "howItWorks": {
+      "title": "Como funciona",
+      "lead": "Uma indicação passa por cinco momentos. Você cuida de dois deles com código; o resto o IndicaFluxo faz.",
+      "flowLabel": "Fluxo de uma indicação",
+      "you": "Você",
+      "platform": "IndicaFluxo",
+      "steps": {
+        "click": {
+          "title": "Clique",
+          "body": "O visitante chega ao seu site pelo link do afiliado, com <code>?ref=codigo</code>."
+        },
+        "track": {
+          "title": "Registro da visita",
+          "body": "O tracker guarda um identificador de visitante e registra o clique."
+        },
+        "identify": {
+          "title": "Cadastro",
+          "body": "Seu servidor informa quem é o cliente com <code>POST /api/identify</code>."
+        },
+        "payment": {
+          "title": "Pagamento",
+          "body": "O Stripe envia o pagamento por webhook."
+        },
+        "commission": {
+          "title": "Comissão",
+          "body": "A regra do programa calcula e registra a comissão do afiliado."
+        }
+      }
+    },
+    "prerequisites": {
+      "title": "Antes de começar",
+      "items": {
+        "program": "Um <strong>programa ativo</strong> com o site do produto preenchido (Programas → Novo programa).",
+        "affiliate": "Pelo menos <strong>um afiliado aprovado</strong> — só participações aprovadas geram comissão.",
+        "keys": "A <strong>chave pública</strong> e a <strong>chave secreta</strong>, geradas em Integrações.",
+        "stripe": "Sua <strong>conta Stripe</strong> informada em Integrações.",
+        "access": "Acesso ao HTML do seu site e ao código do seu backend."
       },
-      "commission": {
-        "title": "Leia a comissão",
-        "body": "Quando o Stripe confirma R$ 49,00 num programa de 30%, o IndicaFluxo grava uma comissão de R$ 14,70 para o afiliado dono da atribuição, segura pelo período de retenção do programa e então libera para pagamento. Um estorno adiciona uma reversão de −R$ 14,70 e marca a original como revertida; nada é apagado."
+      "keysOnceTitle": "As chaves aparecem uma vez",
+      "keysOnceBody": "Cada chave só é exibida no momento em que é gerada. Guarde a secreta num gerenciador de segredos; se perder, gere uma nova (a anterior para de funcionar na hora)."
+    },
+    "installTracker": {
+      "title": "Instale o tracker no seu site",
+      "lead": "Cole a tag antes de <code>{head}</code> em todas as páginas para onde seus afiliados apontam. Use a chave pública.",
+      "filename": "index.html",
+      "detailsTitle": "O que o tracker faz",
+      "details": {
+        "params": "Procura o código de indicação nos parâmetros <params></params> da URL.",
+        "cookie": "Guarda um identificador de visitante (<code>v_…</code>) no cookie <code>{cookie}</code> do seu próprio domínio, por {days} dias, com <code>SameSite=Lax</code> (e <code>Secure</code> em HTTPS).",
+        "send": "Quando há código na URL, envia o clique para <code>/api/track</code> e expõe <code>window.Referral.visitorId</code> para a página.",
+        "noRef": "Sem código na URL, só renova o cookie — nada é enviado."
+      },
+      "testTitle": "Teste agora",
+      "testBody": "Abra seu site com <code>?ref=</code> seguido do código de um afiliado. O clique aparece em Afiliados, na coluna Cliques."
+    },
+    "identifyCustomer": {
+      "title": "Identifique o cliente no seu servidor",
+      "lead": "Um clique sozinho não gera comissão. Quando o visitante cria conta — ou quando você cria o cliente no Stripe — chame <code>POST /api/identify</code> do seu backend com a chave secreta. Isso liga o visitante ao cliente.",
+      "securityTitle": "Somente no servidor",
+      "securityBody": "Nunca envie a chave secreta ao navegador nem chame <code>/api/identify</code> pelo front-end. A rota não aceita requisições do navegador de propósito: um id de cliente vindo do browser permitiria desviar comissões.",
+      "visitorIdTitle": "De onde vem o visitorId",
+      "visitorIdBody": "O tracker grava o cookie <code>{cookie}</code> no domínio do seu site. Se o seu backend atende o cadastro no mesmo domínio, o cookie já chega na requisição — leia o valor dele. Se não, envie <code>window.Referral?.visitorId</code> junto com o formulário de cadastro.",
+      "response": "Resposta",
+      "responseBody": "<code>attributionsBound</code> indica quantas atribuições abertas desse visitante foram ligadas ao cliente. <code>0</code> significa que o visitante não chegou por um link de afiliado ativo.",
+      "fieldsTitle": "Campos",
+      "stripeIdTitle": "Envie o providerCustomerId",
+      "stripeIdBody": "O pagamento do Stripe encontra o afiliado pelo id do cliente no Stripe. Sem <code>providerCustomerId</code>, o pagamento é registrado sem comissão. Se o cliente do Stripe ainda não existe no cadastro, chame o identify de novo quando criá-lo, com o mesmo <code>externalId</code>."
+    },
+    "fields": {
+      "name": "Campo",
+      "type": "Tipo",
+      "description": "Descrição",
+      "required": "obrigatório",
+      "optional": "opcional",
+      "visitorId": "Identificador do visitante: <code>v_</code> seguido de 16 a 48 letras minúsculas ou números.",
+      "externalId": "Id do usuário no seu sistema (até 200 caracteres). Chamadas repetidas com o mesmo valor atualizam o mesmo cliente.",
+      "providerCustomerId": "Id do cliente no Stripe (<code>cus_…</code>). Necessário para gerar comissão.",
+      "email": "E-mail do cliente. Guardado apenas como hash.",
+      "provider": "Provedor de cobrança. Padrão <code>stripe</code>, o único integrado hoje."
+    },
+    "connectStripe": {
+      "title": "Conecte o Stripe e receba os pagamentos",
+      "lead": "É pelo webhook do Stripe que o IndicaFluxo sabe que um cliente pagou. Em Integrações:",
+      "steps": {
+        "account": "Informe o <strong>ID da conta Stripe</strong> (<code>acct_…</code>) e conecte.",
+        "webhook": "No Stripe, adicione a URL de webhook abaixo e assine os eventos listados em <a>Eventos do Stripe</a>."
+      },
+      "urlLabel": "URL do webhook",
+      "idempotentTitle": "Reentregas não duplicam comissão",
+      "idempotentBody": "Cada evento é verificado pela assinatura e registrado uma única vez. Se o Stripe reenviar, o evento é reconhecido e ignorado.",
+      "currencyTitle": "Mesma moeda do programa",
+      "currencyBody": "Um pagamento só gera comissão se estiver na moeda do programa. Um programa em BRL ignora pagamentos em USD."
+    },
+    "commission": {
+      "title": "Entenda como a comissão é calculada",
+      "lead": "Para um programa de 30%, um pagamento confirmado gera a comissão abaixo para o afiliado dono da atribuição.",
+      "payment": "Pagamento",
+      "rate": "Comissão",
+      "result": "Resultado",
+      "implementation": "Como é armazenado",
+      "implementationBody": "Dinheiro é guardado em unidades mínimas da moeda (centavos) e percentuais em basis points (1% = 100). O arredondamento é sempre meio para cima, sobre inteiros — nunca ponto flutuante.",
+      "conditionsTitle": "A comissão só é gerada quando",
+      "conditions": {
+        "approved": "a participação do afiliado está aprovada;",
+        "currency": "o pagamento está na moeda do programa;",
+        "window": "o primeiro pagamento acontece dentro da janela de atribuição;",
+        "duration": "as renovações acontecem dentro da duração do programa (primeiro pagamento, N meses ou enquanto o cliente pagar)."
+      },
+      "lifecycleTitle": "Ciclo da comissão",
+      "lifecycle": {
+        "pending": "<strong>Pendente</strong> — durante o período de retenção do programa.",
+        "available": "<strong>Disponível</strong> — pode entrar num lote de pagamento.",
+        "approved": "<strong>Aprovada</strong> — está num lote aguardando pagamento.",
+        "paid": "<strong>Paga</strong> — o lote foi marcado como pago.",
+        "reversed": "<strong>Revertida</strong> — um estorno criou uma reversão negativa. Nada é apagado."
+      }
+    },
+    "verify": {
+      "title": "Valide a integração",
+      "lead": "Faça o caminho completo com um afiliado de teste:",
+      "steps": {
+        "click": "Abra seu site com <code>?ref=</code> e o código do afiliado. <strong>Afiliados</strong> mostra o clique.",
+        "identify": "Crie uma conta de teste. O identify responde <code>attributionsBound</code> maior que zero.",
+        "payment": "Faça um pagamento de teste no Stripe para esse cliente. <strong>Conversões</strong> mostra o pagamento.",
+        "commission": "<strong>Comissões</strong> mostra a comissão como Pendente."
+      },
+      "doneTitle": "Integração concluída",
+      "doneBody": "Uma comissão pendente em Comissões significa que clique, identificação, webhook e cálculo funcionaram de ponta a ponta."
+    },
+    "attribution": {
+      "title": "Atribuição",
+      "lead": "Atribuição é a decisão de qual afiliado recebe o crédito por um cliente. Cada programa escolhe o modelo e a janela.",
+      "windowTitle": "Janela de atribuição",
+      "windowBody": "Quantos dias podem passar entre o clique e o primeiro pagamento para a venda contar para o afiliado. Depois que o cliente converte, as renovações seguem a duração do programa, não a janela. Programas novos começam com 60 dias.",
+      "firstClickTitle": "Primeiro clique",
+      "firstClickBody": "O primeiro afiliado que trouxe o visitante mantém o crédito enquanto a janela estiver aberta, mesmo que outro link seja clicado depois.",
+      "lastClickTitle": "Último clique",
+      "lastClickBody": "O afiliado do clique mais recente fica com o crédito, e a janela recomeça a cada novo clique. É o padrão de programas novos."
+    },
+    "holdPeriod": {
+      "title": "Período de retenção",
+      "body": "Por quantos dias uma comissão fica pendente antes de poder ser paga. Serve para cobrir estornos: se o pagamento for estornado nesse período, a comissão é revertida antes de alguém receber. Programas novos começam com 30 dias."
+    },
+    "apiKeys": {
+      "title": "Chaves de API",
+      "lead": "Cada workspace tem dois tipos de chave, geradas em Integrações.",
+      "publishable": {
+        "title": "Chave pública",
+        "where": "Pode ficar no navegador",
+        "uses": {
+          "tracker": "No tracker do seu site (<code>data-key</code>).",
+          "clicks": "Só registra cliques; não lê nem altera dados."
+        }
+      },
+      "secret": {
+        "title": "Chave secreta",
+        "where": "Só no servidor",
+        "uses": {
+          "identify": "Nas chamadas do seu backend a <code>/api/identify</code>.",
+          "env": "Em variáveis de ambiente, nunca no repositório nem no bundle do navegador."
+        }
+      },
+      "rotateTitle": "Gerar uma nova chave invalida a anterior",
+      "rotateBody": "A troca é imediata. Atualize o tracker (chave pública) ou as variáveis do servidor (chave secreta) logo depois."
+    },
+    "identifyApi": {
+      "title": "API de identificação",
+      "method": "Método",
+      "endpoint": "Endpoint",
+      "auth": "Autenticação",
+      "authValue": "<code>Authorization: Bearer sk_live_…</code> (chave secreta)",
+      "body": "Corpo",
+      "bodyValue": "JSON — veja <a>Campos</a>",
+      "rateLimit": "Limite",
+      "rateLimitValue": "{count} requisições por minuto por IP",
+      "cors": "CORS",
+      "corsValue": "Não habilitado — chamada servidor a servidor"
+    },
+    "webhookEvents": {
+      "title": "Eventos do Stripe",
+      "lead": "Assine estes eventos no endpoint do webhook. Outros eventos são recebidos e ignorados.",
+      "event": "Evento",
+      "records": "O que registra",
+      "types": {
+        "payment": "Pagamento de fatura → pode gerar comissão",
+        "oneOffPayment": "Pagamento avulso (sem fatura) → pode gerar comissão",
+        "refund": "Estorno → reversão da comissão",
+        "chargeback": "Disputa → reversão da comissão",
+        "subscription": "Criação ou mudança de assinatura",
+        "subscriptionCancelled": "Cancelamento de assinatura"
+      }
+    },
+    "errors": {
+      "title": "Erros",
+      "lead": "As APIs respondem com JSON <code>{json}</code> e o status HTTP correspondente.",
+      "code": "Código",
+      "status": "HTTP",
+      "meaning": "Quando acontece",
+      "items": {
+        "missing_credentials": "O header <code>Authorization: Bearer</code> não foi enviado.",
+        "unauthorized": "A chave está malformada, é inválida ou não é secreta.",
+        "invalid_payload": "O corpo não é um JSON válido para o contrato.",
+        "invalid_visitor": "O <code>visitorId</code> não segue o formato <code>v_…</code>.",
+        "validation_error": "Um campo obrigatório está vazio.",
+        "unknown_key": "Tracker: a chave pública não pertence a nenhum workspace.",
+        "invalid_ref": "Tracker: o código de indicação tem formato inválido.",
+        "rate_limited": "Limite excedido. Respeite o header <code>Retry-After</code>.",
+        "internal_error": "Falha inesperada do nosso lado. Tente de novo."
       }
     }
   },

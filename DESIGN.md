@@ -108,6 +108,7 @@ If you add a token, add it twice.
 | `scrim` | black 55% | ink 32% | Dialog and drawer backdrop |
 | `on-danger` | void | white | Text on a solid danger fill (confirm button) |
 | `select-chevron` | fog chevron | zinc chevron | Native select arrow, per theme |
+| `shiki-token-*` | mist / lavender / mint / teal / ochre | darker steps | Syntax highlighting in docs code blocks (≥ 4.5:1 on `surface-2`) |
 | `chart-1 … chart-6` | amber, teal, lavender, green, coral, fog | darker steps | Data series, in order |
 
 Elevation tokens: `shadow-ring` (inset hairline), `shadow-overlay` (floating
@@ -469,6 +470,14 @@ outcomes. A form that can show inline success must not fire a toast.
   `(marketing)/_components/visuals.tsx`. One amber action per viewport; mock
   buttons inside visuals are secondary. Claims must be true in the code
   (Stripe only; no invented customers, logos or numbers).
+- Docs: own route group. Docs bar (brand / Docs, language, theme, Painel, one
+  amber sign-up), then at `max-w-docs` (1440px) a sticky section sidebar
+  (14rem) · reading column (48rem) · "Nesta página" outline (12rem, from `xl`);
+  below `lg` the sidebar is a drawer. Every H2/H3 is anchored with a hover
+  copy-link. Code samples use `CodeBlock`/`CodeTabs` (Shiki at build time,
+  `--shiki-token-*` colour tokens per theme, copy in the header), identifiers
+  in prose use `InlineCode`, and `Callout` (info/success/warning/danger) is
+  rationed. Compact footer. No search box until search exists.
 - Auth: from 1024px a split — product statement and a decorative
   click → commission proof on the canvas, the form on `surface-1` behind a
   hairline; below, one column. Login, sign-up, check-your-e-mail, forgot and

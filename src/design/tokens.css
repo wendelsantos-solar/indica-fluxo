@@ -67,6 +67,8 @@
   --color-signal-teal: #4cc9d6;
   --color-signal-teal-deep: #0a6f7c;
   --color-lavender: #9d8cf6;
+  /* Syntax strings on dark surfaces. */
+  --color-mint: #8fd4a8;
   --color-iris-violet-deep: #4348c9;
 }
 
@@ -147,6 +149,21 @@
     rgb(0 0 0 / 0.01) 0 5px 2px 0, rgb(0 0 0 / 0.04) 0 3px 2px 0, rgb(0 0 0 / 0.07) 0 1px 1px 0,
     rgb(0 0 0 / 0.08) 0 0 1px 0;
 
+
+  /* Syntax highlighting (Shiki css-variables theme). Low-saturation, on
+   * surface-2; every token clears 4.5:1 against it. */
+  --shiki-foreground: var(--color-zinc-800);
+  --shiki-background: transparent;
+  --shiki-token-comment: var(--color-zinc-600);
+  --shiki-token-keyword: var(--color-iris-violet-deep);
+  --shiki-token-string: var(--color-pulse-green-deep);
+  --shiki-token-string-expression: var(--color-pulse-green-deep);
+  --shiki-token-function: var(--color-signal-teal-deep);
+  --shiki-token-constant: var(--color-ochre-deep);
+  --shiki-token-parameter: var(--color-zinc-800);
+  --shiki-token-punctuation: var(--color-zinc-650);
+  --shiki-token-link: var(--color-signal-teal-deep);
+
   --chart-1: #b07600;
   --chart-2: var(--color-signal-teal-deep);
   --chart-3: var(--color-iris-violet-deep);
@@ -224,6 +241,19 @@
   --elevation-control:
     rgb(0 0 0 / 0.01) 0 5px 2px 0, rgb(0 0 0 / 0.04) 0 3px 2px 0, rgb(0 0 0 / 0.07) 0 1px 1px 0,
     rgb(0 0 0 / 0.08) 0 0 1px 0;
+
+
+  --shiki-foreground: var(--color-mist);
+  --shiki-background: transparent;
+  --shiki-token-comment: var(--color-ash);
+  --shiki-token-keyword: var(--color-lavender);
+  --shiki-token-string: var(--color-mint);
+  --shiki-token-string-expression: var(--color-mint);
+  --shiki-token-function: var(--color-signal-teal);
+  --shiki-token-constant: var(--color-ochre);
+  --shiki-token-parameter: var(--color-mist);
+  --shiki-token-punctuation: var(--color-fog);
+  --shiki-token-link: var(--color-signal-teal);
 
   --chart-1: var(--color-signal-amber);
   --chart-2: var(--color-signal-teal);

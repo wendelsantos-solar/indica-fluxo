@@ -205,6 +205,8 @@
   /* In-product content: wide enough for an eight-column ledger, narrow
    * enough that a detail page does not become a line of 200 characters. */
   --container-content: 1280px;
+  /* Docs: sidebar + reading column + "on this page". */
+  --container-docs: 1440px;
   --container-detail: 880px;
 
   /* ====================================================================
