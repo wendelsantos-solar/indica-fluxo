@@ -41,22 +41,23 @@ export default async function IntegrationsPage({
   const snippet = `<script defer src="${appUrl}${TRACKER_PATH}" data-key="${publishable?.keyPrefix ?? "pk_live_…"}…"></script>`
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <PageHeader
-        title={t("title")}
-        description={t("description")}
-      />
+    <>
+      <PageHeader title={t("title")} description={t("description")} />
 
-      <div className="space-y-6">
-        <StripePanel
-          workspaceSlug={workspaceSlug}
-          status={stripe?.status ?? null}
-          providerAccountId={stripe?.providerAccountId ?? null}
-          webhookUrl={`${appUrl}/api/webhooks/stripe`}
-        />
+      {/* The shell caps direct children at the content width; these sections
+          read better narrower, left-aligned with the description above. */}
+      <div>
+        <div className="max-w-detail space-y-10">
+          <StripePanel
+            workspaceSlug={workspaceSlug}
+            status={stripe?.status ?? null}
+            providerAccountId={stripe?.providerAccountId ?? null}
+            webhookUrl={`${appUrl}/api/webhooks/stripe`}
+          />
 
-        <ApiKeysPanel workspaceSlug={workspaceSlug} keys={keys} snippet={snippet} />
+          <ApiKeysPanel workspaceSlug={workspaceSlug} keys={keys} snippet={snippet} />
+        </div>
       </div>
-    </div>
+    </>
   )
 }

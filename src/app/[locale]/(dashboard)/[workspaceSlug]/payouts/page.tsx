@@ -2,12 +2,11 @@ import { CreditCard } from "lucide-react"
 import type { Metadata } from "next"
 import { getTranslations } from "next-intl/server"
 
-import { Metric } from "@/components/data-display/metric"
+import { Metric, MetricCell, MetricGrid } from "@/components/data-display/metric"
 import { getFormatters } from "@/i18n/format"
 import { EmptyState } from "@/components/feedback/empty-state"
 import { PageHeader, SectionHeader } from "@/components/layout/page-header"
 import { StatusBadge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
 import { CancelBatchButton, MarkPaidDialog } from "@/features/payouts/batch-actions"
 import { PayableList } from "@/features/payouts/payable-list"
@@ -51,35 +50,35 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
     .filter((row) => row.currency === currency)
     .reduce((sum, row) => sum + row.amountMinor, 0)
 
+  const pendingBatches = batches.filter((batch) => batch.status === "approved").length
+
   return (
     <>
-      <PageHeader
-        title={t("title")}
-        description={t("description")}
-      />
+      <PageHeader title={t("title")} description={t("description")} />
 
-      <div className="space-y-6">
-        <Card>
-          <CardContent>
+      <div className="space-y-10">
+        <MetricGrid>
+          <MetricCell>
             <Metric
               label={t("availableToPay")}
               value={f.money(availableTotal, currency)}
               comparison={t("clearedAffiliates", { count: payable.length })}
-              size="lg"
             />
-          </CardContent>
-        </Card>
+          </MetricCell>
+        </MetricGrid>
 
         <section>
-          <SectionHeader title={t("readyToPay")} />
+          <SectionHeader
+            title={t("readyToPay")}
+            count={payable.length > 0 ? f.number(payable.length) : undefined}
+          />
           {payable.length === 0 ? (
-            <Card>
-              <EmptyState
-                icon={CreditCard}
-                title={t("emptyPayable.title")}
-                description={t("emptyPayable.description")}
-              />
-            </Card>
+            <EmptyState
+              icon={CreditCard}
+              title={t("emptyPayable.title")}
+              description={t("emptyPayable.description")}
+              className="border-y border-border py-12"
+            />
           ) : (
             <PayableList
               workspaceSlug={workspaceSlug}
@@ -90,68 +89,101 @@ export default async function PayoutsPage({ params }: PageProps<"/[locale]/[work
         </section>
 
         <section>
-          <SectionHeader title={t("history")} />
+          <SectionHeader
+            title={t("history")}
+            count={batches.length > 0 ? f.number(batches.length) : undefined}
+          />
           {batches.length === 0 ? (
-            <Card>
-              <EmptyState
-                icon={CreditCard}
-                title={t("emptyHistory.title")}
-                description={t("emptyHistory.description")}
-              />
-            </Card>
+            <EmptyState
+              icon={CreditCard}
+              title={t("emptyHistory.title")}
+              description={t("emptyHistory.description")}
+              className="border-y border-border py-12"
+            />
           ) : (
-            <TableContainer scrollable>
+            <TableContainer>
               <Table>
-                <THead>
+                <THead className="max-md:hidden">
                   <tr>
                     <TH>{t("batch")}</TH>
                     <TH>{tc("period")}</TH>
                     <TH numeric>{t("affiliates")}</TH>
                     <TH numeric>{t("total")}</TH>
                     <TH>{tc("status")}</TH>
-                    <TH className="text-right">{tc("actions")}</TH>
+                    <TH className="text-right">
+                      <span className={pendingBatches === 0 ? "sr-only" : undefined}>
+                        {tc("actions")}
+                      </span>
+                    </TH>
                   </tr>
                 </THead>
                 <TBody>
-                  {batches.map((batch) => (
-                    <TR key={batch.id}>
-                      <TD className="font-medium text-foreground">{batch.reference}</TD>
-                      <TD className="text-muted-foreground">
-                        {f.date(batch.periodStart)} → {f.date(batch.periodEnd)}
-                      </TD>
-                      <TD numeric>{f.number(batch.affiliateCount)}</TD>
-                      <TD numeric className="font-medium text-foreground">
-                        {f.money(batch.totalAmountMinor, batch.currency)}
-                      </TD>
-                      <TD>
-                        <StatusBadge status={batch.status} />
-                      </TD>
-                      <TD>
-                        <div className="flex items-center justify-end gap-1">
-                          {batch.status === "approved" ? (
-                            <>
-                              <CancelBatchButton
-                                workspaceSlug={workspaceSlug}
-                                batchId={batch.id}
-                              />
-                              <MarkPaidDialog
-                                workspaceSlug={workspaceSlug}
-                                batchId={batch.id}
-                                reference={batch.reference}
-                                affiliateCount={batch.affiliateCount}
-                                totalAmountMinor={batch.totalAmountMinor}
-                                currency={batch.currency}
-                              />
-                            </>
-                          ) : batch.paidAt ? (
-                            <span className="text-meta text-muted-foreground">
-                              {t("paidOn", { date: f.date(batch.paidAt) })}
+                  {batches.map((batch) => {
+                    const period = `${f.date(batch.periodStart)} → ${f.date(batch.periodEnd)}`
+                    const total = f.money(batch.totalAmountMinor, batch.currency)
+                    // Rendered twice: in its own column on wide screens and
+                    // under the stacked row on phones. Only one is visible.
+                    const actions =
+                      batch.status === "approved" ? (
+                        <>
+                          <CancelBatchButton workspaceSlug={workspaceSlug} batchId={batch.id} />
+                          <MarkPaidDialog
+                            workspaceSlug={workspaceSlug}
+                            batchId={batch.id}
+                            reference={batch.reference}
+                            affiliateCount={batch.affiliateCount}
+                            totalAmountMinor={batch.totalAmountMinor}
+                            currency={batch.currency}
+                          />
+                        </>
+                      ) : null
+                    return (
+                      <TR key={batch.id}>
+                        <TD className="max-md:py-2.5">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="truncate font-mono text-meta text-foreground">
+                              {batch.reference}
                             </span>
+                            <StatusBadge status={batch.status} className="md:hidden" />
+                          </div>
+                          <span className="mt-0.5 flex gap-3 text-meta text-muted-foreground md:hidden">
+                            <span className="truncate">{period}</span>
+                            <span className="ml-auto shrink-0 tabular-nums text-foreground-secondary">
+                              {total}
+                            </span>
+                          </span>
+                          {actions ? (
+                            <div className="mt-2 flex items-center justify-end gap-1 md:hidden">
+                              {actions}
+                            </div>
                           ) : null}
-                        </div>
-                      </TD>
-                    </TR>
-                  ))}
+                        </TD>
+                        <TD className="whitespace-nowrap text-muted-foreground max-md:hidden">
+                          {period}
+                        </TD>
+                        <TD numeric className="max-md:hidden">
+                          {f.number(batch.affiliateCount)}
+                        </TD>
+                        <TD numeric className="text-foreground max-md:hidden">
+                          {total}
+                        </TD>
+                        <TD className="max-md:hidden">
+                          <StatusBadge status={batch.status} />
+                        </TD>
+                        <TD className="max-md:hidden">
+                          <div className="flex items-center justify-end gap-1">
+                            {batch.status === "approved" ? (
+                              actions
+                            ) : batch.paidAt ? (
+                              <span className="whitespace-nowrap text-meta text-muted-foreground">
+                                {t("paidOn", { date: f.date(batch.paidAt) })}
+                              </span>
+                            ) : null}
+                          </div>
+                        </TD>
+                      </TR>
+                    )
+                  })}
                 </TBody>
               </Table>
             </TableContainer>

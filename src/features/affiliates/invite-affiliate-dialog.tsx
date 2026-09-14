@@ -27,12 +27,18 @@ export function InviteAffiliateDialog({
   workspaceSlug,
   programs,
   defaultProgramId,
-  triggerLabel = "Invite affiliate",
+  triggerLabel,
+  triggerVariant = "primary",
+  triggerSize = "sm",
 }: {
   workspaceSlug: string
   programs: { id: string; name: string }[]
   defaultProgramId?: string
+  /** Defaults to the translated "Add affiliate". */
   triggerLabel?: string
+  /** Page headers use the small amber trigger; an empty state may want `md`. */
+  triggerVariant?: "primary" | "secondary"
+  triggerSize?: "sm" | "md"
 }) {
   const t = useTranslations("forms.inviteAffiliate")
   const ta = useTranslations("common.actions")
@@ -46,9 +52,9 @@ export function InviteAffiliateDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="primary">
+        <Button variant={triggerVariant} size={triggerSize}>
           <Plus aria-hidden="true" />
-          {triggerLabel}
+          {triggerLabel ?? t("submit")}
         </Button>
       </DialogTrigger>
 
@@ -113,7 +119,10 @@ export function InviteAffiliateDialog({
             </Field>
 
             {state.error ? (
-              <p role="alert" className="rounded-control bg-danger-subtle px-3 py-2 text-meta text-danger-foreground">
+              <p
+                role="alert"
+                className="rounded-control border border-danger/30 bg-danger-subtle px-3 py-2 text-meta text-danger-foreground"
+              >
                 {state.error}
               </p>
             ) : null}

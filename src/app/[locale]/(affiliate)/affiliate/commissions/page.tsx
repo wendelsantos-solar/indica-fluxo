@@ -3,11 +3,13 @@ import type { Metadata } from "next"
 import { getTranslations } from "next-intl/server"
 
 import { EmptyState } from "@/components/feedback/empty-state"
-import { getFormatters } from "@/i18n/format"
 import { PageHeader } from "@/components/layout/page-header"
 import { StatusBadge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
+import { getFormatters } from "@/i18n/format"
+import { Link } from "@/i18n/navigation"
+import { cn } from "@/lib/utils"
 import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
 import { listParticipationsForUser } from "@/server/repositories/affiliates"
@@ -22,6 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function AffiliateCommissionsPage() {
   const t = await getTranslations("portal.commissions")
+  const to = await getTranslations("portal.overview")
   const tc = await getTranslations("common.table")
   const f = await getFormatters()
   const user = await requireUser()
@@ -38,21 +41,25 @@ export default async function AffiliateCommissionsPage() {
     <>
       <PageHeader
         title={t("title")}
+        meta={rows.length > 0 ? <span>{f.number(rows.length)}</span> : undefined}
         description={t("description")}
       />
 
       {rows.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon={Coins}
-            title={t("empty.title")}
-            description={t("empty.description")}
-          />
-        </Card>
+        <EmptyState
+          icon={Coins}
+          title={t("empty.title")}
+          description={t("empty.description")}
+          action={
+            <Button asChild variant="secondary">
+              <Link href="/affiliate/links">{to("yourLinks")}</Link>
+            </Button>
+          }
+        />
       ) : (
-        <>
-          {/* Desktop: the full financial table. */}
-          <TableContainer scrollable className="hidden sm:block">
+        <div>
+          {/* From `md`: the full financial table. */}
+          <TableContainer scrollable className="hidden md:block">
             <Table>
               <THead>
                 <tr>
@@ -68,7 +75,7 @@ export default async function AffiliateCommissionsPage() {
               <TBody>
                 {rows.map((row) => (
                   <TR key={row.id}>
-                    <TD className="text-muted-foreground">
+                    <TD className="whitespace-nowrap text-muted-foreground">
                       {f.date(row.createdAt)}
                     </TD>
                     <TD>{row.programName}</TD>
@@ -79,11 +86,10 @@ export default async function AffiliateCommissionsPage() {
                     </TD>
                     <TD
                       numeric
-                      className={
-                        row.commissionAmountMinor < 0
-                          ? "font-medium text-danger-foreground"
-                          : "font-medium text-foreground"
-                      }
+                      className={cn(
+                        "font-medium",
+                        row.commissionAmountMinor < 0 ? "text-danger-foreground" : "text-foreground",
+                      )}
                     >
                       {f.money(row.commissionAmountMinor, row.currency)}
                     </TD>
@@ -96,40 +102,37 @@ export default async function AffiliateCommissionsPage() {
             </Table>
           </TableContainer>
 
-          {/* Mobile: one card per commission — spec §41. */}
-          <ul className="space-y-2 sm:hidden">
+          {/* Below `md`: stacked rows between hairlines — never a sideways scroll. */}
+          <ul className="divide-y divide-border-faint border-y border-border md:hidden">
             {rows.map((row) => (
-              <li key={row.id}>
-                <Card>
-                  <CardContent className="space-y-2 p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-caption font-medium text-foreground">
-                          {row.programName}
-                        </p>
-                        <p className="font-mono text-label text-muted-foreground">
-                          {row.customerRef}
-                        </p>
-                      </div>
-                      <StatusBadge status={row.status} />
-                    </div>
-                    <div className="flex items-baseline justify-between gap-3">
-                      <span className="text-meta text-muted-foreground">
-                        {t("mobileSummary", {
-                          date: f.date(row.createdAt),
-                          amount: f.money(row.baseAmountMinor, row.currency),
-                        })}
-                      </span>
-                      <span className="text-body-sm font-medium tabular-nums text-foreground">
-                        {f.money(row.commissionAmountMinor, row.currency)}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
+              <li key={row.id} className="flex items-start justify-between gap-4 px-1 py-3">
+                <div className="min-w-0 space-y-0.5">
+                  <p className="truncate text-ui text-foreground">{row.programName}</p>
+                  <p className="text-meta text-muted-foreground">
+                    {t("mobileSummary", {
+                      date: f.date(row.createdAt),
+                      amount: f.money(row.baseAmountMinor, row.currency),
+                    })}
+                  </p>
+                  <p className="truncate font-mono text-label text-faint-foreground">
+                    {row.customerRef}
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1.5">
+                  <span
+                    className={cn(
+                      "text-ui font-medium tabular-nums",
+                      row.commissionAmountMinor < 0 ? "text-danger-foreground" : "text-foreground",
+                    )}
+                  >
+                    {f.money(row.commissionAmountMinor, row.currency)}
+                  </span>
+                  <StatusBadge status={row.status} />
+                </div>
               </li>
             ))}
           </ul>
-        </>
+        </div>
       )}
     </>
   )

@@ -14,7 +14,7 @@ import { PageHeader, SectionHeader } from "@/components/layout/page-header"
 import { StatusBadge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { MetricSkeleton, TableSkeleton } from "@/components/ui/skeleton"
+import { MetricSkeleton, Skeleton, TableSkeleton } from "@/components/ui/skeleton"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
 import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
@@ -94,64 +94,89 @@ async function OverviewContent({ slug }: { slug: string }) {
 
   if (!hasData) {
     return (
-      <Card>
-        <EmptyState
-          icon={Users}
-          title={t("empty.title")}
-          description={t("empty.description")}
-          action={
-            <Button asChild variant="primary">
-              <Link href={{ pathname: "/[workspaceSlug]/programs/new", params: { workspaceSlug: slug } }}>{t("empty.action")}</Link>
-            </Button>
-          }
-        />
-      </Card>
+      <EmptyState
+        icon={Users}
+        title={t("empty.title")}
+        description={t("empty.description")}
+        action={
+          <Button asChild variant="primary">
+            <Link href={{ pathname: "/[workspaceSlug]/programs/new", params: { workspaceSlug: slug } }}>{t("empty.action")}</Link>
+          </Button>
+        }
+      />
     )
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardContent className="flex flex-wrap items-end justify-between gap-6">
-          <Metric
-            label={t("metrics.revenue")}
-            value={f.money(overview.revenueMinor, overview.currency)}
-            delta={delta}
-            comparison={t("metrics.comparison")}
-            size="lg"
-          />
-          <div className="flex flex-wrap gap-8">
+    <div className="space-y-10">
+      <div className="space-y-6">
+        <MetricGrid className="xl:grid-cols-6">
+          <MetricCell>
+            <Metric
+              label={t("metrics.revenue")}
+              value={f.money(overview.revenueMinor, overview.currency)}
+              delta={delta}
+              comparison={t("metrics.comparison")}
+            />
+          </MetricCell>
+          <MetricCell>
             <Metric
               label={t("metrics.commissions")}
               value={f.money(overview.commissionMinor, overview.currency)}
             />
+          </MetricCell>
+          <MetricCell>
             <Metric
               label={t("metrics.netRevenue")}
               value={f.money(overview.netRevenueMinor, overview.currency)}
             />
-          </div>
-        </CardContent>
-      </Card>
+          </MetricCell>
+          <MetricCell>
+            <Metric label={t("metrics.activeAffiliates")} value={f.number(overview.activeAffiliates)} />
+          </MetricCell>
+          <MetricCell>
+            <Metric label={t("metrics.customers")} value={f.number(overview.customersAcquired)} />
+          </MetricCell>
+          <MetricCell>
+            <Metric
+              label={t("metrics.conversionRate")}
+              value={f.rate(overview.customersAcquired, overview.clicks)}
+              comparison={t("metrics.clicks", { count: f.number(overview.clicks) })}
+            />
+          </MetricCell>
+        </MetricGrid>
 
-      <MetricGrid>
-        <MetricCell>
-          <Metric label={t("metrics.activeAffiliates")} value={f.number(overview.activeAffiliates)} />
-        </MetricCell>
-        <MetricCell>
-          <Metric label={t("metrics.customers")} value={f.number(overview.customersAcquired)} />
-        </MetricCell>
-        <MetricCell>
-          <Metric
-            label={t("metrics.conversionRate")}
-            value={f.rate(overview.customersAcquired, overview.clicks)}
-            comparison={t("metrics.clicks", { count: f.number(overview.clicks) })}
-          />
-        </MetricCell>
-      </MetricGrid>
+        {overview.availableCommissionMinor > 0 ? (
+          <Card>
+            <CardContent className="flex flex-wrap items-center justify-between gap-4 py-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-control border border-border text-muted-foreground">
+                  <Coins className="size-4" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-caption font-medium text-foreground">
+                    {t("readyToPay", {
+                      amount: f.money(overview.availableCommissionMinor, overview.currency),
+                    })}
+                  </p>
+                  <p className="text-meta text-muted-foreground">
+                    {t("stillOnHold", {
+                      amount: f.money(overview.pendingCommissionMinor, overview.currency),
+                    })}
+                  </p>
+                </div>
+              </div>
+              <Button asChild variant="primary" size="sm">
+                <Link href={{ pathname: "/[workspaceSlug]/payouts", params: { workspaceSlug: slug } }}>{t("reviewPayouts")}</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
+      </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <Card>
-          <CardHeader bordered>
+          <CardHeader bordered className="flex-wrap gap-y-2">
             <CardTitle>{t("revenueOverTime")}</CardTitle>
             <ChartLegend series={chartSeries} />
           </CardHeader>
@@ -174,8 +199,8 @@ async function OverviewContent({ slug }: { slug: string }) {
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section>
+      <div className="grid gap-x-8 gap-y-10 lg:grid-cols-2">
+        <section className="min-w-0">
           <SectionHeader
             title={t("topAffiliates")}
             action={
@@ -187,7 +212,7 @@ async function OverviewContent({ slug }: { slug: string }) {
               </Button>
             }
           />
-          <TableContainer>
+          <TableContainer scrollable>
             <Table>
               <THead>
                 <tr>
@@ -207,8 +232,8 @@ async function OverviewContent({ slug }: { slug: string }) {
                   topAffiliates.map((affiliate) => (
                     <TR key={affiliate.participationId}>
                       <TD>
-                        <span className="block text-foreground">{affiliate.name}</span>
-                        <span className="font-mono text-label text-muted-foreground">
+                        <span className="block truncate text-foreground">{affiliate.name}</span>
+                        <span className="block font-mono text-label text-muted-foreground">
                           {affiliate.code}
                         </span>
                       </TD>
@@ -224,7 +249,7 @@ async function OverviewContent({ slug }: { slug: string }) {
           </TableContainer>
         </section>
 
-        <section>
+        <section className="min-w-0">
           <SectionHeader
             title={t("recentConversions")}
             action={
@@ -236,32 +261,33 @@ async function OverviewContent({ slug }: { slug: string }) {
               </Button>
             }
           />
-          <TableContainer>
+          <TableContainer scrollable>
             <Table>
               <THead>
                 <tr>
                   <TH>{tc("affiliate")}</TH>
                   <TH>{tc("customer")}</TH>
                   <TH numeric>{tc("commission")}</TH>
+                  <TH>{tc("status")}</TH>
                 </tr>
               </THead>
               <TBody>
                 {recent.length === 0 ? (
                   <TR>
-                    <TD colSpan={3} className="text-center text-muted-foreground">
+                    <TD colSpan={4} className="text-center text-muted-foreground">
                       {t("noConversions")}
                     </TD>
                   </TR>
                 ) : (
                   recent.map((conversion) => (
                     <TR key={conversion.id}>
-                      <TD className="text-foreground">{conversion.affiliateName}</TD>
+                      <TD className="whitespace-nowrap text-foreground">{conversion.affiliateName}</TD>
                       <TD mono>{conversion.customerRef}</TD>
-                      <TD numeric>
-                        <span className="flex items-center justify-end gap-2">
-                          {f.money(conversion.commissionMinor, conversion.currency)}
-                          <StatusBadge status={conversion.status} />
-                        </span>
+                      <TD numeric className="text-foreground">
+                        {f.money(conversion.commissionMinor, conversion.currency)}
+                      </TD>
+                      <TD>
+                        <StatusBadge status={conversion.status} />
                       </TD>
                     </TR>
                   ))
@@ -271,46 +297,26 @@ async function OverviewContent({ slug }: { slug: string }) {
           </TableContainer>
         </section>
       </div>
-
-      {overview.availableCommissionMinor > 0 ? (
-        <Card>
-          <CardContent className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="flex size-9 items-center justify-center rounded-control bg-surface-2">
-                <Coins className="size-4 text-muted-foreground" aria-hidden="true" />
-              </span>
-              <div>
-                <p className="text-caption font-medium">
-                  {t("readyToPay", {
-                    amount: f.money(overview.availableCommissionMinor, overview.currency),
-                  })}
-                </p>
-                <p className="text-meta text-muted-foreground">
-                  {t("stillOnHold", {
-                    amount: f.money(overview.pendingCommissionMinor, overview.currency),
-                  })}
-                </p>
-              </div>
-            </div>
-            <Button asChild variant="primary">
-              <Link href={{ pathname: "/[workspaceSlug]/payouts", params: { workspaceSlug: slug } }}>{t("reviewPayouts")}</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : null}
     </div>
   )
 }
 
 function OverviewSkeleton() {
   return (
-    <div className="space-y-6">
-      <div className="grid gap-px overflow-hidden rounded-panel border border-border bg-border sm:grid-cols-3">
-        <MetricSkeleton />
-        <MetricSkeleton />
-        <MetricSkeleton />
+    <div className="space-y-10">
+      <div className="grid grid-cols-2 gap-x-6 border-y border-border sm:grid-cols-3 xl:grid-cols-6">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <MetricSkeleton key={index} />
+        ))}
       </div>
-      <TableSkeleton rows={5} columns={3} />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <Skeleton className="h-72 rounded-panel" />
+        <Skeleton className="h-72 rounded-panel" />
+      </div>
+      <div className="grid gap-x-8 gap-y-10 lg:grid-cols-2">
+        <TableSkeleton rows={5} columns={3} />
+        <TableSkeleton rows={5} columns={4} />
+      </div>
     </div>
   )
 }

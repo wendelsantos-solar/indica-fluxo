@@ -1,10 +1,11 @@
 "use client"
 
 import { useTranslations } from "next-intl"
+import type * as React from "react"
 import { useActionState, useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Field } from "@/components/ui/field"
 import { Input, Select, Textarea } from "@/components/ui/input"
 import { CURRENCIES } from "@/features/workspaces/options"
@@ -48,24 +49,21 @@ export function ProgramForm({
   const [recurrence, setRecurrence] = useState(defaultValues.recurrence)
 
   return (
-    <form action={action} className="space-y-5" noValidate>
+    <form action={action} noValidate>
       <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
       {defaultValues.id ? <input type="hidden" name="programId" value={defaultValues.id} /> : null}
 
-      <Card>
-        <CardHeader bordered>
-          <div>
-            <CardTitle>{t("basics.title")}</CardTitle>
-            <CardDescription>{t("basics.description")}</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
+      {/* One container for the whole form; its sections are divided by
+          hairlines rather than stacked as separate cards. */}
+      <Card className="divide-y divide-border">
+        <FormSection title={t("basics.title")} description={t("basics.description")}>
+          <div className="grid gap-4 sm:grid-cols-3">
             <Field
               label={t("name")}
               htmlFor="name"
               required
               error={state.fieldErrors?.name?.[0]}
+              className="sm:col-span-2"
             >
               <Input
                 id="name"
@@ -87,11 +85,7 @@ export function ProgramForm({
             </Field>
           </div>
 
-          <Field
-            label={t("description")}
-            htmlFor="description"
-            hint={t("descriptionHint")}
-          >
+          <Field label={t("description")} htmlFor="description" hint={t("descriptionHint")}>
             <Textarea
               id="description"
               name="description"
@@ -99,19 +93,9 @@ export function ProgramForm({
               defaultValue={defaultValues.description}
             />
           </Field>
-        </CardContent>
-      </Card>
+        </FormSection>
 
-      <Card>
-        <CardHeader bordered>
-          <div>
-            <CardTitle>{t("commission.title")}</CardTitle>
-            <CardDescription>
-              {t("commission.description")}
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <FormSection title={t("commission.title")} description={t("commission.description")}>
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label={t("type")} htmlFor="commissionType">
               <Select
@@ -137,12 +121,13 @@ export function ProgramForm({
                 id="commissionAmount"
                 name="commissionAmount"
                 type="number"
-                step={commissionType === "percentage" ? "0.01" : "0.01"}
+                step="0.01"
                 min="0.01"
                 max={commissionType === "percentage" ? "100" : undefined}
                 defaultValue={defaultValues.commissionAmount}
                 required
                 invalid={Boolean(state.fieldErrors?.commissionAmount)}
+                className="tabular-nums"
               />
             </Field>
 
@@ -157,8 +142,8 @@ export function ProgramForm({
             </Field>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label={t("recurrence")} htmlFor="recurrence">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label={t("recurrence")} htmlFor="recurrence" className="sm:col-span-2">
               <Select
                 id="recurrence"
                 name="recurrence"
@@ -186,16 +171,13 @@ export function ProgramForm({
                   min="1"
                   max="120"
                   defaultValue={defaultValues.durationMonths}
+                  className="tabular-nums"
                 />
               </Field>
             ) : null}
           </div>
 
-          <Field
-            label={t("holdDays")}
-            htmlFor="commissionHoldDays"
-            hint={t("holdDaysHint")}
-          >
+          <Field label={t("holdDays")} htmlFor="commissionHoldDays" hint={t("holdDaysHint")}>
             <Input
               id="commissionHoldDays"
               name="commissionHoldDays"
@@ -203,65 +185,78 @@ export function ProgramForm({
               min="0"
               max="180"
               defaultValue={defaultValues.commissionHoldDays}
-              className="sm:max-w-[200px]"
+              className="tabular-nums sm:max-w-40"
             />
           </Field>
-        </CardContent>
-      </Card>
+        </FormSection>
 
-      <Card>
-        <CardHeader bordered>
-          <div>
-            <CardTitle>{t("attribution.title")}</CardTitle>
-            <CardDescription>{t("attribution.description")}</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Field label={t("model")} htmlFor="attributionModel">
-            <Select
-              id="attributionModel"
-              name="attributionModel"
-              defaultValue={defaultValues.attributionModel}
+        <FormSection title={t("attribution.title")} description={t("attribution.description")}>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label={t("model")} htmlFor="attributionModel" className="sm:col-span-2">
+              <Select
+                id="attributionModel"
+                name="attributionModel"
+                defaultValue={defaultValues.attributionModel}
+              >
+                <option value="last_click">{t("lastClick")}</option>
+                <option value="first_click">{t("firstClick")}</option>
+              </Select>
+            </Field>
+
+            <Field
+              label={t("windowDays")}
+              htmlFor="attributionWindowDays"
+              error={state.fieldErrors?.attributionWindowDays?.[0]}
             >
-              <option value="last_click">{t("lastClick")}</option>
-              <option value="first_click">{t("firstClick")}</option>
-            </Select>
-          </Field>
+              <Input
+                id="attributionWindowDays"
+                name="attributionWindowDays"
+                type="number"
+                min="1"
+                max="365"
+                defaultValue={defaultValues.attributionWindowDays}
+                className="tabular-nums"
+              />
+            </Field>
+          </div>
+        </FormSection>
 
-          <Field
-            label={t("windowDays")}
-            htmlFor="attributionWindowDays"
-            error={state.fieldErrors?.attributionWindowDays?.[0]}
-          >
-            <Input
-              id="attributionWindowDays"
-              name="attributionWindowDays"
-              type="number"
-              min="1"
-              max="365"
-              defaultValue={defaultValues.attributionWindowDays}
-            />
-          </Field>
-        </CardContent>
+        <div className="flex flex-wrap items-center justify-end gap-3 px-4 py-3">
+          {state.error ? (
+            <p role="alert" className="mr-auto text-caption text-danger-foreground">
+              {state.error}
+            </p>
+          ) : state.success ? (
+            <p role="status" className="mr-auto text-caption text-success-foreground">
+              {state.success}
+            </p>
+          ) : null}
+          <Button type="submit" variant="primary" loading={pending}>
+            {mode === "create" ? t("submitCreate") : t("submitSave")}
+          </Button>
+        </div>
       </Card>
-
-      {state.error ? (
-        <p role="alert" className="rounded-control bg-danger-subtle px-3 py-2 text-caption text-danger-foreground">
-          {state.error}
-        </p>
-      ) : null}
-
-      {state.success ? (
-        <p role="status" className="rounded-control bg-success-subtle px-3 py-2 text-caption text-success-foreground">
-          {state.success}
-        </p>
-      ) : null}
-
-      <div className="flex justify-end gap-2">
-        <Button type="submit" variant="primary" loading={pending}>
-          {mode === "create" ? t("submitCreate") : t("submitSave")}
-        </Button>
-      </div>
     </form>
+  )
+}
+
+/** A titled block of fields: heading on the left, controls on the right. */
+function FormSection({
+  title,
+  description,
+  children,
+}: {
+  title: string
+  description: string
+  children: React.ReactNode
+}) {
+  return (
+    <section className="grid gap-4 p-4 md:grid-cols-3 md:gap-8 md:py-6">
+      <div>
+        <h2 className="text-caption font-medium text-foreground">{title}</h2>
+        <p className="mt-0.5 text-caption text-muted-foreground">{description}</p>
+      </div>
+      <div className="space-y-4 md:col-span-2">{children}</div>
+    </section>
   )
 }

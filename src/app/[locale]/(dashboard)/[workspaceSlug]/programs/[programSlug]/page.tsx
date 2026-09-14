@@ -1,4 +1,4 @@
-import { Users } from "lucide-react"
+import { Coins, Users } from "lucide-react"
 import type { Metadata } from "next"
 import { getLocale, getTranslations } from "next-intl/server"
 import { notFound } from "next/navigation"
@@ -10,7 +10,7 @@ import { getFormatters } from "@/i18n/format"
 import { EmptyState } from "@/components/feedback/empty-state"
 import { PageHeader } from "@/components/layout/page-header"
 import { StatusBadge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { TabLink } from "@/components/ui/tabs"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
 import { InviteAffiliateDialog } from "@/features/affiliates/invite-affiliate-dialog"
@@ -33,6 +33,7 @@ export default async function ProgramDetailPage({
   searchParams,
 }: PageProps<"/[locale]/[workspaceSlug]/programs/[programSlug]">) {
   const t = await getTranslations("dashboard.program")
+  const tp = await getTranslations("dashboard.programs")
   const tc = await getTranslations("common.table")
   const f = await getFormatters()
   const { workspaceSlug, programSlug } = await params
@@ -75,223 +76,289 @@ export default async function ProgramDetailPage({
     locale: await getLocale(),
   })
 
+  const programRef = [{ id: program.id, name: program.name }]
+
   return (
     <>
       <PageHeader
         title={program.name}
-        description={program.description ?? undefined}
-        meta={<StatusBadge status={program.status} />}
+        breadcrumb={[
+          <Link
+            key="programs"
+            href={{ pathname: "/[workspaceSlug]/programs", params: { workspaceSlug } }}
+          >
+            {tp("title")}
+          </Link>,
+        ]}
         actions={
           <InviteAffiliateDialog
             workspaceSlug={workspaceSlug}
-            programs={[{ id: program.id, name: program.name }]}
+            programs={programRef}
             defaultProgramId={program.id}
           />
         }
       />
 
-      <dl className="mb-6 flex flex-wrap gap-x-8 gap-y-3 rounded-panel border border-border bg-surface-1 px-5 py-4">
-        <SummaryItem
-          label={tc("commission")}
-          value={
-            program.commissionType === "percentage"
-              ? f.basisPoints(program.commissionValue)
-              : f.money(program.commissionValue, program.currency)
-          }
-        />
-        <SummaryItem
-          label={t("duration")}
-          value={
-            program.commissionDurationMonths === null
-              ? t("lifetime")
-              : program.commissionDurationMonths === 1
-                ? t("firstPayment")
-                : t("nMonths", { count: program.commissionDurationMonths })
-          }
-        />
-        <SummaryItem
-          label={t("attribution")}
-          value={t("windowDays", { count: program.attributionWindowDays })}
-        />
-        <SummaryItem
-          label={t("model")}
-          value={program.attributionModel === "last_click" ? t("lastClick") : t("firstClick")}
-        />
-        <SummaryItem label={t("hold")} value={t("nDays", { count: program.commissionHoldDays })} />
-      </dl>
+      <div>
+        <div className="mx-auto max-w-detail space-y-8 md:pt-2">
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <StatusBadge status={program.status} />
+              <h2 className="text-title text-foreground">{program.name}</h2>
+              {program.description ? (
+                <p className="max-w-[68ch] text-pretty text-caption text-muted-foreground">
+                  {program.description}
+                </p>
+              ) : null}
+            </div>
 
-      <nav className="mb-5 flex items-center gap-1 border-b border-border" aria-label={t("sections")}>
-        <TabLink href={`${base}?tab=overview`} active={tab === "overview"}>
-          {t("tabs.overview")}
-        </TabLink>
-        <TabLink href={`${base}?tab=affiliates`} active={tab === "affiliates"}>
-          {t("tabs.affiliates")}
-        </TabLink>
-        <TabLink href={`${base}?tab=commissions`} active={tab === "commissions"}>
-          {t("tabs.commissions")}
-        </TabLink>
-        <TabLink href={`${base}?tab=settings`} active={tab === "settings"}>
-          {t("tabs.settings")}
-        </TabLink>
-      </nav>
+            <dl className="grid grid-cols-2 gap-x-6 border-y border-border sm:grid-cols-3 lg:grid-cols-5">
+              <SummaryItem
+                label={tc("commission")}
+                value={
+                  program.commissionType === "percentage"
+                    ? f.basisPoints(program.commissionValue)
+                    : f.money(program.commissionValue, program.currency)
+                }
+              />
+              <SummaryItem
+                label={t("duration")}
+                value={
+                  program.commissionDurationMonths === null
+                    ? t("lifetime")
+                    : program.commissionDurationMonths === 1
+                      ? t("firstPayment")
+                      : t("nMonths", { count: program.commissionDurationMonths })
+                }
+              />
+              <SummaryItem
+                label={t("attribution")}
+                value={t("windowDays", { count: program.attributionWindowDays })}
+              />
+              <SummaryItem
+                label={t("model")}
+                value={program.attributionModel === "last_click" ? t("lastClick") : t("firstClick")}
+              />
+              <SummaryItem label={t("hold")} value={t("nDays", { count: program.commissionHoldDays })} />
+            </dl>
+          </div>
 
-      {tab === "overview" ? (
-        <MetricGrid className="lg:grid-cols-4">
-          <MetricCell>
-            <Metric label={tc("clicks")} value={f.number(totals.clicks)} />
-          </MetricCell>
-          <MetricCell>
-            <Metric
-              label={tc("customers")}
-              value={f.number(totals.customers)}
-              comparison={f.rate(totals.customers, totals.clicks)}
-            />
-          </MetricCell>
-          <MetricCell>
-            <Metric label={tc("revenue")} value={f.money(totals.revenue, program.currency)} />
-          </MetricCell>
-          <MetricCell>
-            <Metric label={tc("commission")} value={f.money(totals.commission, program.currency)} />
-          </MetricCell>
-        </MetricGrid>
-      ) : null}
-
-      {tab === "affiliates" ? (
-        affiliates.rows.length === 0 ? (
-          <Card>
-            <EmptyState
-              icon={Users}
-              title={t("emptyAffiliates.title")}
-              description={t("emptyAffiliates.description")}
-              action={
-                <InviteAffiliateDialog
-                  workspaceSlug={workspaceSlug}
-                  programs={[{ id: program.id, name: program.name }]}
-                  defaultProgramId={program.id}
-                  triggerLabel={t("emptyAffiliates.action")}
-                />
-              }
-            />
-          </Card>
-        ) : (
-          <TableContainer scrollable>
-            <Table>
-              <THead>
-                <tr>
-                  <TH>{tc("affiliate")}</TH>
-                  <TH>{tc("code")}</TH>
-                  <TH>{tc("status")}</TH>
-                  <TH numeric>{tc("clicks")}</TH>
-                  <TH numeric>{tc("customers")}</TH>
-                  <TH numeric>{tc("commission")}</TH>
-                </tr>
-              </THead>
-              <TBody>
-                {affiliates.rows.map((row) => (
-                  <TR key={row.participationId ?? row.affiliateId}>
-                    <TD className="text-foreground">{row.name}</TD>
-                    <TD mono>{row.code}</TD>
-                    <TD>
-                      <StatusBadge status={row.participationStatus ?? row.status} />
-                    </TD>
-                    <TD numeric>{f.number(row.clicks)}</TD>
-                    <TD numeric>{f.number(row.customers)}</TD>
-                    <TD numeric className="text-foreground">
-                      {f.money(row.commissionMinor, program.currency)}
-                    </TD>
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
-          </TableContainer>
-        )
-      ) : null}
-
-      {tab === "commissions" ? (
-        commissions.rows.length === 0 ? (
-          <Card>
-            <EmptyState
-              icon={Users}
-              title={t("emptyCommissions.title")}
-              description={t("emptyCommissions.description")}
-              action={
-                <Link
-                  href={{ pathname: "/[workspaceSlug]/integrations", params: { workspaceSlug: workspaceSlug } }}
-                  className="text-caption text-foreground underline-offset-4 hover:underline"
+          <div className="space-y-6">
+            <nav
+              className="-mx-4 flex items-center gap-5 overflow-x-auto border-b border-border px-4 md:mx-0 md:px-0"
+              aria-label={t("sections")}
+            >
+              {TABS.map((value) => (
+                <TabLink
+                  key={value}
+                  href={`${base}?tab=${value}`}
+                  active={tab === value}
+                  className="shrink-0"
                 >
-                  {t("emptyCommissions.action")}
-                </Link>
-              }
-            />
-          </Card>
-        ) : (
-          <TableContainer scrollable>
-            <Table>
-              <THead>
-                <tr>
-                  <TH>{tc("affiliate")}</TH>
-                  <TH>{tc("customer")}</TH>
-                  <TH numeric>{tc("base")}</TH>
-                  <TH numeric>{tc("commission")}</TH>
-                  <TH>{tc("status")}</TH>
-                </tr>
-              </THead>
-              <TBody>
-                {commissions.rows.map((row) => (
-                  <TR key={row.id}>
-                    <TD className="text-foreground">{row.affiliateName}</TD>
-                    <TD mono>{row.customerRef}</TD>
-                    <TD numeric>{f.money(row.baseAmountMinor, row.currency)}</TD>
-                    <TD numeric className="text-foreground">
-                      {f.money(row.commissionAmountMinor, row.currency)}
-                    </TD>
-                    <TD>
-                      <StatusBadge status={row.status} />
-                    </TD>
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
-          </TableContainer>
-        )
-      ) : null}
+                  {t(`tabs.${value}`)}
+                  {value === "affiliates" || value === "commissions" ? (
+                    <span className="font-normal tabular-nums text-muted-foreground">
+                      {f.number(value === "affiliates" ? affiliates.total : commissions.total)}
+                    </span>
+                  ) : null}
+                </TabLink>
+              ))}
+            </nav>
 
-      {tab === "settings" ? (
-        <div className="max-w-3xl">
-          <ProgramForm
-            mode="edit"
-            workspaceSlug={workspaceSlug}
-            defaultValues={{
-              id: program.id,
-              name: program.name,
-              description: program.description ?? "",
-              status: program.status,
-              commissionType: program.commissionType,
-              commissionAmount: String(program.commissionValue / 100),
-              recurrence:
-                program.commissionDurationMonths === null
-                  ? "lifetime"
-                  : program.commissionDurationMonths === 1
-                    ? "first_only"
-                    : "months",
-              durationMonths: String(program.commissionDurationMonths ?? 12),
-              attributionModel: program.attributionModel,
-              attributionWindowDays: String(program.attributionWindowDays),
-              commissionHoldDays: String(program.commissionHoldDays),
-              currency: program.currency,
-            }}
-          />
+            {tab === "overview" ? (
+              <MetricGrid className="sm:grid-cols-2 md:grid-cols-4">
+                <MetricCell>
+                  <Metric label={tc("clicks")} value={f.number(totals.clicks)} />
+                </MetricCell>
+                <MetricCell>
+                  <Metric
+                    label={tc("customers")}
+                    value={f.number(totals.customers)}
+                    comparison={f.rate(totals.customers, totals.clicks)}
+                  />
+                </MetricCell>
+                <MetricCell>
+                  <Metric label={tc("revenue")} value={f.money(totals.revenue, program.currency)} />
+                </MetricCell>
+                <MetricCell>
+                  <Metric
+                    label={tc("commission")}
+                    value={f.money(totals.commission, program.currency)}
+                  />
+                </MetricCell>
+              </MetricGrid>
+            ) : null}
+
+            {tab === "affiliates" ? (
+              affiliates.rows.length === 0 ? (
+                <EmptyState
+                  icon={Users}
+                  title={t("emptyAffiliates.title")}
+                  description={t("emptyAffiliates.description")}
+                  action={
+                    // The header already carries the amber invite.
+                    <InviteAffiliateDialog
+                      workspaceSlug={workspaceSlug}
+                      programs={programRef}
+                      defaultProgramId={program.id}
+                      triggerLabel={t("emptyAffiliates.action")}
+                      triggerVariant="secondary"
+                      triggerSize="md"
+                    />
+                  }
+                />
+              ) : (
+                <TableContainer>
+                  <Table>
+                    <THead className="max-md:hidden">
+                      <tr>
+                        <TH>{tc("affiliate")}</TH>
+                        <TH>{tc("status")}</TH>
+                        <TH numeric>{tc("clicks")}</TH>
+                        <TH numeric>{tc("customers")}</TH>
+                        <TH numeric>{tc("commission")}</TH>
+                      </tr>
+                    </THead>
+                    <TBody>
+                      {affiliates.rows.map((row) => {
+                        const status = row.participationStatus ?? row.status
+                        return (
+                          <TR key={row.participationId ?? row.affiliateId}>
+                            <TD className="max-md:py-2.5">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="truncate text-foreground">{row.name}</span>
+                                <StatusBadge status={status} className="md:hidden" />
+                              </div>
+                              <span className="block font-mono text-label text-muted-foreground max-md:hidden">
+                                {row.code}
+                              </span>
+                              <span className="mt-0.5 flex gap-3 text-meta text-muted-foreground md:hidden">
+                                <span>
+                                  {tc("clicks")}{" "}
+                                  <span className="tabular-nums text-foreground-secondary">
+                                    {f.number(row.clicks)}
+                                  </span>
+                                </span>
+                                <span className="ml-auto tabular-nums text-foreground-secondary">
+                                  {f.money(row.commissionMinor, program.currency)}
+                                </span>
+                              </span>
+                            </TD>
+                            <TD className="max-md:hidden">
+                              <StatusBadge status={status} />
+                            </TD>
+                            <TD numeric className="max-md:hidden">
+                              {f.number(row.clicks)}
+                            </TD>
+                            <TD numeric className="max-md:hidden">
+                              {f.number(row.customers)}
+                            </TD>
+                            <TD numeric className="text-foreground max-md:hidden">
+                              {f.money(row.commissionMinor, program.currency)}
+                            </TD>
+                          </TR>
+                        )
+                      })}
+                    </TBody>
+                  </Table>
+                </TableContainer>
+              )
+            ) : null}
+
+            {tab === "commissions" ? (
+              commissions.rows.length === 0 ? (
+                <EmptyState
+                  icon={Coins}
+                  title={t("emptyCommissions.title")}
+                  description={t("emptyCommissions.description")}
+                  action={
+                    <Button asChild variant="secondary">
+                      <Link
+                        href={{ pathname: "/[workspaceSlug]/integrations", params: { workspaceSlug } }}
+                      >
+                        {t("emptyCommissions.action")}
+                      </Link>
+                    </Button>
+                  }
+                />
+              ) : (
+                <TableContainer scrollable>
+                  <Table>
+                    <THead>
+                      <tr>
+                        <TH>{tc("affiliate")}</TH>
+                        <TH>{tc("customer")}</TH>
+                        <TH numeric>{tc("base")}</TH>
+                        <TH numeric>{tc("commission")}</TH>
+                        <TH>{tc("status")}</TH>
+                      </tr>
+                    </THead>
+                    <TBody>
+                      {commissions.rows.map((row) => (
+                        <TR key={row.id}>
+                          <TD className="whitespace-nowrap text-foreground">{row.affiliateName}</TD>
+                          <TD mono>{row.customerRef}</TD>
+                          <TD numeric>{f.money(row.baseAmountMinor, row.currency)}</TD>
+                          <TD
+                            numeric
+                            className={
+                              row.commissionAmountMinor < 0
+                                ? "text-danger-foreground"
+                                : "text-foreground"
+                            }
+                          >
+                            {f.money(row.commissionAmountMinor, row.currency, {
+                              signDisplay: row.commissionAmountMinor < 0 ? "always" : "auto",
+                            })}
+                          </TD>
+                          <TD>
+                            <StatusBadge status={row.status} />
+                          </TD>
+                        </TR>
+                      ))}
+                    </TBody>
+                  </Table>
+                </TableContainer>
+              )
+            ) : null}
+
+            {tab === "settings" ? (
+              <ProgramForm
+                mode="edit"
+                workspaceSlug={workspaceSlug}
+                defaultValues={{
+                  id: program.id,
+                  name: program.name,
+                  description: program.description ?? "",
+                  status: program.status,
+                  commissionType: program.commissionType,
+                  commissionAmount: String(program.commissionValue / 100),
+                  recurrence:
+                    program.commissionDurationMonths === null
+                      ? "lifetime"
+                      : program.commissionDurationMonths === 1
+                        ? "first_only"
+                        : "months",
+                  durationMonths: String(program.commissionDurationMonths ?? 12),
+                  attributionModel: program.attributionModel,
+                  attributionWindowDays: String(program.attributionWindowDays),
+                  commissionHoldDays: String(program.commissionHoldDays),
+                  currency: program.currency,
+                }}
+              />
+            ) : null}
+          </div>
         </div>
-      ) : null}
+      </div>
     </>
   )
 }
 
 function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <dt className="text-label uppercase tracking-[0.02em] text-muted-foreground">{label}</dt>
-      <dd className="text-caption font-medium text-foreground">{value}</dd>
+    <div className="min-w-0 py-3">
+      <dt className="truncate text-caption text-muted-foreground">{label}</dt>
+      <dd className="truncate text-ui text-foreground">{value}</dd>
     </div>
   )
 }

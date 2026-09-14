@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react"
+import { CircleAlert, type LucideIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import * as React from "react"
 
@@ -24,20 +24,16 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-3 px-6 py-14 text-center",
+        "flex flex-col items-center justify-center px-6 py-16 text-center",
         className,
       )}
     >
-      <div className="flex size-10 items-center justify-center rounded-control border border-border bg-surface-2">
-        <Icon className="size-5 text-muted-foreground" aria-hidden="true" />
+      <div className="mb-4 flex size-10 items-center justify-center rounded-panel border border-border bg-surface-1 text-muted-foreground">
+        <Icon className="size-4.5" aria-hidden="true" />
       </div>
-      <div className="space-y-1">
-        <p className="text-body-sm font-medium text-foreground">{title}</p>
-        <p className="mx-auto max-w-sm text-caption leading-relaxed text-muted-foreground">
-          {description}
-        </p>
-      </div>
-      {action ? <div className="mt-1">{action}</div> : null}
+      <p className="text-ui font-medium text-foreground">{title}</p>
+      <p className="mt-1.5 max-w-[46ch] text-caption text-muted-foreground">{description}</p>
+      {action ? <div className="mt-5 flex gap-2">{action}</div> : null}
     </div>
   )
 }
@@ -57,20 +53,14 @@ export function ErrorState({
   return (
     <div
       role="alert"
-      className="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center"
+      className="flex flex-col items-center justify-center px-6 py-16 text-center"
     >
-      <div className="flex size-10 items-center justify-center rounded-control bg-danger-subtle">
-        <span aria-hidden="true" className="text-body-sm text-danger-foreground">
-          !
-        </span>
+      <div className="mb-4 flex size-10 items-center justify-center rounded-panel border border-danger/30 bg-surface-1 text-danger-foreground">
+        <CircleAlert className="size-4.5" aria-hidden="true" />
       </div>
-      <div className="space-y-1">
-        <p className="text-body-sm font-medium text-foreground">{title ?? t("errorTitle")}</p>
-        <p className="mx-auto max-w-sm text-caption leading-relaxed text-muted-foreground">
-          {description}
-        </p>
-      </div>
-      {action}
+      <p className="text-ui font-medium text-foreground">{title ?? t("errorTitle")}</p>
+      <p className="mt-1.5 max-w-[46ch] text-caption text-muted-foreground">{description}</p>
+      {action ? <div className="mt-5 flex gap-2">{action}</div> : null}
     </div>
   )
 }

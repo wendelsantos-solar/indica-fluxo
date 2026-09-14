@@ -42,30 +42,38 @@ export default async function DocsPage({ params }: PageProps<"/[locale]/docs">) 
   const t = await getTranslations("docs")
 
   return (
-    <div className="mx-auto w-full max-w-reading px-4 py-16 sm:px-6 sm:py-24">
-      <h1 className="text-heading-sm font-medium sm:text-heading">{t("title")}</h1>
-      <p className="mt-4 text-body-sm leading-relaxed text-muted-foreground">
-        {t("subtitle")}
-      </p>
+    <div className="mx-auto w-full max-w-reading px-4 py-24 sm:px-6 sm:py-32">
+      <h1 className="text-balance text-heading-sm text-foreground sm:text-heading">{t("title")}</h1>
+      <p className="mt-6 text-pretty text-body text-muted-foreground">{t("subtitle")}</p>
 
-      <div className="mt-12 space-y-10">
+      <ol className="mt-16 sm:mt-20">
         {SECTIONS.map((key, index) => (
-          <section key={key}>
-            <h2 className="text-body-lg font-medium tracking-tight">
-              {index + 1} — {t(`sections.${key}.title`)}
-            </h2>
-            <p className="mt-2 text-ui leading-relaxed text-muted-foreground">
-              {t(`sections.${key}.body`)}
-            </p>
-            <pre
-              data-slot="scrollable"
-              className="mt-4 overflow-x-auto rounded-panel border border-border bg-surface-1 p-4 font-mono text-meta leading-relaxed text-foreground-secondary"
-            >
-              <code>{SNIPPETS[key]}</code>
-            </pre>
-          </section>
+          <li key={key} className="border-t border-border py-10 last:pb-0">
+            <section aria-labelledby={`docs-${key}`}>
+              <div className="flex items-baseline gap-3">
+                <span className="font-mono text-meta text-faint-foreground" aria-hidden="true">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <h2 id={`docs-${key}`} className="text-title text-foreground">
+                  {t(`sections.${key}.title`)}
+                </h2>
+              </div>
+              <p className="mt-3 text-pretty text-body-sm text-muted-foreground">
+                {/* Raw, not formatted: the prose quotes code (`</head>`), which
+                    ICU would parse as an unmatched rich-text tag and throw.
+                    These bodies take no arguments, so nothing is lost. */}
+                {t.raw(`sections.${key}.body`) as string}
+              </p>
+              <pre
+                data-slot="scrollable"
+                className="mt-5 overflow-x-auto rounded-panel border border-border bg-surface-1 p-4 font-mono text-meta leading-relaxed text-foreground-secondary"
+              >
+                <code>{SNIPPETS[key]}</code>
+              </pre>
+            </section>
+          </li>
         ))}
-      </div>
+      </ol>
     </div>
   )
 }

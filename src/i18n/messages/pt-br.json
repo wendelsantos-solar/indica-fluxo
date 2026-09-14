@@ -18,7 +18,48 @@
     "affiliateSections": "Seções do afiliado",
     "open": "Abrir navegação",
     "close": "Fechar navegação",
-    "main": "Principal"
+    "main": "Principal",
+    "sections": {
+      "growth": "Crescimento",
+      "ledger": "Financeiro",
+      "earnings": "Ganhos",
+      "system": "Sistema"
+    },
+    "search": "Buscar",
+    "searchLabel": "Buscar e executar comandos",
+    "collapse": "Recolher barra lateral",
+    "expand": "Expandir barra lateral",
+    "skip": "Pular para o conteúdo",
+    "breadcrumb": "Trilha de navegação",
+    "navigation": "Navegação",
+    "home": "Início"
+  },
+  "palette": {
+    "dialog": "Menu de comandos",
+    "searchLabel": "Buscar comandos",
+    "placeholder": "Digite um comando ou busque…",
+    "list": "Comandos",
+    "noMatch": "Nenhum resultado para “{query}”",
+    "toNavigate": "para navegar",
+    "toOpen": "para abrir",
+    "groups": {
+      "navigation": "Ir para",
+      "actions": "Ações",
+      "workspaces": "Workspaces"
+    },
+    "goTo": "Ir para {page}",
+    "newProgram": "Criar programa",
+    "switchWorkspace": "Trocar para {name}",
+    "theme": {
+      "light": "Mudar para tema claro",
+      "dark": "Mudar para tema escuro",
+      "system": "Usar tema do sistema"
+    },
+    "switchLanguage": "Mudar idioma para {language}",
+    "toggleSidebar": "Alternar barra lateral",
+    "affiliatePortal": "Abrir portal do afiliado",
+    "dashboard": "Abrir painel do fundador",
+    "signOut": "Sair"
   },
   "marketing": {
     "home": {
@@ -77,9 +118,6 @@
         "commissions": "Comissões",
         "affiliates": "Afiliados ativos"
       },
-      "chartTitle": "Receita ao longo do tempo",
-      "legendRevenue": "Receita",
-      "legendCommission": "Comissão",
       "columns": {
         "affiliate": "Afiliado",
         "revenue": "Receita",
@@ -112,7 +150,10 @@
       "menu": "Menu da conta",
       "signedInAs": "Conectado como",
       "affiliatePortal": "Portal do afiliado",
-      "signOut": "Sair"
+      "signOut": "Sair",
+      "theme": "Tema",
+      "language": "Idioma",
+      "dashboard": "Painel do fundador"
     },
     "workspace": {
       "plural": "Workspaces",
@@ -625,12 +666,18 @@
       "type": "Tipo",
       "lastUsed": "Último uso",
       "rotate": "Rotacionar",
-      "snippet": "Snippet de tracking"
+      "snippet": "Snippet de tracking",
+      "typeSecret": "Secreta",
+      "typePublishable": "Publicável",
+      "neverUsed": "Nunca",
+      "snippetHint": "Cole antes de <code>{head}</code> no site para onde seus afiliados apontam. Ele define um cookie próprio e informa o código de indicação."
     },
     "payable": {
       "selectAll": "Selecionar todos os afiliados",
       "commissions": "Comissões",
-      "submit": "Criar lote de pagamento"
+      "submit": "Criar lote de pagamento",
+      "include": "Incluir {name}",
+      "selection": "{selected} de {total} selecionados"
     },
     "batch": {
       "markPaid": "Marcar como pago",
@@ -650,7 +697,8 @@
       "webhook": "Endpoint de webhook",
       "disconnect": "Desconectar Stripe",
       "thenAdd": "Depois adicione este endpoint de webhook no Stripe:",
-      "connect": "Conectar Stripe"
+      "connect": "Conectar Stripe",
+      "events": "Eventos: {events}"
     }
   },
   "errors": {

@@ -18,7 +18,48 @@
     "affiliateSections": "Affiliate sections",
     "open": "Open navigation",
     "close": "Close navigation",
-    "main": "Main"
+    "main": "Main",
+    "sections": {
+      "growth": "Growth",
+      "ledger": "Ledger",
+      "earnings": "Earnings",
+      "system": "System"
+    },
+    "search": "Search",
+    "searchLabel": "Search and run commands",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar",
+    "skip": "Skip to content",
+    "breadcrumb": "Breadcrumb",
+    "navigation": "Navigation",
+    "home": "Home"
+  },
+  "palette": {
+    "dialog": "Command menu",
+    "searchLabel": "Search commands",
+    "placeholder": "Type a command or search…",
+    "list": "Commands",
+    "noMatch": "No results for “{query}”",
+    "toNavigate": "to navigate",
+    "toOpen": "to open",
+    "groups": {
+      "navigation": "Go to",
+      "actions": "Actions",
+      "workspaces": "Workspaces"
+    },
+    "goTo": "Go to {page}",
+    "newProgram": "Create program",
+    "switchWorkspace": "Switch to {name}",
+    "theme": {
+      "light": "Switch to light theme",
+      "dark": "Switch to dark theme",
+      "system": "Use system theme"
+    },
+    "switchLanguage": "Switch language to {language}",
+    "toggleSidebar": "Toggle sidebar",
+    "affiliatePortal": "Open affiliate portal",
+    "dashboard": "Open founder dashboard",
+    "signOut": "Sign out"
   },
   "marketing": {
     "home": {
@@ -77,9 +118,6 @@
         "commissions": "Commissions",
         "affiliates": "Active affiliates"
       },
-      "chartTitle": "Revenue over time",
-      "legendRevenue": "Revenue",
-      "legendCommission": "Commission",
       "columns": {
         "affiliate": "Affiliate",
         "revenue": "Revenue",
@@ -112,7 +150,10 @@
       "menu": "Account menu",
       "signedInAs": "Signed in as",
       "affiliatePortal": "Affiliate portal",
-      "signOut": "Sign out"
+      "signOut": "Sign out",
+      "theme": "Theme",
+      "language": "Language",
+      "dashboard": "Founder dashboard"
     },
     "workspace": {
       "plural": "Workspaces",
@@ -625,12 +666,18 @@
       "type": "Type",
       "lastUsed": "Last used",
       "rotate": "Rotate",
-      "snippet": "Tracking snippet"
+      "snippet": "Tracking snippet",
+      "typeSecret": "Secret",
+      "typePublishable": "Publishable",
+      "neverUsed": "Never",
+      "snippetHint": "Paste it before <code>{head}</code> on the site your affiliates link to. It sets a first-party cookie and reports the referral code."
     },
     "payable": {
       "selectAll": "Select all affiliates",
       "commissions": "Commissions",
-      "submit": "Create payout batch"
+      "submit": "Create payout batch",
+      "include": "Include {name}",
+      "selection": "{selected} of {total} selected"
     },
     "batch": {
       "markPaid": "Mark as paid",
@@ -650,7 +697,8 @@
       "webhook": "Webhook endpoint",
       "disconnect": "Disconnect Stripe",
       "thenAdd": "Then add this webhook endpoint in Stripe:",
-      "connect": "Connect Stripe"
+      "connect": "Connect Stripe",
+      "events": "Events: {events}"
     }
   },
   "errors": {

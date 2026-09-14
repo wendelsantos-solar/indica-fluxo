@@ -19,6 +19,11 @@ const OPTIONS = [
   { value: "system", icon: Monitor },
 ] as const
 
+/**
+ * Public chrome only (marketing, auth, onboarding). Sized to sit beside the
+ * locale switcher as a matched pair of 32px icon controls; inside the product
+ * the theme lives in the account menu instead.
+ */
 export function ThemeToggle() {
   const t = useTranslations("common.theme")
   const { theme, setTheme, resolvedTheme } = useTheme()
@@ -31,7 +36,7 @@ export function ThemeToggle() {
   return (
     <Dropdown>
       <DropdownTrigger asChild>
-        <Button variant="ghost" size="icon-sm" aria-label={t("label")}>
+        <Button variant="ghost" size="icon" aria-label={t("label")}>
           <Icon aria-hidden="true" />
         </Button>
       </DropdownTrigger>

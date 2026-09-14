@@ -53,7 +53,8 @@ export function MarkPaidDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="primary" size="sm">
+        {/* Secondary in the row: the page's amber action is creating a batch. */}
+        <Button variant="secondary" size="sm">
           {t("markPaid")}
         </Button>
       </DialogTrigger>
@@ -68,7 +69,7 @@ export function MarkPaidDialog({
               {t.rich("confirmBody", {
                 count: affiliateCount,
                 amount: f.money(totalAmountMinor, currency),
-                strong: (chunks) => <strong>{chunks}</strong>,
+                strong: (chunks) => <strong className="font-medium text-foreground">{chunks}</strong>,
               })}
             </DialogDescription>
           </DialogHeader>

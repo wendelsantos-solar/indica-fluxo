@@ -21,9 +21,8 @@ export function DropdownContent({
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          "z-50 min-w-[200px] overflow-hidden rounded-panel border border-border bg-surface-3 p-1",
-          "shadow-[var(--shadow-overlay)]",
-          "data-[state=open]:animate-[popover-in_140ms_var(--ease-out-quint)]",
+          "z-50 min-w-[200px] overflow-hidden rounded-panel bg-surface-3 p-1 shadow-overlay",
+          "data-[state=open]:animate-pop-in",
           className,
         )}
         {...props}
@@ -39,12 +38,11 @@ export function DropdownItem({
   return (
     <Primitive.Item
       className={cn(
-        "flex cursor-pointer select-none items-center gap-2 rounded-badge px-2 py-1.5",
+        "flex h-8 cursor-pointer select-none items-center gap-2 rounded-control px-2 touch:h-10",
         "text-caption text-foreground-secondary outline-none",
-        "transition-colors duration-[120ms]",
-        "data-[highlighted]:bg-surface-2 data-[highlighted]:text-foreground",
+        "data-[highlighted]:bg-selected data-[highlighted]:text-foreground",
         "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-        "[&_svg]:size-4 [&_svg]:shrink-0",
+        "[&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground",
         className,
       )}
       {...props}
@@ -61,7 +59,7 @@ export function DropdownCheckItem({
   return (
     <DropdownItem className={cn("justify-between", className)} {...props}>
       <span className="flex items-center gap-2">{children}</span>
-      {checked ? <Check className="size-3.5 text-primary" aria-hidden="true" /> : null}
+      {checked ? <Check className="size-3.5 text-foreground" aria-hidden="true" /> : null}
     </DropdownItem>
   )
 }
@@ -73,7 +71,7 @@ export function DropdownLabel({
   return (
     <Primitive.Label
       className={cn(
-        "px-2 pb-1 pt-2 text-label font-medium uppercase tracking-[0.02em] text-muted-foreground",
+        "px-2 pb-1 pt-1.5 text-meta text-faint-foreground",
         className,
       )}
       {...props}
@@ -85,5 +83,5 @@ export function DropdownSeparator({
   className,
   ...props
 }: React.ComponentProps<typeof Primitive.Separator>) {
-  return <Primitive.Separator className={cn("my-1 h-px bg-border", className)} {...props} />
+  return <Primitive.Separator className={cn("-mx-1 my-1 h-px bg-border", className)} {...props} />
 }

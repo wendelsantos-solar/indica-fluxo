@@ -7,21 +7,24 @@ The single source of truth for the visual language of this product.
 
 ## 0. Provenance
 
-The visual language is derived from a published style reference, vendored at
-`docs/linear-style-reference.md`. That file is the *source*; this file is the
-*system*. When they disagree, this file wins, because it carries the four things
-the reference does not cover: a light theme, functional status colour, the sub-13px
-rungs a financial table needs, and accessibility floors.
+The visual language is the Linear-derived product system first built for
+**Outlier** (its ADR 015 "Linear-derived design system" and ADR 017 "Theme
+system"), which itself reads the published Linear style reference vendored at
+`docs/linear-style-reference.md`. The reference is the *source*; Outlier proved
+its *structure* in a real product; this file is the *system* for Indica. When
+they disagree, this file wins.
 
-Deviations from the reference, all deliberate:
+What was taken, and what was decided here:
 
-| Deviation | Why |
-| --- | --- |
-| A light theme exists | The reference is dark-only. CLAUDE.md's definition of done requires light and dark per feature. Light is derived from the same ramp read in the other direction, not invented. |
-| Supporting chroma is used for status | The reference calls green/red/teal/violet decorative and says not to use them as status. This is a ledger: "reversed" versus "paid" must be legible at a glance. The hues are kept; the role is not. |
-| `caption` (13px) is line-height 1.5, not 1.2 | The reference's named export says 1.2, but its own token dump carries 13px at both 1.5 and 1.2. 1.2 suits a single-line nav item and breaks a two-line table description, which is most of this product. |
-| Steps below 13px exist (`micro`, `label`, `meta`) | The reference describes a marketing site. A dense table needs rungs its scale does not have. |
-| Amber | The reference has no warning hue. Tuned to sit between the lime and the coral without competing with either. |
+| Area | From the reference / Outlier | Indica decision |
+| --- | --- | --- |
+| Surfaces | Void → Carbon → Obsidian, hairlines instead of shadows | Same ladder. The app is a sidebar on the canvas plus **one inset, bordered content panel** |
+| Accent | One accent for the single primary action | **Signal amber `#f2b84b`**, Outlier's accent, replacing the reference's acid lime |
+| Light theme | Reference is dark-only; Outlier designed one | Outlier's: a quiet gray canvas around a white panel — designed, not inverted |
+| Text | Paper / Mist / Fog / Ash, no chromatic body text | Same four steps; Ash lightened to `#7e838b` so it clears 4.5:1 |
+| Type | Inter Variable 400/510/590, `cv01 ss03 zero` | Same. **13px is the product default**; a dense ledger adds `micro`/`label`/`meta` below it and `title` (18px) for record names |
+| Keyboard | Command-first: ⌘K, `G` chords, `[` sidebar | Same model, see §11b |
+| Status colour | Reference calls green/red decorative | Kept functional: this is a ledger, "reversed" versus "paid" must be legible at a glance — but only as a dot beside a neutral label (§9 Badge) |
 
 ---
 
@@ -49,11 +52,14 @@ Five principles, in priority order:
 - Purple/blue gradient hero sections.
 - Glassmorphism, heavy backdrop blur, neon glows.
 - `shadow-xl` / `shadow-2xl` used to "lift" a card.
+- A table, list or empty state wrapped in a card. The panel is already the container.
 - `rounded-3xl` on everything.
 - Emoji as UI iconography.
 - A dashboard that is a 4×3 grid of identical KPI cards.
+- Uppercase, letter-spaced column headers. Plain case, muted.
 - Stock photography or generic SaaS illustrations.
 - Hex colours written inline: `bg-[#08090a]`.
+- A keyboard hint for a shortcut that does not work.
 
 ---
 
@@ -62,144 +68,64 @@ Five principles, in priority order:
 ### 2.1 Rules
 
 - Components consume **semantic tokens only** (`bg-surface-1`, `text-muted-foreground`).
-- Primitives (`--lime-400`, `--gray-800`) exist only inside `src/design/tokens.css`
-  to define semantics. Never reference a primitive in a component.
-- **The lime accent is rationed.** One chromatic primary action per view.
-  A dashboard with three lime buttons is a bug.
+- Primitives (`--color-void`, `--color-zinc-200`) exist only inside
+  `src/design/tokens.css` to define semantics. Never reference a primitive in a component.
+- **The amber accent is rationed.** One primary action per view. A header with
+  three amber buttons is a bug. `text-primary-text` (amber as text) is for the
+  rare mark that must read as identity, never for body copy.
+- **No chromatic body text.** Colour appears only on the primary action, on
+  status dots/deltas, and in charts.
 - Status colour is reserved for status. Never use `success` green just because
   a number is "nice".
+- Components never branch on the theme (`dark:` variants). Every token is
+  defined for both themes; a hard-coded white or black alpha is a light-theme bug.
 
-### 2.2 Primitives
+### 2.2 Semantic tokens
 
-Declared in `src/design/tokens.css`. They carry the reference's own names so a
-future comparison against it is a lookup, not a translation.
+Every one of these is defined for **both** themes in `src/design/tokens.css`.
+If you add a token, add it twice.
 
-**Neutral ramp** — one ramp, both themes. Dark reads it bottom-up, light top-down.
+| Token | Dark | Light | Meaning |
+| --- | --- | --- | --- |
+| `background` | `#08090a` | `#f4f4f5` | Canvas: the sidebar plane, auth and marketing ground |
+| `surface-1` | `#0f1011` | `#ffffff` | The content panel, cards, sticky bars |
+| `surface-2` | `#161718` | `#f4f4f5` | Raised: kbd, nested wells |
+| `surface-3` | `#1a1b1d` | `#ffffff` | Floating: popovers, menus, dialogs, palette, tooltips |
+| `hover` / `selected` | white 4% / 7% | ink 3.5% / 6% | Row, item and nav states |
+| `fill-subtle` / `fill` / `fill-strong` | white 2.5 / 5 / 8% | ink 2 / 5 / 8% | Input wells, skeletons, avatar tiles, tracks |
+| `border-faint` / `border` / `border-strong` | `#18191c` / `#23252a` / `#383b3f` | `#efeff1` / `#e4e4e7` / `#d1d1d6` | Row separators / hairlines / hover and emphasis |
+| `foreground` | `#f7f8f8` | `#111113` | Headings, values, primary text |
+| `foreground-secondary` | `#d0d6e0` | `#3a3b40` | Body, table cells |
+| `muted-foreground` | `#8a8f98` | `#5b5d65` | Labels, column headers, secondary text |
+| `faint-foreground` | `#7e838b` | `#6a6c74` | Metadata, placeholders, section labels |
+| `inverse` / `inverse-foreground` | `#e6e7e9` / void | ink / white | Skip link, workspace glyph |
+| `primary` / `primary-hover` / `primary-foreground` | amber / +10% white / void | amber / +10% ink / ink | The one primary action |
+| `primary-text` | amber | `#9a5b00` | Amber as text or mark |
+| `success` · `warning` · `danger` · `info` (+ `-subtle`, `-foreground`) | `#27a644` · `#e2a93b` · `#f07070` · `#4cc9d6` | `#1a7f4b` · `#8f5f00` · `#c62828` · `#0a6f7c` | Status dots, deltas, error text |
+| `ring` | Mist `#d0d6e0` | ink | Focus outline — brightens, no extra hue |
+| `scrim` | black 55% | ink 32% | Dialog and drawer backdrop |
+| `chart-1 … chart-6` | amber, teal, lavender, green, coral, fog | darker steps | Data series, in order |
 
-```
---color-void       #08090a   canvas (dark)
---color-carbon     #0f1011   card surface (dark)
---color-obsidian   #161718   elevated panel (dark)
---color-graphite   #23252a   hairline border (dark)
---color-smoke      #383b3f   emphasised border (dark)
---color-ash        #62666d   muted text (light)
---color-fog        #8a8f98   muted text (dark)
---color-mist       #d0d6e0   secondary text (dark)
---color-bone       #e5e5e6   hairline border (light)
---color-paper      #ffffff   primary text (dark) / card surface (light)
-```
+Elevation tokens: `shadow-ring` (inset hairline), `shadow-overlay` (floating
+layers: the reference's inset highlight stack + hairline in dark, a soft drop in
+light), `shadow-control` (the primary button only).
 
-**Light extensions** — not in the reference; they give light mode the same
-number of surface steps the dark ramp has.
+### 2.3 Contrast
 
-```
---color-chalk      #eceef0
---color-porcelain  #f4f5f6
---color-quartz     #f8f9f9
-```
+Computed (WCAG 2.x) against every plane each token sits on:
 
-**Accent** — the one chromatic action colour in the system.
+| Pair | Dark | Light | Requirement |
+| --- | --- | --- | --- |
+| `foreground` | ≥ 16:1 | ≥ 17:1 | AAA |
+| `foreground-secondary` | ≥ 11.8:1 | ≥ 10:1 | AAA |
+| `muted-foreground` | ≥ 5.3:1 | ≥ 5.9:1 | AA |
+| `faint-foreground` | ≥ 4.5:1 | ≥ 4.7:1 | AA — the floor, do not go quieter |
+| status `-foreground` | ≥ 5.9:1 | ≥ 4.5:1 | AA |
+| `primary-foreground` on `primary` | 11:1 | 10.5:1 | AAA |
+| `chart-1` on its panel | 10:1 | 3.9:1 | ≥ 3:1 graphics |
 
-```
---color-acid-lime         #e4f222   ← the accent
---color-acid-lime-bright  #eef94f   dark-mode hover
---color-acid-lime-deep    #c2cf10   light-mode fill, so it reads as a control on white
-```
-
-**Supporting chroma** — reference hues, used functionally (see §0).
-
-```
---color-pulse-green  #27a644    --color-iris-violet  #6366f1
---color-coral-red    #eb5757    --color-lavender     #8b5cf6
---color-signal-teal  #02b8cc    --color-amber        #d8a13a  (extension)
-```
-
-Each has a `-light` step for chromatic text on dark and a `-deep` step for the
-same problem on white, because a single hue cannot clear 4.5:1 against both.
-
-### 2.3 Semantic tokens
-
-Every one of these is defined for **both** themes. If you add a token, add it twice.
-
-| Token | Meaning |
-| --- | --- |
-| `--background` | Page canvas. The furthest-back plane. |
-| `--foreground` | Primary text. |
-| `--foreground-secondary` | Secondary text still meant to be read. |
-| `--muted` | Quiet fill (table header, disabled input). |
-| `--muted-foreground` | Labels, metadata, timestamps, column headers. |
-| `--surface-1` | Cards, panels, the sidebar. One step up from canvas. |
-| `--surface-2` | Nested panels, hovered rows, inputs. |
-| `--surface-3` | Popovers, dropdowns, tooltips, dialogs. |
-| `--border` | Default hairline. |
-| `--border-strong` | Emphasised separation, focused input. |
-| `--primary` / `--primary-foreground` | The single chromatic call to action. |
-| `--success` / `--success-subtle` / `--success-foreground` | Paid, active, positive delta. |
-| `--warning` / `--warning-subtle` / `--warning-foreground` | Pending, hold period, attention. |
-| `--danger` / `--danger-subtle` / `--danger-foreground` | Refund, reversed, destructive, error. |
-| `--info` / `--info-subtle` / `--info-foreground` | Neutral informational state. |
-| `--ring` | Focus ring. |
-| `--chart-1 … --chart-6` | Data visualisation series, in order of use. |
-
-### 2.4 Dark theme (the primary experience)
-
-```
-background            void       #08090a
-surface-1             carbon     #0f1011
-surface-2             obsidian   #161718
-surface-3             graphite   #23252a
-border                graphite   #23252a
-border-strong         smoke      #383b3f
-foreground            paper      #ffffff
-foreground-secondary  mist       #d0d6e0
-muted-foreground      fog        #8a8f98
-primary               acid-lime  #e4f222
-primary-foreground    void       #08090a
-success               #4ecb6b    warning  #e6b862
-danger                #ff8084    info     #4cc9d6
-```
-
-Subtle status fills are the base hue at ~20% alpha over the surface, never a
-flat tint, so they survive on `surface-1` and `surface-2` alike.
-
-### 2.5 Light theme
-
-Light is **not** "white background, black text". It is the same ramp read from
-the other end: the canvas is a cool off-white and elevated surfaces are
-*lighter* (pure white), which keeps the "raised" metaphor intact.
-
-```
-background            quartz     #f8f9f9
-surface-1             paper      #ffffff
-surface-2             porcelain  #f4f5f6
-surface-3             paper      #ffffff
-border                bone       #e5e5e6
-border-strong         #c6cad0
-foreground            void       #08090a
-foreground-secondary  #3c4149
-muted-foreground      ash        #62666d
-primary               acid-lime-deep  #c2cf10   (so the fill reads as a control on white)
-primary-foreground    void       #08090a
-success               #14622c    warning  #7a5400
-danger                #c0292e    info     #0a6f7c
-```
-
-Typography, density, radii, spacing and component anatomy are **identical**
-across themes. Only colour changes.
-
-### 2.6 Contrast
-
-| Pair | Ratio | Requirement |
-| --- | --- | --- |
-| `foreground` / `background` | ≥ 15:1 | AAA body |
-| `foreground-secondary` / `background` | ≥ 7:1 | AAA body |
-| `muted-foreground` / `background` | ≥ 4.5:1 | AA body — this is the floor, do not go quieter |
-| `primary-foreground` / `primary` | ≥ 12:1 | AAA |
-| status fg / its subtle bg | ≥ 4.5:1 | AA |
-| `border` / adjacent surface | ≥ 1.4:1 | perceivable hairline |
-
-Never encode meaning in colour alone: every status badge carries a label, every
-delta carries a sign or an arrow icon.
+Never encode meaning in colour alone: every status carries a label, every
+delta carries a sign and an arrow icon.
 
 ---
 
@@ -224,13 +150,14 @@ Each token carries its own line-height, tracking and weight. Write
 | `text-micro` | 10 | 1.5 | — | 510 | numeric affixes, avatar initials |
 | `text-label` | 11 | 1.4 | — | 400 | column headers, overlines |
 | `text-meta` | 12 | 1.4 | — | 400 | table metadata, secondary chrome |
-| `text-caption` | 13 | 1.5 | — | 400 | **the workhorse**: table cells, descriptions, nav |
-| `text-ui` | 14 | 1.5 | −0.01em | 400 | form fields, buttons |
+| `text-caption` | 13 | 1.5 | — | 400 | **the product default** (set on `body`): table cells, nav, buttons, page-bar titles |
+| `text-ui` | 14 | 1.5 | −0.01em | 400 | empty-state and dialog headlines |
 | `text-body-sm` | 15 | 1.6 | −0.011em | 400 | body copy in dense contexts |
 | `text-body` | 16 | 1.5 | −0.01em | 400 | marketing body copy |
 | `text-body-md` | 17 | 1.6 | — | 590 | body emphasis |
+| `text-title` | 18 | 1.45 | −0.012em | 510 | a record's name on its detail page, dialog-sized titles |
 | `text-body-lg` | 20 | 1.33 | −0.012em | 590 | lead paragraphs |
-| `text-subheading` | 24 | 1.33 | −0.012em | 400 | card titles, in-product page titles |
+| `text-subheading` | 24 | 1.33 | −0.012em | 400 | auth titles, marketing card titles |
 | `text-heading-sm` | 32 | 1.13 | −0.022em | 400 | headline metrics, mobile marketing headings |
 | `text-heading` | 48 | 1.0 | −0.022em | 510 | marketing section headings |
 | `text-heading-lg` | 64 | 1.0 | −0.022em | 510 | hero |
@@ -276,8 +203,9 @@ Strict **4px grid**. Allowed steps:
 - Inside a control: 8 / 12.
 - Between related elements: 12 / 16.
 - Between sections of a page: 32 / 48.
-- Page gutter: 24 desktop, 16 mobile.
-- Table cell padding: `px-16 py-12` equivalent (`px-4 py-3`).
+- Page gutter: 24 desktop, 16 mobile (owned by the shell, not by pages).
+- Table cells: 12px horizontal, the first and last cell 4px so text aligns with
+  the page gutter; rows are 48px.
 - Never use arbitrary values like `p-[13px]`, `gap-[7px]`.
 
 ---
@@ -306,14 +234,17 @@ what a ledger should project.
 
 Depth is expressed by **surface contrast plus a hairline**, not by shadow.
 
-- Default separation: `1px solid var(--border)`.
-- Emphasised / focus: `var(--border-strong)`.
-- Cards sit on the canvas as `surface-1` + hairline. No shadow.
-- Only genuinely floating layers (dropdown, popover, dialog, toast) may use a
-  shadow, and only the tokenised `--shadow-overlay`, which is a tight, low-alpha
-  shadow — not a glow.
-- Dialog scrim: `oklch(0 0 0 / 0.6)` in dark, `oklch(0 0 0 / 0.35)` in light.
-  No backdrop blur beyond 2px.
+- Default separation: `1px solid var(--border)`; rows inside a table use
+  `border-faint`.
+- Hover / emphasis: `border-strong`. Inputs brighten to `foreground-secondary` on focus.
+- The content panel is `surface-1` + hairline + radius 12 on the canvas.
+  Nothing inside it gets a resting shadow.
+- A bordered panel (`Card`) is for **one** one-off container — a form, a chart,
+  a callout. Lists, tables, metrics and empty states sit on the panel between
+  hairlines.
+- Only floating layers (menu, popover, tooltip, dialog, palette, toast) use
+  `shadow-overlay`. The amber button alone carries `shadow-control`.
+- Scrim: `bg-scrim`. No backdrop blur beyond 2px (sticky bars only).
 
 ---
 
@@ -352,89 +283,112 @@ which is enforced globally in `src/design/theme.css`.
 
 ## 9. Components
 
+Primitives live in `src/components/ui`, the frame in `src/components/layout`.
+
 ### Button
 
-Variants: `primary` (the lime one — one per view), `secondary` (surface-2 +
-border), `ghost` (transparent, hover surface-2), `danger` (danger-subtle fill,
-danger text; solid danger only inside a confirmation dialog), `link`.
-Sizes: `sm` 28px, `md` 32px, `lg` 40px. Radius 6. Icon gap 8 (6 at `sm`).
-Every button has a `:focus-visible` ring and a disabled state at 50% opacity
-with `cursor: not-allowed`. Async buttons swap the leading icon for a spinner
-and keep their label and width.
+Variants: `primary` (amber, `shadow-control`, **one per view**), `secondary`
+(transparent + hairline, text brightens on hover), `ghost` (text until hovered),
+`danger` (hairline + danger text; tinted on hover), `destructive` (solid, only
+inside the confirmation that states the consequence), `link`.
+Sizes: `xs` 24px, `sm` 28px (page-bar actions), `md` 32px, `lg` 36px, `icon`
+32px, `icon-sm` 28px. Radius 6, 13px medium, icon gap 6. Disabled at 40%.
+Touch screens get a 36px minimum. Async buttons keep label and width and swap in
+a spinner.
 
 ### Input / Select / Textarea
 
-Height 32 (`md`) / 36 (`lg`). `surface-2` fill, `border` hairline, radius 6.
-Focus: `border-strong` + 2px `ring` at 35% alpha, no glow. Error: `danger`
-border and a message below in `danger` — never colour alone, always text.
-Labels are always real `<label>` elements bound with `htmlFor`.
+Height 32 (40 on phones and touch, with 16px text so iOS does not zoom).
+`fill-subtle` well, `border` hairline, radius 6, placeholder `faint-foreground`.
+Hover brightens the border to `border-strong`; focus to `foreground-secondary` —
+no glow, no ring. Invalid: `aria-invalid` turns the border danger, and a message
+below says why. Labels (`Field`) are 12px medium muted, bound with `htmlFor`.
 
 ### Card / Panel
 
-`surface-1`, hairline border, radius 12, padding 24 (16 on mobile). Optional
-header row: title (H4) left, actions right, separated by a hairline when the
-body is a list or table.
+`surface-1`, hairline, radius 12, padding 16. Header row 12px/16px padding,
+13px medium title, optional hairline under it. Only for single containers — see §6.
 
 ### Table
 
 The most important component in this product.
 
-- Wrapped in a radius-12 bordered container; the table itself is borderless.
-- Header: `surface-2` fill, 12px uppercase `muted-foreground` with +0.02em
-  tracking, sticky when the container scrolls.
-- Row height 48. Hairline `border` between rows, none after the last.
-- Row hover: `surface-2`, 120ms. Clickable rows get `cursor: pointer`, a focus
-  ring, and must also expose a real link for keyboard/middle-click.
-- Numeric columns are right-aligned and `tabular-nums`. Currency shows the
-  symbol once per cell.
-- Identifier columns use mono at 13px.
-- Every table ships four states: skeleton, empty, error, and data.
-- Sorted column header shows a 14px chevron and sets `aria-sort`.
-- Never horizontal-scroll a table without a visible affordance.
+- **No container box.** `TableContainer` draws `border-y` only; the table sits
+  on the panel. `bordered` restores a radius-12 frame for a table inside a grid
+  next to other cards.
+- Header: 36px, plain case, 13px `muted-foreground`, hairline below.
+- Rows 48px, `border-faint` between, none after the last. Hover `bg-hover`.
+  Clickable rows also expose a real link for keyboard and middle-click.
+- Numeric columns right-aligned, `tabular-nums`, never wrap. Identifiers mono 12px.
+- Every table ships four states: skeleton, empty, error, data.
+- Sorted column header sets `aria-sort` and shows a 14px chevron.
 
 ### Badge
 
-Radius 4, height 20, 12px text, `px-2`. Subtle status fill + status foreground.
-Status vocabulary is fixed:
+Height 20, radius 4, hairline, 12px medium **neutral** label, with a 6px status
+dot in front. The dot lets a column of statuses be scanned; the label carries
+the meaning. `tone="primary"` (amber hairline and text) is reserved for a mark
+of identity, not a role or a status. `StatusDot` is the bare dot for chrome.
 
-| Domain status | Token |
+| Domain status | Tone |
 | --- | --- |
-| `active`, `approved`, `paid`, `available` | success |
-| `pending`, `draft`, `hold` | warning |
-| `reversed`, `rejected`, `cancelled`, `failed` | danger |
-| `paused`, `archived`, `inactive` | muted |
+| `active`, `approved`, `paid`, `available`, `connected` | success |
+| `pending`, `draft`, `invited`, `hold` | warning |
+| `reversed`, `rejected`, `cancelled`, `failed`, `suspended` | danger |
+| `paused`, `archived`, `inactive`, `disconnected` | neutral |
 | informational / provider labels | info |
 
 ### Metric (KPI)
 
-Label (12px, muted, uppercase) → value (32–48px, tabular-nums) → delta
-(13px, success/danger with `▲`/`▼`, plus the comparison period in muted text).
-A metric without a comparison period is a missed opportunity, not a feature.
+A **hairline strip**, not tiles: `MetricGrid` is `border-y` with 2–3 columns,
+`MetricCell` pads 16px vertically. Label (13px, muted, plain case) → value
+(`text-title`, or `text-heading-sm` for the one headline figure; tabular, no
+wrap) → delta (12px, success/danger with an arrow and a sign, plus the
+comparison period muted).
+
+### Page header
+
+`PageHeader` is a sticky 48px bar across the content panel: 13px medium title
+(or a breadcrumb ending in the title), optional muted `meta` (count, total),
+actions on the right, then the page's one-line description below. It must be a
+direct child of the page, not wrapped, or `sticky` has nothing to stick within.
+`SectionHeader` titles blocks inside a page: 13px medium + muted count + one action.
+
+### Dropdown / Tooltip / Popover
+
+`surface-3`, `shadow-overlay`, radius 12 (tooltip 6), padding 4. Items 32px
+(40 on touch), radius 6, `bg-selected` when highlighted, icons muted. Group
+labels are 12px `faint-foreground`, plain case. 120ms pop-in.
 
 ### Dialog
 
-Radius 12, `surface-3`, max-width 480 (560 for forms). Focus trap, `Esc` closes,
-scrim click closes unless the form is dirty. Destructive dialogs put the
-destructive button on the right and state the consequence in plain language
-("This will mark 12 payout items as paid. This cannot be undone.").
+`surface-3`, `shadow-overlay`, radius 12, max-width 480 (560 for forms). Header
+with hairline below (14px medium title + muted description), body 16px padding,
+footer with hairline above and actions on the right. Focus trap, `Esc` closes,
+destructive dialogs state the consequence in plain language.
+
+### Command palette
+
+⌘K / Ctrl+K anywhere, or the search field in the sidebar. 640px, top 12vh,
+`surface-3`. A combobox: the input keeps focus, ↑↓ move `aria-activedescendant`,
+↵ runs, `Esc` closes and restores focus. Groups: *Go to* (every nav item with
+its `G` chord), *Actions* (create, theme, language, sidebar, portal, sign out),
+*Workspaces*. Only real shortcuts show a `Kbd`.
 
 ### Empty state
 
-Icon (20px, muted, in a 40px `surface-2` rounded square) → headline (16/500) →
-one sentence of explanation (14, muted, ≤ 2 lines) → one primary action.
-Never an illustration. Never more than one action.
+On the panel, no card: 40px icon tile (radius 12, hairline) → 14px medium
+headline → one muted sentence (≤ 46ch) → one action. Never an illustration.
 
 ### Skeleton
 
-Shapes must match the real content's geometry — same height, same radius, same
-column widths. `surface-2` base with a 1600ms shimmer. Never a spinner where a
-skeleton can be drawn.
+Shapes match the real content's geometry — same row height, same columns, no
+card around them. `fill` base with a 1600ms shimmer.
 
 ### Toast
 
-Bottom-right (bottom-centre on mobile). Only for *asynchronous, off-screen*
-outcomes ("Payout batch marked as paid", "Stripe disconnected"). A form that can
-show inline success must not fire a toast. Never a toast for a navigation.
+Bottom-right (bottom-centre on mobile). Only for asynchronous, off-screen
+outcomes. A form that can show inline success must not fire a toast.
 
 ---
 
@@ -447,7 +401,7 @@ show inline success must not fire a toast. Never a toast for a navigation.
   axis lines, no chart borders.
 - Axis labels: 12px `muted-foreground`, abbreviated currency (`$18.4k`).
 - Area fills are a 12% → 0% vertical gradient of the series colour.
-- Tooltips: `surface-3` + hairline, radius 6, mono figures, 140ms fade. Show
+- Tooltips: `surface-3` + `shadow-overlay`, radius 6, mono figures, 140ms fade. Show
   every series at the hovered x, sorted descending.
 - Funnels show absolute value **and** conversion rate from the previous step.
 - Charts are SVG rendered from pre-aggregated SQL. Never ship a chart library
@@ -458,11 +412,35 @@ show inline success must not fire a toast. Never a toast for a navigation.
 
 ## 11. Layout
 
-- App shell: fixed 240px sidebar (collapses to 56px icon rail below `lg`, becomes
-  a sheet below `md`), sticky 56px top bar, scrollable content.
-- Content max-width 1400px, centred, 24px gutter.
-- Page header: breadcrumb/title left, primary action right, 32px below.
-- Marketing: 1200px max-width, 24px gutter, 96–128px section rhythm.
+- **App shell** (`AppShell`, wrapped by `DashboardShell` and `AffiliateShell`):
+  a 240px sidebar on the `background` plane — workspace switcher (or logo), the
+  search field with ⌘K, grouped nav with 12px faint section labels, and settings
+  plus the account menu pinned to the bottom. The page lives in **one inset
+  content panel**: 8px from the viewport edges, `surface-1`, hairline, radius 12,
+  scrolling on its own.
+- Sidebar: collapsible to a 56px icon rail with `[` (persisted per browser);
+  always a rail from 768 to 1024px; below 768px an app bar (menu, brand, search)
+  opens it as a drawer.
+- Content: 24px gutter (16 on phones), every block centred at `max-w-content`
+  (1280px); detail pages may narrow to `max-w-detail` (880px). The page header
+  bar is full-bleed across the panel.
+- The account menu carries theme and language, which have no page of their own.
+- Marketing: 1200px max-width (`max-w-page`), 24px gutter, 96–128px section
+  rhythm; the product mock in the hero uses the same shell.
+- Auth and onboarding: canvas, a slim top bar (logo, language, theme), one
+  centred narrow column.
+
+## 11b. Keyboard
+
+| Keys | Action |
+| --- | --- |
+| ⌘K / Ctrl+K | Open or close the command palette |
+| `G` then `O` `P` `A` `C` `M` `Y` `I` `S` | Overview, Programs, Affiliates, Conversions, Commissions, Payouts, Integrations, Settings |
+| `G` then `O` `L` `C` `M` `Y` `S` | Affiliate portal: Overview, Links, Conversions, Commissions, Payouts, Settings |
+| `[` | Collapse / expand the sidebar |
+
+Chords never fire while typing in a field or while a dialog or menu is open.
+Adding a nav item means adding its chord, or deliberately none.
 
 ---
 
@@ -471,8 +449,9 @@ show inline success must not fire a toast. Never a toast for a navigation.
 Non-negotiable:
 
 - Semantic HTML first: `<table>`, `<th scope>`, `<nav>`, `<main>`, `<button>`.
-- Visible `:focus-visible` ring on every interactive element — 2px `--ring`,
-  2px offset. Never `outline: none` without a replacement.
+- Visible `:focus-visible` outline on every interactive element — 2px `--ring`,
+  1px offset. Inputs replace it with a brightened border. Never `outline: none`
+  without a replacement.
 - Full keyboard reachability; logical tab order; skip-to-content link.
 - Dialogs and sheets trap focus and restore it to the trigger on close.
 - Every icon-only control has an accessible name.
@@ -497,31 +476,40 @@ Table strategy by context:
 | --- | --- |
 | Financial tables the founder scans (commissions, transactions) | horizontal scroll with a sticky first column and a visible edge fade |
 | Entity lists (affiliates, programs, payouts) | collapse each row into a card: title + status on line 1, two key metrics on line 2, the rest behind a detail link |
-| Affiliate portal lists | always cards, never scroll |
+| Affiliate portal lists | always stacked items, never scroll |
+
+The shell itself: sidebar ≥ 1024px, icon rail 768–1024px, app bar + drawer
+below 768px.
 
 ---
 
 ## 14. Do / Don't
 
 ```
-DO    className="bg-surface-1 border border-border rounded-xl"
-DON'T className="bg-[#0f1011] shadow-xl rounded-3xl"
+DO    <TableContainer><Table>…</Table></TableContainer>   (on the panel, border-y)
+DON'T <Card><TableContainer>…</TableContainer></Card>
 
-DO    <Badge tone="warning">Pending</Badge>
-DON'T <span className="text-yellow-400">●</span>
+DO    <PageHeader title="Comissões" meta="34" actions={<Button variant="primary" size="sm">…} />
+DON'T <h1 className="text-heading-sm">Comissões</h1> plus a row of buttons
 
-DO    text-2xl font-medium tracking-tight
+DO    <StatusBadge status="pending" />      (dot + neutral label)
+DON'T <span className="text-warning">Pending</span>
+
+DO    <MetricGrid><MetricCell><Metric …/></MetricCell>…</MetricGrid>
+DON'T three bordered KPI cards in a grid
+
+DO    text-caption font-medium            (13px bar title)
 DON'T text-2xl font-bold
 
 DO    <td className="text-right tabular-nums">{formatMoney(1470,'USD')}</td>
 DON'T <td>{(14.7).toFixed(2)}</td>
 
-DO    one lime primary action per view
-DON'T three lime buttons competing in one header
+DO    one amber primary action per view
+DON'T three amber buttons competing in one header
 
-DO    a skeleton shaped like the table it replaces
-DON'T a centred spinner on an empty page
+DO    bg-hover / bg-selected / bg-fill       (theme-safe alpha tokens)
+DON'T bg-white/5                            (invisible in light)
 
-DO    transition-colors duration-120
+DO    transition-colors duration-[120ms]
 DON'T transition-all duration-500 ease-bounce
 ```

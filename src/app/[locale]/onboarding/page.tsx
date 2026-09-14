@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { getTranslations } from "next-intl/server"
 
+import { LocaleSwitcher } from "@/components/layout/locale-switcher"
 import { Logo } from "@/components/layout/logo"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { CreateWorkspaceForm } from "@/features/workspaces/create-workspace-form"
@@ -20,25 +21,28 @@ export default async function OnboardingPage() {
   const t = await getTranslations("onboarding")
   await requireUser()
 
+  // The same bare-canvas frame as sign-in and sign-up: onboarding is the
+  // last step of that flow, not the first screen of the product.
   return (
     <div className="flex min-h-dvh flex-col bg-background">
-      <header className="flex items-center justify-between px-6 py-4">
+      <header className="flex h-14 items-center justify-between px-4 sm:px-6">
         <Logo />
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          <LocaleSwitcher />
+          <ThemeToggle />
+        </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-[460px] flex-1 flex-col justify-center px-4 py-10">
-        <div className="mb-6 space-y-2">
-          <p className="text-meta font-medium uppercase tracking-[0.02em] text-muted-foreground">
-            {t("step")}
-          </p>
-          <h1 className="text-subheading font-medium">{t("title")}</h1>
-          <p className="text-caption leading-relaxed text-muted-foreground">
-            {t("description")}
-          </p>
-        </div>
+      <main className="flex flex-1 items-center justify-center px-4 py-12 sm:py-16">
+        <div className="w-full max-w-md">
+          <div className="mb-8 space-y-2 text-center">
+            <p className="text-meta tabular-nums text-faint-foreground">{t("step")}</p>
+            <h1 className="text-balance text-subheading text-foreground">{t("title")}</h1>
+            <p className="text-pretty text-ui text-muted-foreground">{t("description")}</p>
+          </div>
 
-        <CreateWorkspaceForm />
+          <CreateWorkspaceForm />
+        </div>
       </main>
     </div>
   )

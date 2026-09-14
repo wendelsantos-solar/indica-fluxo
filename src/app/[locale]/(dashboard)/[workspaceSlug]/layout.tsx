@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation"
 
-import { Sidebar } from "@/components/layout/sidebar"
-import { TopBar } from "@/components/layout/top-bar"
+import { DashboardShell } from "@/components/layout/dashboard-shell"
 import { requireUser } from "@/server/auth/session"
 import { getWorkspaceForUser, listUserWorkspaces } from "@/server/services/workspaces"
 
@@ -23,14 +22,8 @@ export default async function DashboardLayout({
   await getWorkspaceForUser(user.id, workspaceSlug)
 
   return (
-    <div className="flex min-h-dvh bg-background">
-      <Sidebar workspaces={workspaces} current={current} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar email={user.email} />
-        <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 sm:py-8">
-          {children}
-        </main>
-      </div>
-    </div>
+    <DashboardShell workspaces={workspaces} current={current} email={user.email}>
+      {children}
+    </DashboardShell>
   )
 }

@@ -16,12 +16,18 @@ export function CopyButton({
   label,
   className,
   size = "sm",
+  variant = "secondary",
+  describedBy,
 }: {
   value: string
   /** Defaults to the translated "Copy". */
   label?: string
   className?: string
-  size?: "sm" | "md"
+  size?: "sm" | "md" | "lg"
+  /** `primary` only when copying is the one thing the view exists for. */
+  variant?: "primary" | "secondary" | "ghost"
+  /** Id of the element holding the value, so "Copy" is announced with context. */
+  describedBy?: string
 }) {
   const t = useTranslations("common.actions")
   const [copied, setCopied] = React.useState(false)
@@ -35,8 +41,9 @@ export function CopyButton({
   return (
     <Button
       type="button"
-      variant="secondary"
+      variant={variant}
       size={size}
+      aria-describedby={describedBy}
       className={cn("shrink-0", className)}
       onClick={async () => {
         try {
@@ -48,7 +55,10 @@ export function CopyButton({
       }}
     >
       {copied ? (
-        <Check className="text-success-foreground" aria-hidden="true" />
+        <Check
+          className={variant === "primary" ? undefined : "text-success-foreground"}
+          aria-hidden="true"
+        />
       ) : (
         <Copy aria-hidden="true" />
       )}
@@ -57,18 +67,42 @@ export function CopyButton({
   )
 }
 
-export function ReferralLinkField({ url, className }: { url: string; className?: string }) {
+/**
+ * A referral URL and its copy button — the one thing an affiliate comes back
+ * for. On a phone the URL wraps in full above a full-width 44px button, so it
+ * can be read and tapped with a thumb; from `sm` up it collapses to one row.
+ */
+export function ReferralLinkField({
+  url,
+  prominent = false,
+  className,
+}: {
+  url: string
+  /** Amber copy button. At most one per view. */
+  prominent?: boolean
+  className?: string
+}) {
+  const id = React.useId()
+
   return (
-    <div
-      className={cn(
-        "flex items-center gap-2 rounded-control border border-border bg-surface-2 p-1 pl-3",
-        className,
-      )}
-    >
-      <code className="min-w-0 flex-1 truncate font-mono text-meta text-foreground-secondary">
-        {url}
+    <div className={cn("flex flex-col gap-2 sm:flex-row sm:items-center", className)}>
+      <code
+        id={id}
+        className={cn(
+          "flex min-h-11 min-w-0 flex-1 select-all items-center rounded-control border border-border bg-fill-subtle px-3 py-2",
+          "break-all font-mono text-meta text-foreground-secondary",
+          "sm:min-h-8 sm:py-1.5",
+        )}
+      >
+        <span className="min-w-0 sm:truncate">{url}</span>
       </code>
-      <CopyButton value={url} />
+      <CopyButton
+        value={url}
+        size="lg"
+        variant={prominent ? "primary" : "secondary"}
+        describedBy={id}
+        className="h-11 w-full sm:h-8 sm:w-auto"
+      />
     </div>
   )
 }
