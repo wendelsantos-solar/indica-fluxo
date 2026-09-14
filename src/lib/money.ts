@@ -1,6 +1,11 @@
 /**
  * Money is always an integer in minor units plus an ISO-4217 currency.
  * Never a float, never a Number holding "14.70". See DATABASE.md §4.
+ *
+ * Formatting is locale-aware but the *currency is not negotiable*: a commission
+ * recorded in USD is shown in USD to a Brazilian reader, formatted the way
+ * Brazilian readers expect (`US$ 1.234,56`). Substituting the reader's own
+ * currency would invent an exchange rate the ledger never applied.
  */
 
 export type Currency = string
@@ -21,15 +26,21 @@ export function applyBasisPoints(amountMinor: number, basisPoints: number): numb
   return roundHalfUp((amountMinor * basisPoints) / 10_000)
 }
 
+export interface MoneyOptions {
+  compact?: boolean
+  signDisplay?: "auto" | "always" | "never"
+}
+
 export function formatMoney(
+  locale: string,
   amountMinor: number,
   currency: Currency,
-  options: { compact?: boolean; signDisplay?: "auto" | "always" | "never" } = {},
+  options: MoneyOptions = {},
 ): string {
   const exponent = minorUnitExponent(currency)
   const value = amountMinor / 10 ** exponent
 
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(locale, {
     style: "currency",
     currency: currency.toUpperCase(),
     notation: options.compact ? "compact" : "standard",
@@ -39,22 +50,55 @@ export function formatMoney(
   }).format(value)
 }
 
-/** `3000 → "30%"`, `2550 → "25.5%"` */
-export function formatBasisPoints(basisPoints: number): string {
-  const percent = basisPoints / 100
-  return `${Number.isInteger(percent) ? percent : percent.toFixed(2).replace(/0$/, "")}%`
+/** `3000 → "30%"`, `2550 → "25,5%"` in pt-BR. */
+export function formatBasisPoints(locale: string, basisPoints: number): string {
+  return new Intl.NumberFormat(locale, {
+    style: "percent",
+    maximumFractionDigits: 2,
+  }).format(basisPoints / 10_000)
 }
 
-export function formatNumber(value: number, options: { compact?: boolean } = {}): string {
-  return new Intl.NumberFormat("en-US", {
+export function formatNumber(
+  locale: string,
+  value: number,
+  options: { compact?: boolean } = {},
+): string {
+  return new Intl.NumberFormat(locale, {
     notation: options.compact ? "compact" : "standard",
     maximumFractionDigits: options.compact ? 1 : 0,
   }).format(value)
 }
 
 /** Ratio as a percentage string, guarding division by zero. */
-export function formatRate(numerator: number, denominator: number): string {
-  if (denominator <= 0) return "0%"
-  const pct = (numerator / denominator) * 100
-  return `${pct >= 10 || pct === 0 ? pct.toFixed(0) : pct.toFixed(1)}%`
+export function formatRate(locale: string, numerator: number, denominator: number): string {
+  if (denominator <= 0) {
+    return new Intl.NumberFormat(locale, { style: "percent" }).format(0)
+  }
+
+  const ratio = numerator / denominator
+  return new Intl.NumberFormat(locale, {
+    style: "percent",
+    maximumFractionDigits: ratio >= 0.1 || ratio === 0 ? 0 : 1,
+  }).format(ratio)
 }
+
+/**
+ * Binds the locale once so a view does not thread it through every call.
+ *
+ * Server components get this from `getFormatters()` in `@/i18n/format`; client
+ * components from `useFormatters()`. Both are thin wrappers around this.
+ */
+export function createFormatters(locale: string) {
+  return {
+    locale,
+    money: (amountMinor: number, currency: Currency, options?: MoneyOptions) =>
+      formatMoney(locale, amountMinor, currency, options),
+    basisPoints: (basisPoints: number) => formatBasisPoints(locale, basisPoints),
+    number: (value: number, options?: { compact?: boolean }) =>
+      formatNumber(locale, value, options),
+    rate: (numerator: number, denominator: number) =>
+      formatRate(locale, numerator, denominator),
+  }
+}
+
+export type Formatters = ReturnType<typeof createFormatters>

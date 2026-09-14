@@ -1,20 +1,21 @@
 import * as React from "react"
 
-import { formatNumber, formatRate } from "@/lib/money"
 import { cn } from "@/lib/utils"
+import { getFormatters } from "@/i18n/format"
 
 /**
  * DESIGN.md §10: a funnel shows the absolute value AND the conversion rate
  * from the previous step. Rendered as a definition list so the numbers are
  * available to a screen reader without the bars.
  */
-export function Funnel({
+export async function Funnel({
   steps,
   className,
 }: {
   steps: { label: string; value: number }[]
   className?: string
 }) {
+  const f = await getFormatters()
   const max = Math.max(1, ...steps.map((s) => s.value))
 
   return (
@@ -29,11 +30,11 @@ export function Funnel({
               <span className="text-caption text-foreground-secondary">{step.label}</span>
               <span className="flex items-baseline gap-2">
                 <span className="font-medium tabular-nums text-foreground">
-                  {formatNumber(step.value)}
+                  {f.number(step.value)}
                 </span>
                 {previous !== null ? (
                   <span className="text-meta tabular-nums text-muted-foreground">
-                    {formatRate(step.value, previous)}
+                    {f.rate(step.value, previous)}
                   </span>
                 ) : null}
               </span>

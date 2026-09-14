@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "title": "Indica — infraestrutura de indicação para SaaS",
+    "titleTemplate": "%s · Indica",
+    "description": "Acompanhe cada clique, conversão e comissão recorrente sem construir a infraestrutura de afiliados por conta própria."
+  },
+  "nav": {
+    "overview": "Visão geral",
+    "programs": "Programas",
+    "affiliates": "Afiliados",
+    "conversions": "Conversões",
+    "commissions": "Comissões",
+    "payouts": "Pagamentos",
+    "integrations": "Integrações",
+    "settings": "Configurações",
+    "links": "Links"
+  }
+}

@@ -1,7 +1,9 @@
 import "server-only"
 
 import { cache } from "react"
-import { redirect } from "next/navigation"
+import { getLocale } from "next-intl/server"
+
+import { redirect } from "@/i18n/navigation"
 
 import { createClient } from "@/lib/supabase/server"
 
@@ -26,6 +28,11 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
 
 export async function requireUser(): Promise<SessionUser> {
   const user = await getSessionUser()
-  if (!user) redirect("/login")
+  if (!user) {
+    // `redirect` throws, but next-intl types it as `void` rather than `never`,
+    // so the narrowing has to be written out.
+    redirect({ href: "/login", locale: await getLocale() })
+    throw new Error("unreachable: redirect() does not return")
+  }
   return user
 }

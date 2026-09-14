@@ -1,6 +1,8 @@
 "use server"
 
-import { redirect } from "next/navigation"
+import { getLocale } from "next-intl/server"
+
+import { redirect } from "@/i18n/navigation"
 import { z } from "zod"
 
 import { createClient } from "@/lib/supabase/server"
@@ -40,7 +42,7 @@ export async function signIn(
   // is a user-enumeration oracle.
   if (error) return { error: "Those credentials did not work. Try again." }
 
-  redirect("/app")
+  return redirect({ href: "/app", locale: await getLocale() })
 }
 
 export async function signUp(
@@ -71,11 +73,11 @@ export async function signUp(
     return { message: "Check your inbox to confirm your e-mail, then sign in." }
   }
 
-  redirect("/app")
+  return redirect({ href: "/app", locale: await getLocale() })
 }
 
 export async function signOut(): Promise<void> {
   const supabase = await createClient()
   await supabase.auth.signOut()
-  redirect("/login")
+  return redirect({ href: "/login", locale: await getLocale() })
 }

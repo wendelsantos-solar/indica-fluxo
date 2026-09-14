@@ -1,6 +1,8 @@
 "use server"
 
-import { redirect } from "next/navigation"
+import { getLocale } from "next-intl/server"
+
+import { redirect } from "@/i18n/navigation"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
@@ -46,7 +48,14 @@ export async function createWorkspaceAction(
     return { error: isAppError(error) ? error.message : "Could not create the workspace." }
   }
 
-  redirect(`/${slug}/programs/new?onboarding=1`)
+  return redirect({
+    href: {
+      pathname: "/[workspaceSlug]/programs/new",
+      params: { workspaceSlug: slug },
+      query: { onboarding: "1" },
+    },
+    locale: await getLocale(),
+  })
 }
 
 const updateSchema = createSchema.extend({ workspaceId: z.string().uuid() })

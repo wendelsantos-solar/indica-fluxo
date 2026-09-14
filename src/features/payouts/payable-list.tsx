@@ -3,9 +3,9 @@
 import { useActionState, useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { useFormatters } from "@/i18n/use-formatters"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
 import { useActionResult } from "@/components/ui/use-action-result"
-import { formatMoney, formatNumber } from "@/lib/money"
 
 import { createPayoutBatchAction, type PayoutFormState } from "./actions"
 
@@ -34,6 +34,7 @@ export function PayableList({
   rows: PayableRow[]
   currency: string
 }) {
+  const f = useFormatters()
   const [selected, setSelected] = useState<string[]>(() => rows.map((r) => r.participationId))
   const [state, action, pending] = useActionState(createPayoutBatchAction, INITIAL)
 
@@ -99,9 +100,9 @@ export function PayableList({
                       {row.code}
                     </span>
                   </TD>
-                  <TD numeric>{formatNumber(row.commissionCount)}</TD>
+                  <TD numeric>{f.number(row.commissionCount)}</TD>
                   <TD numeric className="font-medium text-foreground">
-                    {formatMoney(row.amountMinor, row.currency)}
+                    {f.money(row.amountMinor, row.currency)}
                   </TD>
                 </TR>
               )
@@ -114,7 +115,7 @@ export function PayableList({
         <p className="text-caption text-muted-foreground">
           {selected.length} of {rows.length} selected ·{" "}
           <span className="font-medium tabular-nums text-foreground">
-            {formatMoney(total, currency)}
+            {f.money(total, currency)}
           </span>
         </p>
         <Button type="submit" variant="primary" loading={pending} disabled={selected.length === 0}>

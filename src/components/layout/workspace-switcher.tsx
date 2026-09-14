@@ -1,8 +1,8 @@
 "use client"
 
 import { Check, ChevronsUpDown, Plus } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { Link } from "@/i18n/navigation"
+import { useRouter } from "@/i18n/navigation"
 import * as React from "react"
 
 import {
@@ -54,7 +54,12 @@ export function WorkspaceSwitcher({
         {workspaces.map((workspace) => (
           <DropdownItem
             key={workspace.id}
-            onSelect={() => router.push(`/${workspace.slug}/overview`)}
+            onSelect={() =>
+              router.push({
+                pathname: "/[workspaceSlug]/overview",
+                params: { workspaceSlug: workspace.slug },
+              })
+            }
             className="justify-between"
           >
             <span className="flex min-w-0 items-center gap-2">

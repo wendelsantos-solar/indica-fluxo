@@ -9,14 +9,17 @@
 
 export const DEMO_PASSWORD = "demo-password-1234"
 
+/** The demo is a Brazilian SaaS, so its ledger and its console output are pt-BR. */
+export const SEED_LOCALE = "pt-br"
+
 /** RFC 2606 reserves example.com, so these addresses can never be real people. */
 export const DEMO_EMAIL_DOMAIN = "example.com"
 
 export const DEMO_WORKSPACE = {
   name: "Acme SaaS",
   slug: "acme",
-  currency: "USD",
-  timezone: "UTC",
+  currency: "BRL",
+  timezone: "America/Sao_Paulo",
 } as const
 
 export const DEMO_FOUNDER = {
@@ -28,7 +31,7 @@ export const DEMO_PROGRAM = {
   name: "Acme Partners",
   slug: "acme-partners",
   description:
-    "Refer teams to Acme and earn 30% of every payment they make for their first 12 months.",
+    "Indique times para a Acme e ganhe 30% de cada pagamento nos primeiros 12 meses.",
   status: "active",
   commissionType: "percentage",
   /** Basis points: 3000 = 30%. */
@@ -38,7 +41,7 @@ export const DEMO_PROGRAM = {
   attributionWindowDays: 60,
   /** Short enough that the demo shows both `pending` and `available` rows. */
   commissionHoldDays: 14,
-  currency: "USD",
+  currency: "BRL",
 } as const
 
 /** Stripe test-mode style account id. Nothing here talks to Stripe. */
@@ -75,7 +78,7 @@ export const DEMO_AFFILIATES: AffiliateBlueprint[] = [
     participationStatus: "approved",
     noiseClicks: 380,
     conversions: 8,
-    plans: [4900, 9900],
+    plans: [9700, 19700],
     links: [
       { name: "Newsletter", path: "/", campaign: "newsletter" },
       { name: "YouTube review", path: "/pricing", campaign: "yt-review" },
@@ -93,7 +96,7 @@ export const DEMO_AFFILIATES: AffiliateBlueprint[] = [
     customCommissionValue: 4000,
     noiseClicks: 240,
     conversions: 6,
-    plans: [9900, 9900, 4900],
+    plans: [19700, 19700, 9700],
     links: [{ name: "Client onboarding", path: "/", campaign: "clients" }],
   },
   {
@@ -106,7 +109,7 @@ export const DEMO_AFFILIATES: AffiliateBlueprint[] = [
     participationStatus: "approved",
     noiseClicks: 160,
     conversions: 4,
-    plans: [4900],
+    plans: [9700],
     links: [{ name: "Blog post", path: "/", campaign: "blog" }],
   },
   {
@@ -119,7 +122,7 @@ export const DEMO_AFFILIATES: AffiliateBlueprint[] = [
     participationStatus: "approved",
     noiseClicks: 95,
     conversions: 3,
-    plans: [4900, 9900],
+    plans: [9700, 19700],
     links: [{ name: "Community", path: "/", campaign: "community" }],
   },
   {
@@ -133,7 +136,7 @@ export const DEMO_AFFILIATES: AffiliateBlueprint[] = [
     participationStatus: "pending",
     noiseClicks: 0,
     conversions: 0,
-    plans: [4900],
+    plans: [9700],
     links: [],
   },
 ]

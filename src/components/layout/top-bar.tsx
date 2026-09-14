@@ -1,5 +1,5 @@
 import { LogOut, User } from "lucide-react"
-import Link from "next/link"
+import { Link } from "@/i18n/navigation"
 import * as React from "react"
 
 import { ThemeToggle } from "@/components/layout/theme-toggle"

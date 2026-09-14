@@ -2,7 +2,7 @@ import "./bootstrap"
 import "server-only"
 
 import type { NormalizedBillingEvent } from "@/lib/billing/types"
-import { formatMoney } from "@/lib/money"
+import { createFormatters } from "@/lib/money"
 import { slugify } from "@/lib/utils"
 import { db } from "@/server/db"
 import {
@@ -32,6 +32,7 @@ import {
   DEMO_PROGRAM,
   DEMO_STRIPE_ACCOUNT,
   DEMO_WORKSPACE,
+  SEED_LOCALE,
   HISTORY_DAYS,
   USER_AGENTS,
   UTM_MEDIUMS,
@@ -445,7 +446,8 @@ async function seedPayout(seeded: Seeded): Promise<string | null> {
       "WISE-DEMO-48213",
     )
 
-    return `${batch.reference} — ${formatMoney(batch.totalAmountMinor, DEMO_PROGRAM.currency)}`
+    const f = createFormatters(SEED_LOCALE)
+    return `${batch.reference} — ${f.money(batch.totalAmountMinor, DEMO_PROGRAM.currency)}`
   } catch (error) {
     // Nothing payable yet is a legitimate outcome, not a seed failure.
     console.warn(`  payout skipped: ${error instanceof Error ? error.message : String(error)}`)

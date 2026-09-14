@@ -12,23 +12,30 @@ import {
   Users,
   X,
 } from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { Link } from "@/i18n/navigation"
+import { useTranslations } from "next-intl"
+
+import { usePathname } from "@/i18n/navigation"
 import * as React from "react"
 
 import { WorkspaceSwitcher, type WorkspaceOption } from "@/components/layout/workspace-switcher"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
+/**
+ * Canonical pathnames, not URL segments. `Link` translates them per locale, so
+ * `/[workspaceSlug]/commissions` renders as `/pt-br/acme/comissoes` without this
+ * file knowing either the locale or its spelling.
+ */
 const NAV = [
-  { href: "overview", label: "Overview", icon: BarChart3 },
-  { href: "programs", label: "Programs", icon: Layers },
-  { href: "affiliates", label: "Affiliates", icon: Users },
-  { href: "conversions", label: "Conversions", icon: Receipt },
-  { href: "commissions", label: "Commissions", icon: Coins },
-  { href: "payouts", label: "Payouts", icon: CreditCard },
-  { href: "integrations", label: "Integrations", icon: Plug },
-  { href: "settings", label: "Settings", icon: Settings },
+  { pathname: "/[workspaceSlug]/overview", key: "overview", icon: BarChart3 },
+  { pathname: "/[workspaceSlug]/programs", key: "programs", icon: Layers },
+  { pathname: "/[workspaceSlug]/affiliates", key: "affiliates", icon: Users },
+  { pathname: "/[workspaceSlug]/conversions", key: "conversions", icon: Receipt },
+  { pathname: "/[workspaceSlug]/commissions", key: "commissions", icon: Coins },
+  { pathname: "/[workspaceSlug]/payouts", key: "payouts", icon: CreditCard },
+  { pathname: "/[workspaceSlug]/integrations", key: "integrations", icon: Plug },
+  { pathname: "/[workspaceSlug]/settings", key: "settings", icon: Settings },
 ] as const
 
 export function Sidebar({
@@ -38,6 +45,7 @@ export function Sidebar({
   workspaces: WorkspaceOption[]
   current: WorkspaceOption
 }) {
+  const t = useTranslations("nav")
   const pathname = usePathname()
   const [open, setOpen] = React.useState(false)
   const [lastPathname, setLastPathname] = React.useState(pathname)
@@ -52,12 +60,14 @@ export function Sidebar({
   const nav = (
     <nav aria-label="Main" className="flex-1 space-y-0.5 px-2 py-2">
       {NAV.map((item) => {
-        const href = `/${current.slug}/${item.href}`
+        // `usePathname` from @/i18n/navigation returns the canonical path with
+        // the locale stripped, so it compares against the template directly.
+        const href = item.pathname.replace("[workspaceSlug]", current.slug)
         const active = pathname === href || pathname.startsWith(`${href}/`)
         return (
           <Link
-            key={item.href}
-            href={href}
+            key={item.key}
+            href={{ pathname: item.pathname, params: { workspaceSlug: current.slug } }}
             aria-current={active ? "page" : undefined}
             className={cn(
               "flex items-center gap-2.5 rounded-control px-2 py-1.5 text-caption",
@@ -68,7 +78,7 @@ export function Sidebar({
             )}
           >
             <item.icon className="size-4 shrink-0" aria-hidden="true" />
-            {item.label}
+            {t(item.key)}
           </Link>
         )
       })}

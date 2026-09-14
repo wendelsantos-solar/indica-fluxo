@@ -1,4 +1,9 @@
+# Install scripts are opt-in. Both native packages ship their bindings as
+# platform-specific optional dependencies rather than building on postinstall,
+# so declining keeps third-party install-time code out of the build at no cost.
 allowBuilds:
+  '@parcel/watcher': false
+  '@swc/core': false
   esbuild: true
   sharp: false
   unrs-resolver: false

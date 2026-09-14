@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { useFormatters } from "@/i18n/use-formatters"
 import {
   Dialog,
   DialogBody,
@@ -16,7 +17,6 @@ import {
 import { Field } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { useActionResult } from "@/components/ui/use-action-result"
-import { formatMoney } from "@/lib/money"
 
 import { cancelBatchAction, markBatchPaidAction, type PayoutFormState } from "./actions"
 
@@ -41,6 +41,7 @@ export function MarkPaidDialog({
   totalAmountMinor: number
   currency: string
 }) {
+  const f = useFormatters()
   const [open, setOpen] = useState(false)
   const [state, action, pending] = useActionState(markBatchPaidAction, INITIAL)
 
@@ -63,7 +64,7 @@ export function MarkPaidDialog({
             <DialogDescription>
               This records that you paid {affiliateCount} affiliate
               {affiliateCount === 1 ? "" : "s"} a total of{" "}
-              {formatMoney(totalAmountMinor, currency)} outside the platform. The commissions in
+              {f.money(totalAmountMinor, currency)} outside the platform. The commissions in
               this batch become <strong>paid</strong> and this cannot be undone.
             </DialogDescription>
           </DialogHeader>

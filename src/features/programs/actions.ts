@@ -1,6 +1,8 @@
 "use server"
 
-import { redirect } from "next/navigation"
+import { getLocale } from "next-intl/server"
+
+import { redirect } from "@/i18n/navigation"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
@@ -99,7 +101,13 @@ export async function createProgramAction(
   }
 
   revalidatePath(`/${parsed.data.workspaceSlug}/programs`)
-  redirect(`/${parsed.data.workspaceSlug}/programs/${slug}`)
+  return redirect({
+    href: {
+      pathname: "/[workspaceSlug]/programs/[programSlug]",
+      params: { workspaceSlug: parsed.data.workspaceSlug, programSlug: slug },
+    },
+    locale: await getLocale(),
+  })
 }
 
 export async function updateProgramAction(

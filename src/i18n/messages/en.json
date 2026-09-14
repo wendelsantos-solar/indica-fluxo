@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "title": "Indica — referral infrastructure for SaaS",
+    "titleTemplate": "%s · Indica",
+    "description": "Track every click, conversion and recurring commission without building affiliate infrastructure yourself."
+  },
+  "nav": {
+    "overview": "Overview",
+    "programs": "Programs",
+    "affiliates": "Affiliates",
+    "conversions": "Conversions",
+    "commissions": "Commissions",
+    "payouts": "Payouts",
+    "integrations": "Integrations",
+    "settings": "Settings",
+    "links": "Links"
+  }
+}

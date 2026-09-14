@@ -2,8 +2,8 @@
 
 import * as React from "react"
 
-import { formatMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
+import { useFormatters } from "@/i18n/use-formatters"
 
 /**
  * Hand-rolled SVG rather than a charting library: the series is already
@@ -31,6 +31,7 @@ export function AreaChart({
   height?: number
   className?: string
 }) {
+  const f = useFormatters()
   const [hover, setHover] = React.useState<number | null>(null)
   const width = 800
   const padding = { top: 12, right: 8, bottom: 24, left: 8 }
@@ -145,7 +146,7 @@ export function AreaChart({
                 />
                 <span className="text-muted-foreground">{s.label}</span>
                 <span className="ml-auto font-mono tabular-nums text-foreground">
-                  {formatMoney(s.values[hover] ?? 0, currency, { compact: true })}
+                  {f.money(s.values[hover] ?? 0, currency, { compact: true })}
                 </span>
               </p>
             ))}
