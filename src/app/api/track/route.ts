@@ -2,13 +2,12 @@ import { NextResponse, type NextRequest } from "next/server"
 import { z } from "zod"
 
 import { TRACK_RATE_LIMIT } from "@/lib/api/contract"
-import { peppered } from "@/lib/crypto/hash"
 import { logger } from "@/lib/logger"
 import { clientIp, rateLimit } from "@/lib/rate-limit"
-import { VISITOR_COOKIE, VISITOR_COOKIE_MAX_AGE_DAYS } from "@/lib/tracking/constants"
 import { isValidVisitorId, normalizeReferralCode } from "@/lib/tracking/visitor"
 import { isAppError } from "@/server/policies/errors"
-import { recordClick, workspaceForPublishableKey } from "@/server/services/tracking"
+import { resolvePublishableKey } from "@/server/services/api-keys"
+import { recordClick } from "@/server/services/tracking"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -74,14 +73,16 @@ export async function POST(request: NextRequest) {
   }
 
   // The publishable key is looked up by hash; it is never logged or echoed.
-  const workspaceId = await workspaceForPublishableKey(peppered(parsed.publicKey))
-  if (!workspaceId) {
+  // Unknown, revoked and malformed keys are the same answer.
+  const key = await resolvePublishableKey(parsed.publicKey)
+  if (!key) {
     return NextResponse.json({ error: "unknown_key" }, { status: 401, headers: CORS })
   }
 
   try {
     const result = await recordClick({
-      workspaceId,
+      workspaceId: key.workspaceId,
+      environment: key.environment,
       code,
       visitorId: parsed.visitorId,
       landingUrl: parsed.url,
@@ -92,26 +93,21 @@ export async function POST(request: NextRequest) {
       country: request.headers.get("x-vercel-ip-country"),
     })
 
-    const response = NextResponse.json(
+    // A live key on a workspace without live mode: nothing recorded, nothing to say.
+    if (!result.recorded) return new NextResponse(null, { status: 204, headers: CORS })
+
+    // No cookie here: this response comes from IndicaFluxo's host, so a cookie
+    // set on it would never be first-party on the customer's site. The tracker
+    // writes the visitor cookie itself, with JavaScript, on the customer's domain.
+    return NextResponse.json(
       { ok: true, attributed: result.attributionAction !== "ignore" },
       { headers: CORS },
     )
-
-    // First-party cookie so the visitor id survives across pages on the
-    // customer's own domain when they proxy this endpoint.
-    response.cookies.set(VISITOR_COOKIE, parsed.visitorId, {
-      maxAge: VISITOR_COOKIE_MAX_AGE_DAYS * 24 * 60 * 60,
-      path: "/",
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-    })
-
-    return response
   } catch (error) {
     if (isAppError(error)) {
       return NextResponse.json({ error: error.code }, { status: error.status, headers: CORS })
     }
-    logger.error("track failed", { workspaceId, error })
+    logger.error("track failed", { workspaceId: key.workspaceId, error })
     return NextResponse.json({ error: "internal_error" }, { status: 500, headers: CORS })
   }
 }

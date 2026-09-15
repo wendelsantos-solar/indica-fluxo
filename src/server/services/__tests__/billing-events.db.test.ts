@@ -6,7 +6,7 @@
  *   RUN_DB_TESTS=1 pnpm exec vitest run src/server/services/__tests__/billing-events.db.test.ts
  */
 import { config } from "dotenv"
-import { and, eq } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 import { describe, expect, it, vi } from "vitest"
 
 vi.mock("server-only", () => ({}))
@@ -16,7 +16,7 @@ const RUN = process.env.RUN_DB_TESTS === "1"
 
 const { db } = await import("@/server/db")
 const schema = await import("@/server/db/schema")
-const { handleBillingEvent } = await import("../billing-events")
+const { handleBillingEvent, ingestVerifiedWebhook, PaymentNotRecordedYetError } = await import("../billing-events")
 const { hashEmail } = await import("@/lib/crypto/hash")
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
@@ -86,7 +86,7 @@ async function fixture(tx: Tx) {
   return { workspaceId, attribute, handle, commissionsOf }
 }
 
-const base = { provider: "stripe" as const, providerAccountId: null, occurredAt: PAID_AT }
+const base = { provider: "stripe" as const, providerAccountId: null, occurredAt: PAID_AT, environment: "test" as const }
 
 function payment(id: string, references: string[], customer: string, email: string | null = null, amountMinor = 4900): Event {
   return {
@@ -314,6 +314,281 @@ describe.runIf(RUN)("billing events against Postgres", () => {
       })
     }, 30_000)
   })
+})
+
+describe.runIf(RUN)("one payment, one commission (payment_intent.succeeded + invoice.paid)", () => {
+  const commissionRows = async (tx: Tx, workspaceId: string) =>
+    tx
+      .select({
+        amount: schema.commissions.commissionAmountMinor,
+        status: schema.commissions.status,
+        reversalOf: schema.commissions.reversalOfCommissionId,
+      })
+      .from(schema.commissions)
+      .where(eq(schema.commissions.workspaceId, workspaceId))
+
+  const net = (rows: Array<{ amount: number }>) => rows.reduce((sum, row) => sum + row.amount, 0)
+
+  it("PaymentIntent, then the link, then the invoice: one commission, the invoice records nothing", async () => {
+    await inRollback(async (tx) => {
+      const f = await fixture(tx)
+      await f.attribute({ providerCustomerId: "cus_o1" })
+      await f.handle(payment("pi_o1", ["ch_o1"], "cus_o1"))
+      await f.handle(link("in_o1", ["pi_o1", "ch_o1"]))
+      expect(await f.handle(payment("in_o1", [], "cus_o1"))).toMatchObject({ detail: "payment already recorded as pi_o1" })
+
+      const rows = await commissionRows(tx, f.workspaceId)
+      expect(rows).toHaveLength(1)
+      expect(net(rows)).toBe(1470)
+    })
+  }, 60_000)
+
+  it("the link first, then the PaymentIntent, then the invoice: recorded once, under the invoice", async () => {
+    await inRollback(async (tx) => {
+      const f = await fixture(tx)
+      await f.attribute({ providerCustomerId: "cus_o2" })
+      await f.handle(link("in_o2", ["pi_o2", "ch_o2"]))
+      expect(await f.handle(payment("pi_o2", ["ch_o2"], "cus_o2"))).toMatchObject({ detail: "payment belongs to in_o2; recorded with it" })
+      await f.handle(payment("in_o2", [], "cus_o2"))
+
+      const rows = await commissionRows(tx, f.workspaceId)
+      expect(rows).toHaveLength(1)
+      expect((await f.commissionsOf("in_o2")).original.commissionAmountMinor).toBe(1470)
+    })
+  }, 60_000)
+
+  it("both payment events before the link (either order): the later record is reversed, redeliveries change nothing", async () => {
+    for (const order of [["pi", "in"], ["in", "pi"]] as const) {
+      await inRollback(async (tx) => {
+        const f = await fixture(tx)
+        await f.attribute({ providerCustomerId: "cus_o3" })
+        const events = { pi: payment("pi_o3", ["ch_o3"], "cus_o3"), in: payment("in_o3", [], "cus_o3") }
+        await f.handle(events[order[0]])
+        // Separate deliveries commit at different times; inside this one test
+        // transaction `now()` is constant, so make the first record older.
+        await tx
+          .update(schema.transactions)
+          .set({ createdAt: new Date("2026-08-01T12:00:01Z") })
+          .where(eq(schema.transactions.workspaceId, f.workspaceId))
+        await f.handle(events[order[1]])
+        expect(await commissionRows(tx, f.workspaceId)).toHaveLength(2)
+
+        await f.handle(link("in_o3", ["pi_o3", "ch_o3"]))
+        // Redeliveries of all three, in any order.
+        await f.handle(link("in_o3", ["pi_o3", "ch_o3"]))
+        await f.handle(events.in)
+        await f.handle(events.pi)
+
+        const rows = await commissionRows(tx, f.workspaceId)
+        expect(net(rows)).toBe(1470)
+        expect(rows.filter((row) => row.reversalOf)).toHaveLength(1)
+        // The first record is kept; the second is reversed in full.
+        const kept = order[0] === "pi" ? "pi_o3" : "in_o3"
+        const duplicate = order[0] === "pi" ? "in_o3" : "pi_o3"
+        expect((await f.commissionsOf(kept)).original.status).toBe("available")
+        expect((await f.commissionsOf(duplicate)).original.status).toBe("reversed")
+
+        // A refund afterwards reverses the kept commission only.
+        await f.handle(refund(`re_o3_${order[0]}`, ["pi_o3", "ch_o3"], 4900))
+        expect(net(await commissionRows(tx, f.workspaceId))).toBe(0)
+        expect((await f.commissionsOf(kept)).reversals).toHaveLength(1)
+      })
+    }
+  }, 120_000)
+})
+
+describe.runIf(RUN)("one payment, one commission — concurrent deliveries (committed, then deleted)", () => {
+  it("PaymentIntent, invoice and link delivered at the same time net exactly one commission", async () => {
+    const suffix = crypto.randomUUID().slice(0, 8)
+    const [ws] = await db
+      .insert(schema.workspaces)
+      .values({ name: `Concurrent ${suffix}`, slug: `concurrent-${suffix}`, defaultCurrency: "BRL" })
+      .returning({ id: schema.workspaces.id })
+    const workspaceId = ws!.id
+    try {
+      const [program] = await db
+        .insert(schema.programs)
+        .values({ workspaceId, name: "P", slug: `p-${suffix}`, status: "active", commissionType: "percentage", commissionValue: 3000, commissionHoldDays: 0, currency: "BRL" })
+        .returning({ id: schema.programs.id })
+      const [affiliate] = await db
+        .insert(schema.affiliates)
+        .values({ workspaceId, email: `aff-${suffix}@example.com`, name: "Aff", status: "active" })
+        .returning({ id: schema.affiliates.id })
+      const [participation] = await db
+        .insert(schema.programAffiliates)
+        .values({ programId: program!.id, affiliateId: affiliate!.id, code: `c${suffix}`, status: "approved" })
+        .returning({ id: schema.programAffiliates.id })
+      await db.insert(schema.attributions).values({
+        programId: program!.id,
+        programAffiliateId: participation!.id,
+        visitorId: `v_${crypto.randomUUID()}`,
+        attributionModel: "last_click",
+        attributedAt: new Date("2026-07-01T00:00:00Z"),
+        expiresAt: new Date("2026-12-01T00:00:00Z"),
+        providerCustomerId: `cus_${suffix}`,
+      })
+
+      for (let round = 0; round < 3; round += 1) {
+        const pi = `pi_${suffix}_${round}`
+        const invoice = `in_${suffix}_${round}`
+        const events = [
+          payment(pi, [`ch_${suffix}_${round}`], `cus_${suffix}`),
+          payment(invoice, [], `cus_${suffix}`),
+          link(invoice, [pi, `ch_${suffix}_${round}`]),
+        ]
+        await Promise.all(events.map((event) => handleBillingEvent(workspaceId, event, NOW)))
+        // And every one of them redelivered, again all at once.
+        await Promise.all(events.map((event) => handleBillingEvent(workspaceId, event, NOW)))
+
+        const rows = await db
+          .select({ amount: schema.commissions.commissionAmountMinor })
+          .from(schema.commissions)
+          .innerJoin(schema.transactions, eq(schema.transactions.id, schema.commissions.transactionId))
+          .where(
+            and(
+              eq(schema.commissions.workspaceId, workspaceId),
+              inArray(schema.transactions.providerParentTransactionId, [pi, invoice]),
+            ),
+          )
+        const originals = await db
+          .select({ amount: schema.commissions.commissionAmountMinor })
+          .from(schema.commissions)
+          .innerJoin(schema.transactions, eq(schema.transactions.id, schema.commissions.transactionId))
+          .where(and(eq(schema.commissions.workspaceId, workspaceId), inArray(schema.transactions.providerTransactionId, [pi, invoice])))
+        const netMinor = [...rows, ...originals].reduce((sum, row) => sum + row.amount, 0)
+        expect(netMinor).toBe(1470)
+      }
+    } finally {
+      await db.delete(schema.commissions).where(eq(schema.commissions.workspaceId, workspaceId))
+      await db.delete(schema.transactionReferences).where(eq(schema.transactionReferences.workspaceId, workspaceId))
+      await db.delete(schema.transactions).where(eq(schema.transactions.workspaceId, workspaceId))
+      await db.delete(schema.attributions).where(
+        inArray(
+          schema.attributions.programId,
+          db.select({ id: schema.programs.id }).from(schema.programs).where(eq(schema.programs.workspaceId, workspaceId)),
+        ),
+      )
+      await db.delete(schema.workspaces).where(eq(schema.workspaces.id, workspaceId))
+    }
+  }, 180_000)
+})
+
+describe.runIf(RUN)("environments, retries and the renewal lock", () => {
+  it("a live event never reaches a test program", async () => {
+    await inRollback(async (tx) => {
+      const f = await fixture(tx)
+      await f.attribute({ providerCustomerId: "cus_env" })
+      const live = { ...payment("in_env", [], "cus_env"), environment: "live" as const }
+      expect(await f.handle(live)).toMatchObject({ detail: "payment recorded without attribution" })
+      const [row] = await tx
+        .select({ environment: schema.transactions.environment })
+        .from(schema.transactions)
+        .where(and(eq(schema.transactions.workspaceId, f.workspaceId), eq(schema.transactions.providerTransactionId, "in_env")))
+      expect(row!.environment).toBe("live")
+    })
+  }, 60_000)
+
+  it("a refund before its payment fails (so Stripe retries) and succeeds once the payment is recorded", async () => {
+    await inRollback(async (tx) => {
+      const f = await fixture(tx)
+      await f.attribute({ providerCustomerId: "cus_rb" })
+      await expect(f.handle(refund("re_rb", ["pi_rb", "ch_rb"], 4900))).rejects.toBeInstanceOf(PaymentNotRecordedYetError)
+      await f.handle(payment("pi_rb", ["ch_rb"], "cus_rb"))
+      expect(await f.handle(refund("re_rb", ["pi_rb", "ch_rb"], 4900))).toMatchObject({ status: "processed" })
+      expect((await f.commissionsOf("pi_rb")).original.status).toBe("reversed")
+    })
+  }, 60_000)
+
+  it("a refund of a payment left out of the ledger (no customer) is ignored, not retried forever", async () => {
+    await inRollback(async (tx) => {
+      const f = await fixture(tx)
+      const guest = { ...payment("pi_guest", ["ch_guest"], "cus_x"), providerCustomerId: null }
+      expect(await f.handle(guest)).toMatchObject({ status: "ignored" })
+      expect(await f.handle(refund("re_guest", ["ch_guest"], 100))).toMatchObject({ status: "ignored" })
+    })
+  }, 60_000)
+
+  it("renewals keep paying the affiliate that converted the customer, even with a newer bound attribution", async () => {
+    await inRollback(async (tx) => {
+      const f = await fixture(tx)
+      await f.attribute({ providerCustomerId: "cus_lock" })
+      await f.handle(payment("in_lock1", [], "cus_lock"))
+      const first = (await f.commissionsOf("in_lock1")).original
+
+      // A second affiliate, and a newer attribution bound to the same customer.
+      const [program] = await tx.select({ id: schema.programs.id }).from(schema.programs).where(eq(schema.programs.workspaceId, f.workspaceId))
+      const [other] = await tx
+        .insert(schema.affiliates)
+        .values({ workspaceId: f.workspaceId, email: `other-${crypto.randomUUID()}@example.com`, name: "Other", status: "active" })
+        .returning({ id: schema.affiliates.id })
+      const [otherParticipation] = await tx
+        .insert(schema.programAffiliates)
+        .values({ programId: program!.id, affiliateId: other!.id, code: `o${crypto.randomUUID().slice(0, 8)}`, status: "approved" })
+        .returning({ id: schema.programAffiliates.id })
+      await tx.insert(schema.attributions).values({
+        programId: program!.id,
+        programAffiliateId: otherParticipation!.id,
+        visitorId: `v_${crypto.randomUUID()}`,
+        attributionModel: "last_click",
+        attributedAt: new Date("2026-07-20T00:00:00Z"),
+        expiresAt: new Date("2026-12-01T00:00:00Z"),
+        providerCustomerId: "cus_lock",
+      })
+
+      await f.handle(payment("in_lock2", [], "cus_lock"))
+      expect((await f.commissionsOf("in_lock2")).original.programAffiliateId).toBe(first.programAffiliateId)
+    })
+  }, 60_000)
+})
+
+describe.runIf(RUN)("ingestVerifiedWebhook", () => {
+  const refundProvider = (eventId: string) =>
+    ({
+      id: "stripe" as const,
+      normalizeEvent: () => ({ ...refund(`re_${eventId}`, [`pi_${eventId}`], 100), providerEventId: eventId }),
+    }) as unknown as Parameters<typeof ingestVerifiedWebhook>[0]["provider"]
+
+  it("acknowledges a live event for a workspace without live mode and does not claim it", async () => {
+    const eventId = `evt_live_${crypto.randomUUID()}`
+    // No subscription row: a Sandbox workspace.
+    const workspaceId = crypto.randomUUID()
+    const result = await ingestVerifiedWebhook({
+      provider: refundProvider(eventId),
+      verified: { providerEventId: eventId, rawType: "refund.created", providerAccountId: null, environment: "live", payload: {} },
+      rawBody: "{}",
+      workspaceId,
+    })
+    expect(result).toEqual({ status: "ignored", reason: "live_mode_inactive" })
+    const rows = await db.select().from(schema.webhookEvents).where(eq(schema.webhookEvents.providerEventId, eventId))
+    expect(rows).toHaveLength(0)
+  }, 60_000)
+
+  it("a failed event is claimed again on the provider's retry instead of being answered as a duplicate", async () => {
+    const eventId = `evt_retry_${crypto.randomUUID()}`
+    const suffix = crypto.randomUUID().slice(0, 8)
+    const [ws] = await db
+      .insert(schema.workspaces)
+      .values({ name: `Retry ${suffix}`, slug: `retry-${suffix}`, defaultCurrency: "BRL" })
+      .returning({ id: schema.workspaces.id })
+    const call = () =>
+      ingestVerifiedWebhook({
+        provider: refundProvider(eventId),
+        verified: { providerEventId: eventId, rawType: "refund.created", providerAccountId: null, environment: "test", payload: {} },
+        rawBody: "{}",
+        workspaceId: ws!.id,
+      })
+    try {
+      expect(await call()).toEqual({ status: "failed" })
+      expect(await call()).toEqual({ status: "failed" })
+      const [row] = await db.select().from(schema.webhookEvents).where(eq(schema.webhookEvents.providerEventId, eventId))
+      expect(row!.status).toBe("failed")
+      expect(row!.errorMessage).toContain("not recorded yet")
+      expect(row!.environment).toBe("test")
+    } finally {
+      await db.delete(schema.webhookEvents).where(eq(schema.webhookEvents.providerEventId, eventId))
+      await db.delete(schema.workspaces).where(eq(schema.workspaces.id, ws!.id))
+    }
+  }, 60_000)
 })
 
 describe.runIf(RUN)("integration health through latest_webhook_event", () => {

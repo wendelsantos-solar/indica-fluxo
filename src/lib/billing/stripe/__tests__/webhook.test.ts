@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest"
 
 vi.mock("server-only", () => ({}))
 
-const { verifyStripeWebhook } = await import("../webhook")
+const { StripeLivemodeMismatchError, StripeSignatureError, verifyStripeWebhook, verifyStripeWebhookWithSecrets } = await import("../webhook")
 
 const SECRET = "whsec_test_right_secret_0123456789"
 const OTHER = "whsec_test_other_secret_9876543210"
@@ -42,5 +42,48 @@ describe("verifyStripeWebhook (per-integration secret)", () => {
   it("rejects a replay outside the timestamp tolerance", async () => {
     const stale = Math.floor(Date.now() / 1000) - 60 * 60
     await expect(verifyStripeWebhook(payload, sign(payload, SECRET, stale), SECRET)).rejects.toThrow()
+  })
+})
+
+describe("verifyStripeWebhookWithSecrets (test and live endpoint secrets)", () => {
+  const TEST_SECRET = "whsec_test_endpoint_0123456789"
+  const LIVE_SECRET = "whsec_live_endpoint_0123456789"
+  const body = (livemode: boolean) =>
+    JSON.stringify({ id: "evt_env", object: "event", type: "invoice.paid", created: 1_760_000_000, livemode, data: { object: { id: "in_1" } } })
+
+  it("accepts a test event signed by the test endpoint's secret", async () => {
+    const raw = body(false)
+    const verified = await verifyStripeWebhookWithSecrets(raw, sign(raw, TEST_SECRET), { test: TEST_SECRET, live: LIVE_SECRET })
+    expect(verified.environment).toBe("test")
+  })
+
+  it("accepts a live event signed by the live endpoint's secret", async () => {
+    const raw = body(true)
+    const verified = await verifyStripeWebhookWithSecrets(raw, sign(raw, LIVE_SECRET), { test: TEST_SECRET, live: LIVE_SECRET })
+    expect(verified.environment).toBe("live")
+  })
+
+  it("works with only one of the two secrets saved", async () => {
+    const raw = body(false)
+    const verified = await verifyStripeWebhookWithSecrets(raw, sign(raw, TEST_SECRET), { test: TEST_SECRET, live: null })
+    expect(verified.environment).toBe("test")
+  })
+
+  it("rejects a test event signed with the live secret, and a live event signed with the test secret", async () => {
+    const test = body(false)
+    await expect(
+      verifyStripeWebhookWithSecrets(test, sign(test, LIVE_SECRET), { test: TEST_SECRET, live: LIVE_SECRET }),
+    ).rejects.toBeInstanceOf(StripeLivemodeMismatchError)
+    const live = body(true)
+    await expect(
+      verifyStripeWebhookWithSecrets(live, sign(live, TEST_SECRET), { test: TEST_SECRET, live: LIVE_SECRET }),
+    ).rejects.toBeInstanceOf(StripeLivemodeMismatchError)
+  })
+
+  it("rejects a signature no saved secret verifies", async () => {
+    const raw = body(true)
+    await expect(
+      verifyStripeWebhookWithSecrets(raw, sign(raw, OTHER), { test: TEST_SECRET, live: LIVE_SECRET }),
+    ).rejects.toBeInstanceOf(StripeSignatureError)
   })
 })

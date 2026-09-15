@@ -15,12 +15,14 @@ import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui
 import { CancelBatchButton, MarkPaidDialog } from "@/features/payouts/batch-actions"
 import { formatBatchLabel } from "@/features/payouts/batch-label"
 import { PayableList } from "@/features/payouts/payable-list"
+import { EnvironmentBadge } from "@/features/programs/environment-badge"
 import { formatDate } from "@/lib/money"
 import { formatMoneyTotals, orderMoneyTotals, pickPrimaryCurrency, toMoneyTotals } from "@/lib/money-totals"
 import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
 import { listPayableByAffiliate } from "@/server/repositories/commissions"
 import { listPayoutBatches } from "@/server/repositories/payouts"
+import { getViewEnvironment } from "@/server/services/view-environment"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
 export const dynamic = "force-dynamic"
@@ -55,11 +57,18 @@ export default async function PayoutsPage({
   const workspace = await getWorkspaceForUser(user.id, workspaceSlug)
   const f = await getFormatters(workspace.timezone)
 
+  // Payouts are per environment: a test batch pays test commissions and moves
+  // no money (docs/PLANS.md §2). The shell's Live / Test switch chooses which.
+  const { environment } = await getViewEnvironment(user.id, workspace.id)
+
   // Read-only: `listPayableByAffiliate` already counts matured `pending`
   // commissions as payable, so rendering this page never writes to the ledger.
   // The promotion is written down when a batch is created.
   const [payable, batches] = await withUser(user.id, (tx) =>
-    Promise.all([listPayableByAffiliate(tx, workspace.id), listPayoutBatches(tx, workspace.id)]),
+    Promise.all([
+      listPayableByAffiliate(tx, workspace.id, environment),
+      listPayoutBatches(tx, workspace.id, environment),
+    ]),
   )
 
   // One figure per currency — never a sum across them. A batch holds a single
@@ -98,6 +107,8 @@ export default async function PayoutsPage({
       <PageHeader title={t("title")} description={t("description")} />
 
       <div className="space-y-10">
+        {environment === "test" ? <InlineAlert>{t("environment.testNotice")}</InlineAlert> : null}
+
         <MetricGrid>
           <MetricCell>
             <Metric label={t("availableToPay")} value={available.primary}>
@@ -161,7 +172,13 @@ export default async function PayoutsPage({
             />
           ) : (
             // Keyed by currency: switching currency starts a fresh selection.
-            <PayableList key={currency} workspaceSlug={workspaceSlug} currency={currency} rows={payableRows} />
+            <PayableList
+              key={`${environment}-${currency}`}
+              workspaceSlug={workspaceSlug}
+              environment={environment}
+              currency={currency}
+              rows={payableRows}
+            />
           )}
         </section>
 
@@ -234,8 +251,16 @@ export default async function PayoutsPage({
                             >
                               {name}
                             </Link>
-                            <StatusBadge status={batch.status} label={label} className="md:hidden" />
+                            <span className="flex shrink-0 items-center gap-1.5 md:hidden">
+                              {batch.environment === "test" ? (
+                                <EnvironmentBadge environment="test" label={t("testBatch")} />
+                              ) : null}
+                              <StatusBadge status={batch.status} label={label} />
+                            </span>
                           </div>
+                          {batch.environment === "test" ? (
+                            <EnvironmentBadge environment="test" label={t("testBatch")} className="mt-0.5 max-md:hidden" />
+                          ) : null}
                           <span className="mt-0.5 flex gap-3 text-meta text-muted-foreground md:hidden">
                             <span className="truncate">{paidOn ?? period}</span>
                             <span className="ml-auto shrink-0 tabular-nums text-foreground">{total}</span>

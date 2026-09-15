@@ -5,6 +5,7 @@ import { AreaChart, ChartLegend } from "@/components/data-display/area-chart"
 import { Metric, MetricCell, MetricGrid } from "@/components/data-display/metric"
 import { PageHeader, SectionHeader } from "@/components/layout/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { EnvironmentBadge } from "@/features/programs/environment-badge"
 import { getFormatters } from "@/i18n/format"
 import {
   formatMoneyTotals,
@@ -53,7 +54,7 @@ export default async function AffiliateOverviewPage() {
   const user = await requireUser()
   const now = new Date()
 
-  const { participations, stats, series, payouts, money, currency, balance } = await withUser(
+  const { participations, stats, series, payouts, money, currency, balance, test } = await withUser(
     user.id,
     async (tx) => {
       const participations = await listPortalParticipations(tx, user.id)
@@ -61,8 +62,9 @@ export default async function AffiliateOverviewPage() {
       // One statement for every program, not one per participation.
       const statsRows = await portalParticipationStats(tx, ids)
       const byId = new Map(statsRows.map((row) => [row.participationId, row]))
-      const stats = participations.map((participation) => ({
+      const allStats = participations.map((participation) => ({
         currency: participation.programCurrency,
+        environment: participation.programEnvironment,
         ...(byId.get(participation.participationId) ?? {
           participationId: participation.participationId,
           clicks: 0,
@@ -77,16 +79,30 @@ export default async function AffiliateOverviewPage() {
         }),
       }))
 
+      // Test programs never add to what the affiliate is owed or has
+      // received: a test commission is not money (docs/PLANS.md §2). Every
+      // balance and total below is live; test figures get their own card.
+      const stats = allStats.filter((row) => row.environment === "live")
+      const testStats = allStats.filter((row) => row.environment === "test")
+
       // Each participation's figures are in its program's currency, and two
       // currencies are never added (DATABASE.md §4): every money figure is a
       // list of per-currency totals, led by one primary currency.
-      const byCurrency = (pick: (row: (typeof stats)[number]) => number): MoneyTotal[] =>
-        toMoneyTotals(stats.map((row) => ({ currency: row.currency, amountMinor: pick(row) })))
+      const byCurrency = (
+        rows: typeof allStats,
+        pick: (row: (typeof allStats)[number]) => number,
+      ): MoneyTotal[] => toMoneyTotals(rows.map((row) => ({ currency: row.currency, amountMinor: pick(row) })))
       const balance = splitReceivable(stats, now)
       const money = {
-        paid: byCurrency((row) => row.paidMinor),
-        revenue: byCurrency((row) => row.revenueMinor),
-        commission: byCurrency((row) => row.commissionMinor),
+        paid: byCurrency(stats, (row) => row.paidMinor),
+        revenue: byCurrency(stats, (row) => row.revenueMinor),
+        commission: byCurrency(stats, (row) => row.commissionMinor),
+      }
+      const test = {
+        count: testStats.length,
+        clicks: testStats.reduce((sum, row) => sum + row.clicks, 0),
+        commission: byCurrency(testStats, (row) => row.commissionMinor),
+        unpaid: splitReceivable(testStats, now).total,
       }
       // The layout redirects an account with no participation, so there is one.
       const currency = pickPrimaryCurrency(
@@ -96,13 +112,15 @@ export default async function AffiliateOverviewPage() {
         money.revenue,
       )
 
-      // The chart plots one currency: only the participations paid in it.
+      // The chart plots one currency of live money: only the live participations paid in it.
       const series = await getAffiliateSeries(
         tx,
-        ids.filter((_, index) => participations[index]!.programCurrency.toUpperCase() === currency),
+        participations
+          .filter((p) => p.programEnvironment === "live" && p.programCurrency.toUpperCase() === currency)
+          .map((p) => p.participationId),
       )
-      const payouts = await listPayoutsForAffiliate(tx, ids)
-      return { participations, stats, series, payouts, money, currency, balance }
+      const payouts = (await listPayoutsForAffiliate(tx, ids)).filter((payout) => payout.environment === "live")
+      return { participations, stats, series, payouts, money, currency, balance, test }
     },
   )
 
@@ -115,7 +133,9 @@ export default async function AffiliateOverviewPage() {
   const paid = formatMoneyTotals(f.money, money.paid, currency)
   const revenue = formatMoneyTotals(f.money, money.revenue, currency)
   const inline = (list: MoneyTotal[]) => formatMoneyTotalsInline(f.money, list, currency)
-  const multiCurrency = new Set(participations.map((p) => p.programCurrency.toUpperCase())).size > 1
+  const multiCurrency =
+    new Set(participations.filter((p) => p.programEnvironment === "live").map((p) => p.programCurrency.toUpperCase()))
+      .size > 1
 
   const lastPaidAt = payouts.reduce<Date | null>(
     (latest, payout) =>
@@ -131,7 +151,9 @@ export default async function AffiliateOverviewPage() {
     hasNonZeroTotal(money.commission) ||
     hasNonZeroTotal(money.paid) ||
     hasNonZeroTotal(balance.total) ||
-    payouts.length > 0
+    payouts.length > 0 ||
+    test.clicks > 0 ||
+    hasNonZeroTotal(test.commission)
 
   const hasChartData = series.some((point) => point.commissionMinor !== 0)
 
@@ -198,8 +220,11 @@ export default async function AffiliateOverviewPage() {
           key={participation.participationId}
           title={participation.programName}
           status={
-            participation.status === "approved" ? undefined : (
-              <ParticipationBadge status={participation.status} />
+            participation.status === "approved" && participation.programEnvironment === "live" ? undefined : (
+              <span className="flex items-center gap-1.5">
+                {participation.programEnvironment === "test" ? <EnvironmentBadge environment="test" /> : null}
+                {participation.status === "approved" ? null : <ParticipationBadge status={participation.status} />}
+              </span>
             )
           }
           details={rateLabel(participation)}
@@ -279,6 +304,24 @@ export default async function AffiliateOverviewPage() {
                   </Metric>
                 </MetricCell>
               </MetricGrid>
+              {test.count > 0 && (test.clicks > 0 || hasNonZeroTotal(test.commission)) ? (
+                <Card>
+                  <CardHeader bordered className="flex-wrap gap-y-2">
+                    <CardTitle>{t("test.title")}</CardTitle>
+                    <EnvironmentBadge environment="test" />
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="max-w-[68ch] text-pretty text-caption text-muted-foreground">
+                      {t("test.description")}
+                    </p>
+                    <dl className="divide-y divide-border-faint border-y border-border-faint text-caption">
+                      <BalanceRow label={tc("clicks")} value={f.number(test.clicks)} />
+                      <BalanceRow label={t("test.commission")} value={inline(test.commission)} />
+                      <BalanceRow label={t("test.unpaid")} value={inline(test.unpaid)} />
+                    </dl>
+                  </CardContent>
+                </Card>
+              ) : null}
             </section>
 
             <section>

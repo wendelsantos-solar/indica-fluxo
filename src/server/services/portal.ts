@@ -1,16 +1,28 @@
 import "server-only"
 
-import { eq } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 
-import { withUser } from "@/server/db"
-import { referralLinks } from "@/server/db/schema"
+import { type Transaction, withUser } from "@/server/db"
+import { affiliates, programAffiliates, referralLinks } from "@/server/db/schema"
 import { NotFoundError } from "@/server/policies/errors"
 
 /**
  * An affiliate's own named links. `referral_links_owner_write` (migration 0001)
  * lets the owning affiliate — or an admin of the program's workspace — update
- * and delete a link; anyone else matches no row, which reads as "not found".
+ * and delete a link. The portal is the affiliate's own view, so these narrow
+ * that further: only a link on one of the signed-in person's own participations
+ * matches. An admin who is also an affiliate cannot reach another affiliate's
+ * links through the portal. Anything else reads as "not found".
  */
+
+/** The signed-in person's own participations, as a sub-query. */
+function ownParticipationIds(tx: Transaction, userId: string) {
+  return tx
+    .select({ id: programAffiliates.id })
+    .from(programAffiliates)
+    .innerJoin(affiliates, eq(affiliates.id, programAffiliates.affiliateId))
+    .where(eq(affiliates.userId, userId))
+}
 
 /**
  * Renames a named link. Only the label changes: the link's `code` is part of
@@ -21,7 +33,9 @@ export async function renameReferralLink(userId: string, linkId: string, name: s
     const updated = await tx
       .update(referralLinks)
       .set({ name: name.trim(), updatedAt: new Date() })
-      .where(eq(referralLinks.id, linkId))
+      .where(
+        and(eq(referralLinks.id, linkId), inArray(referralLinks.programAffiliateId, ownParticipationIds(tx, userId))),
+      )
       .returning({ id: referralLinks.id })
     if (updated.length === 0) throw new NotFoundError("Link not found.", "linkNotFound")
   })
@@ -37,7 +51,9 @@ export async function deleteReferralLink(userId: string, linkId: string): Promis
   await withUser(userId, async (tx) => {
     const deleted = await tx
       .delete(referralLinks)
-      .where(eq(referralLinks.id, linkId))
+      .where(
+        and(eq(referralLinks.id, linkId), inArray(referralLinks.programAffiliateId, ownParticipationIds(tx, userId))),
+      )
       .returning({ id: referralLinks.id })
     if (deleted.length === 0) throw new NotFoundError("Link not found.", "linkNotFound")
   })

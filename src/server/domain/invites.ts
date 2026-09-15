@@ -105,23 +105,26 @@ export interface MemberChangeInput {
   /** Owners in the workspace right now, the target included. */
   ownerCount: number
   change: MemberChange
+  /** The actor is the target: removing themselves is leaving the workspace. */
+  self?: boolean
 }
 
 /**
- * Whether an owner or admin may change a teammate's role or remove them.
+ * Whether someone may change a teammate's role or remove them.
  *
- * - Only owners and admins manage the team.
+ * - Anyone may leave a workspace (remove themselves), whatever their role.
+ * - Otherwise only owners and admins manage the team.
  * - An admin cannot touch an owner: the lower role cannot unseat the higher.
  * - The last owner can neither be demoted nor removed — a workspace with no
  *   owner has nobody who may delete it. That includes an owner leaving.
  * - Making someone owner is ownership transfer, which is not offered here.
  */
 export function checkMemberChange(input: MemberChangeInput): { ok: true } | { ok: false; reason: MemberChangeRefusal } {
-  // `change` is not consulted yet: both a role change (which can never be to
-  // "owner") and a removal unseat an owner, so they are refused alike.
-  const { actorRole, targetRole, ownerCount } = input
+  const { actorRole, targetRole, ownerCount, change, self = false } = input
+  const leaving = self && change.kind === "remove"
 
-  if (actorRole === "member") return { ok: false, reason: "memberChangeForbidden" }
+  if (actorRole === "member" && !leaving) return { ok: false, reason: "memberChangeForbidden" }
+  // Leaving, the actor is the target, so their roles are the same.
   if (targetRole === "owner" && actorRole !== "owner") return { ok: false, reason: "ownerProtected" }
 
   if (targetRole === "owner" && ownerCount <= 1) return { ok: false, reason: "lastOwner" }

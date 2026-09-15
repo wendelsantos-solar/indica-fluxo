@@ -39,6 +39,8 @@ export async function listPortalParticipations(tx: DbClient, userId: string) {
       workspaceId: affiliates.workspaceId,
       programId: programs.id,
       programName: programs.name,
+      /** Test programs are badged, and their money is never added to live balances. */
+      programEnvironment: programs.environment,
       programDescription: programs.description,
       programStatus: programs.status,
       programWebsiteUrl: programs.websiteUrl,
@@ -220,6 +222,7 @@ export async function listPortalCommissions(
     .select({
       id: commissions.id,
       programName: programs.name,
+      programEnvironment: programs.environment,
       customerRef: sql<string>`coalesce(${customers.externalId}, ${customers.providerCustomerId}, left(${commissions.customerId}::text, 8))`,
       currency: commissions.currency,
       baseAmountMinor: commissions.baseAmountMinor,

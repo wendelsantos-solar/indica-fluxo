@@ -12,7 +12,7 @@ import {
 } from "drizzle-orm/pg-core"
 
 import { customers, transactions } from "./billing"
-import { commissionStatusEnum, payoutBatchStatusEnum, payoutItemStatusEnum } from "./enums"
+import { commissionStatusEnum, environmentEnum, payoutBatchStatusEnum, payoutItemStatusEnum } from "./enums"
 import { programAffiliates, programs } from "./programs"
 import { workspaces } from "./tenancy"
 
@@ -74,6 +74,14 @@ export const commissions = pgTable(
     index("commissions_participation_status_idx").on(t.programAffiliateId, t.status),
     index("commissions_transaction_idx").on(t.transactionId),
     index("commissions_program_idx").on(t.programId, t.createdAt.desc()),
+    // The commissions list's default order (newest first) without sorting the
+    // whole workspace ledger (PERFORMANCE_AUDIT.md DB-3).
+    index("commissions_workspace_created_idx").on(t.workspaceId, t.createdAt.desc(), t.id),
+    // Refund/dispute ingest sums a commission's earlier reversals with no
+    // workspace filter; without this it scans every tenant's ledger.
+    index("commissions_reversal_of_idx")
+      .on(t.reversalOfCommissionId)
+      .where(sql`reversal_of_commission_id is not null`),
   ],
 )
 
@@ -86,6 +94,8 @@ export const payoutBatches = pgTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
 
     reference: text("reference").notNull(),
+    /** A test batch pays test commissions only — nothing real is owed. */
+    environment: environmentEnum("environment").notNull().default("test"),
     currency: char("currency", { length: 3 }).notNull(),
     periodStart: timestamp("period_start", { withTimezone: true }).notNull(),
     periodEnd: timestamp("period_end", { withTimezone: true }).notNull(),
@@ -101,7 +111,7 @@ export const payoutBatches = pgTable(
   },
   (t) => [
     index("payout_batches_workspace_idx").on(t.workspaceId, t.createdAt.desc()),
-    uniqueIndex("payout_batches_workspace_reference_key").on(t.workspaceId, t.reference),
+    uniqueIndex("payout_batches_workspace_reference_key").on(t.workspaceId, t.environment, t.reference),
   ],
 )
 

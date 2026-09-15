@@ -1,38 +1,36 @@
 import { Check, Minus } from "lucide-react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 
-import type { PlanLine } from "@/lib/plans"
+import { formatNumber } from "@/lib/money"
+import type { PlanCode } from "@/lib/plans"
 import { cn } from "@/lib/utils"
 
-/** A line from `planLines()`, or an ungated item the caller adds (pricing). */
-export type RenderablePlanLine = PlanLine | { kind: "base"; item: string }
+import { capabilityLines, type CapabilityLine } from "./plan-display"
 
-function lineKey(line: RenderablePlanLine): string {
-  if (line.kind === "limit") return `limit-${line.resource}`
-  if (line.kind === "feature") return `feature-${line.feature}`
-  return `base-${line.item}`
+function lineKey(line: CapabilityLine): string {
+  return line.kind === "limit" ? `limit-${line.limit}` : `feature-${line.feature}`
 }
 
 /**
- * "What this plan includes", worded from the same table enforcement reads.
- * Shared by the pricing page and the Settings plan panel. A feature the plan
- * lacks stays in the list, muted and marked, so two plans compare line by line.
+ * "What this plan includes", worded from `PLAN_CAPABILITIES` — the table
+ * enforcement reads — so a card cannot promise what the server refuses. A
+ * feature the plan lacks stays in the list, muted and marked, so two plans
+ * compare line by line.
  */
-export function PlanLineList({ lines, className }: { lines: RenderablePlanLine[]; className?: string }) {
-  const t = useTranslations("plans.lines")
+export function PlanLineList({ plan, className }: { plan: PlanCode; className?: string }) {
+  const t = useTranslations("plans.capabilities")
+  const locale = useLocale()
 
   return (
-    <ul className={cn("space-y-2.5", className)}>
-      {lines.map((line) => {
-        const included = line.kind !== "feature" || line.included
+    <ul className={cn("space-y-2", className)}>
+      {capabilityLines(plan).map((line) => {
+        const included = line.kind === "limit" ? line.max !== 0 : line.included
         const label =
           line.kind === "limit"
-            ? line.limit === null
-              ? t(`unlimited.${line.resource}`)
-              : t(`limit.${line.resource}`, { count: line.limit })
-            : line.kind === "feature"
-              ? t(`feature.${line.feature}`)
-              : t(`base.${line.item}`)
+            ? line.max === null
+              ? t(`unlimited.${line.limit}`)
+              : t(`limit.${line.limit}`, { count: line.max, formatted: formatNumber(locale, line.max) })
+            : t(`feature.${line.feature}`)
 
         return (
           <li key={lineKey(line)} className="flex items-start gap-2 text-caption">
@@ -41,7 +39,7 @@ export function PlanLineList({ lines, className }: { lines: RenderablePlanLine[]
             ) : (
               <Minus className="mt-0.5 size-3.5 shrink-0 text-faint-foreground" aria-hidden="true" />
             )}
-            <span className={included ? "text-foreground-secondary" : "text-muted-foreground line-through"}>
+            <span className={included ? "text-foreground-secondary" : "text-muted-foreground"}>
               {label}
               {included ? null : <span className="sr-only"> ({t("notIncluded")})</span>}
             </span>

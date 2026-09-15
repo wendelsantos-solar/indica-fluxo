@@ -14,6 +14,7 @@ import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
 import { listParticipationsForUser } from "@/server/repositories/affiliates"
 import { listCommissionsForAffiliate } from "@/server/repositories/commissions"
+import { EnvironmentBadge } from "@/features/programs/environment-badge"
 
 import { pageNumber } from "../_components/page-number"
 import { joinDetails, PortalList, PortalListItem } from "../_components/portal-list"
@@ -40,6 +41,7 @@ export default async function AffiliateConversionsPage({
   const ta = await getTranslations("common.actions")
   const tp = await getTranslations("portal.shared")
   const tc = await getTranslations("common.table")
+  const te = await getTranslations("common.environment")
   const f = await getFormatters()
   const user = await requireUser()
   const requestedPage = pageNumber((await searchParams).page)
@@ -110,7 +112,12 @@ export default async function AffiliateConversionsPage({
                     <TD className="whitespace-nowrap text-muted-foreground">
                       {f.date(row.createdAt)}
                     </TD>
-                    <TD>{row.programName}</TD>
+                    <TD>
+                      {row.programName}
+                      {row.programEnvironment === "test" ? (
+                        <EnvironmentBadge environment="test" className="ml-2" />
+                      ) : null}
+                    </TD>
                     <TD mono>{row.customerRef}</TD>
                     <TD numeric className="font-medium text-foreground">
                       {f.money(row.baseAmountMinor, row.currency)}
@@ -132,7 +139,7 @@ export default async function AffiliateConversionsPage({
                 amount={f.money(row.baseAmountMinor, row.currency)}
                 details={joinDetails([
                   f.date(row.createdAt),
-                  row.programName,
+                  row.programEnvironment === "test" ? `${row.programName} · ${te("test")}` : row.programName,
                   t("commissionOf", { amount: f.money(row.commissionAmountMinor, row.currency) }),
                 ])}
               />

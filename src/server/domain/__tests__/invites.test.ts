@@ -106,6 +106,20 @@ describe("checkMemberChange", () => {
     }
   })
 
+  it("lets anyone leave — a plain member too — but never the last owner", () => {
+    expect(checkMemberChange({ actorRole: "member", targetRole: "member", ownerCount: 1, change: remove, self: true }).ok).toBe(true)
+    expect(checkMemberChange({ actorRole: "admin", targetRole: "admin", ownerCount: 1, change: remove, self: true }).ok).toBe(true)
+    expect(checkMemberChange({ actorRole: "owner", targetRole: "owner", ownerCount: 2, change: remove, self: true }).ok).toBe(true)
+    expect(checkMemberChange({ actorRole: "owner", targetRole: "owner", ownerCount: 1, change: remove, self: true })).toEqual({
+      ok: false,
+      reason: "lastOwner",
+    })
+    // Leaving is not a licence to change one's own role.
+    expect(
+      checkMemberChange({ actorRole: "member", targetRole: "member", ownerCount: 1, change: { kind: "role", to: "admin" }, self: true }),
+    ).toEqual({ ok: false, reason: "memberChangeForbidden" })
+  })
+
   it("lets an owner demote or remove another owner while one remains", () => {
     expect(checkMemberChange({ actorRole: "owner", targetRole: "owner", ownerCount: 2, change: demote }).ok).toBe(true)
     expect(checkMemberChange({ actorRole: "owner", targetRole: "owner", ownerCount: 2, change: remove }).ok).toBe(true)

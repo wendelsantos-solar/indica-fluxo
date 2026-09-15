@@ -49,6 +49,17 @@ const serverSchema = z.object({
   STRIPE_SECRET_KEY: optional(z.string().min(1)),
   STRIPE_WEBHOOK_SECRET: optional(z.string().min(1)),
   STRIPE_CONNECT_CLIENT_ID: optional(z.string().min(1)),
+
+  /**
+   * Platform billing — IndicaFluxo's OWN Stripe account, charging workspaces
+   * for Launch/Growth (docs/PLANS.md §5). Never the founders' Stripe above.
+   * Optional as a set: without all four, checkout is unavailable and Settings
+   * falls back to the manual upgrade request. See `platformBillingEnv()`.
+   */
+  PLATFORM_STRIPE_SECRET_KEY: optional(z.string().min(1)),
+  PLATFORM_STRIPE_WEBHOOK_SECRET: optional(z.string().min(1)),
+  STRIPE_LAUNCH_PRICE_ID: optional(z.string().min(1)),
+  STRIPE_GROWTH_PRICE_ID: optional(z.string().min(1)),
 })
 
 export type ServerEnv = z.infer<typeof serverSchema>
@@ -82,6 +93,25 @@ export function requireSupabaseSecretKey(): string {
     )
   }
   return key
+}
+
+export interface PlatformBillingEnv {
+  secretKey: string
+  webhookSecret: string
+  launchPriceId: string
+  growthPriceId: string
+}
+
+/** The platform-billing settings, or `null` unless all four are present. */
+export function platformBillingEnv(): PlatformBillingEnv | null {
+  const {
+    PLATFORM_STRIPE_SECRET_KEY: secretKey,
+    PLATFORM_STRIPE_WEBHOOK_SECRET: webhookSecret,
+    STRIPE_LAUNCH_PRICE_ID: launchPriceId,
+    STRIPE_GROWTH_PRICE_ID: growthPriceId,
+  } = env()
+  if (!secretKey || !webhookSecret || !launchPriceId || !growthPriceId) return null
+  return { secretKey, webhookSecret, launchPriceId, growthPriceId }
 }
 
 export function isProduction(): boolean {

@@ -36,6 +36,7 @@ import {
 } from "@/server/repositories/commissions"
 import { listPrograms } from "@/server/repositories/programs"
 import { listIntegrations } from "@/server/services/integrations"
+import { getViewEnvironment } from "@/server/services/view-environment"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
 export const dynamic = "force-dynamic"
@@ -86,9 +87,11 @@ export default async function CommissionsPage({
   const workspace = await getWorkspaceForUser(user.id, workspaceSlug)
   const f = await getFormatters(workspace.timezone)
   const trule = await getTranslations("common.rule")
+  const { environment } = await getViewEnvironment(user.id, workspace.id)
 
   const { programs, affiliateOptions, integrations } = await withUser(user.id, async (tx) => ({
-    programs: await listPrograms(tx, workspace.id),
+    // Only this environment's programs: rows and totals never mix test and live.
+    programs: (await listPrograms(tx, workspace.id)).filter((program) => program.environment === environment),
     affiliateOptions: await listAffiliateOptions(tx, workspace.id, { include: requestedAffiliate }),
     integrations: await listIntegrations(tx, workspace.id),
   }))
@@ -106,6 +109,7 @@ export default async function CommissionsPage({
   const result = await withUser(user.id, (tx) =>
     listCommissions(tx, {
       workspaceId: workspace.id,
+      environment,
       programId,
       affiliateId,
       statuses: status ? [status] : undefined,

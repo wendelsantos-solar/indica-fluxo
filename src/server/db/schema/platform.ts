@@ -12,7 +12,9 @@ import {
 import {
   apiKeyTypeEnum,
   billingProviderEnum,
+  environmentEnum,
   integrationStatusEnum,
+  webhookScopeEnum,
   webhookStatusEnum,
 } from "./enums"
 import { workspaces } from "./tenancy"
@@ -59,6 +61,8 @@ export const apiKeys = pgTable(
 
     name: text("name").notNull(),
     type: apiKeyTypeEnum("type").notNull(),
+    /** `pk_test_…` / `sk_test_…` reach test programs only; live keys, live programs only. */
+    environment: environmentEnum("environment").notNull().default("test"),
     /** Displayable, e.g. `sk_live_a1b2c3`. */
     keyPrefix: text("key_prefix").notNull(),
     keyHash: text("key_hash").notNull(),
@@ -70,16 +74,24 @@ export const apiKeys = pgTable(
   },
   (t) => [
     uniqueIndex("api_keys_hash_key").on(t.keyHash),
-    index("api_keys_workspace_idx").on(t.workspaceId, t.type),
+    index("api_keys_workspace_idx").on(t.workspaceId, t.environment, t.type),
   ],
 )
 
-/** The idempotency gate. UNIQUE (provider, provider_event_id) is mandatory. */
+/**
+ * The idempotency gate. UNIQUE (scope, provider, provider_event_id) is
+ * mandatory: the same Stripe event id can legitimately reach both the
+ * founder-billing endpoint and IndicaFluxo's own billing endpoint (a founder
+ * whose Stripe account is IndicaFluxo's), and each must be processed once.
+ */
 export const webhookEvents = pgTable(
   "webhook_events",
   {
     id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    scope: webhookScopeEnum("scope").notNull().default("customer_billing"),
     provider: billingProviderEnum("provider").notNull(),
+    /** From the provider's own flag (Stripe `livemode`); null when unknown. */
+    environment: environmentEnum("environment"),
     workspaceId: uuid("workspace_id").references(() => workspaces.id, {
       onDelete: "set null",
     }),
@@ -95,7 +107,7 @@ export const webhookEvents = pgTable(
     processedAt: timestamp("processed_at", { withTimezone: true }),
   },
   (t) => [
-    uniqueIndex("webhook_events_provider_event_key").on(t.provider, t.providerEventId),
+    uniqueIndex("webhook_events_scope_provider_event_key").on(t.scope, t.provider, t.providerEventId),
     index("webhook_events_status_idx").on(t.status, t.receivedAt.desc()),
     // Latest event per workspace — Integrations' "last event received".
     index("webhook_events_workspace_time_idx").on(t.workspaceId, t.receivedAt.desc()),

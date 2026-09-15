@@ -2,8 +2,32 @@ import { pgEnum } from "drizzle-orm/pg-core"
 
 export const workspaceRoleEnum = pgEnum("workspace_role", ["owner", "admin", "member"])
 
-/** Commercial plan of a workspace. Limits live in `src/lib/plans.ts`. */
-export const workspacePlanEnum = pgEnum("workspace_plan", ["starter", "growth"])
+/**
+ * The plan codes of IndicaFluxo's own offer. What each includes lives in code
+ * (`src/lib/plans.ts`), the single source enforcement reads; see docs/PLANS.md.
+ * `scale` exists so the model accepts a third plan; it is not sold yet.
+ */
+export const planCodeEnum = pgEnum("plan_code", ["sandbox", "launch", "growth", "scale"])
+
+/** State of a workspace's subscription to IndicaFluxo (not its customers'). */
+export const platformSubscriptionStatusEnum = pgEnum("platform_subscription_status", [
+  "free",
+  "trialing",
+  "active",
+  "past_due",
+  "cancelled",
+  "incomplete",
+])
+
+/**
+ * Test or live data. Carried by programs (and everything hanging off them),
+ * API keys, customers, transactions and payout batches, so a sandbox never
+ * touches the live ledger and a Stripe test event never pays anyone.
+ */
+export const environmentEnum = pgEnum("environment", ["test", "live"])
+
+/** Whose webhook: a founder's billing (their customers) or IndicaFluxo's own. */
+export const webhookScopeEnum = pgEnum("webhook_scope", ["customer_billing", "platform_billing"])
 
 export const programStatusEnum = pgEnum("program_status", [
   "draft",

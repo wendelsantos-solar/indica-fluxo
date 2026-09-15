@@ -21,6 +21,7 @@ export type DocsSectionKey =
   | "verify"
   | "attribution"
   | "holdPeriod"
+  | "environments"
   | "apiKeys"
   | "identifyApi"
   | "webhookEvents"
@@ -99,7 +100,10 @@ export const DOCS_GROUPS: { key: "start" | "quickstart" | "concepts" | "security
   },
   {
     key: "security",
-    sections: [{ key: "apiKeys", anchors: { "pt-br": "chaves", en: "api-keys" } }],
+    sections: [
+      { key: "environments", anchors: { "pt-br": "teste-e-producao", en: "test-and-live" } },
+      { key: "apiKeys", anchors: { "pt-br": "chaves", en: "api-keys" } },
+    ],
   },
   {
     key: "reference",

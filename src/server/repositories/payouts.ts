@@ -17,11 +17,13 @@ import {
  * the transaction that authorises them.
  */
 
-export async function listPayoutBatches(tx: DbClient, workspaceId: string) {
+/** The workspace's batches, newest first; one environment when `environment` is given. */
+export async function listPayoutBatches(tx: DbClient, workspaceId: string, environment?: "test" | "live") {
   return tx
     .select({
       id: payoutBatches.id,
       reference: payoutBatches.reference,
+      environment: payoutBatches.environment,
       currency: payoutBatches.currency,
       status: payoutBatches.status,
       totalAmountMinor: payoutBatches.totalAmountMinor,
@@ -34,7 +36,12 @@ export async function listPayoutBatches(tx: DbClient, workspaceId: string) {
          where ${payoutItems.payoutBatchId} = ${qualified(payoutBatches.id)})`,
     })
     .from(payoutBatches)
-    .where(eq(payoutBatches.workspaceId, workspaceId))
+    .where(
+      and(
+        eq(payoutBatches.workspaceId, workspaceId),
+        environment ? eq(payoutBatches.environment, environment) : undefined,
+      ),
+    )
     .orderBy(desc(payoutBatches.createdAt))
     .limit(200)
 }
@@ -49,6 +56,7 @@ export async function findPayoutBatch(tx: DbClient, workspaceId: string, batchId
     .select({
       id: payoutBatches.id,
       reference: payoutBatches.reference,
+      environment: payoutBatches.environment,
       currency: payoutBatches.currency,
       status: payoutBatches.status,
       totalAmountMinor: payoutBatches.totalAmountMinor,

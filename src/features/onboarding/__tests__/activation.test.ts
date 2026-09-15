@@ -141,3 +141,64 @@ describe("shouldShowActivationChecklist", () => {
     ).toBe(false)
   })
 })
+
+describe("Sandbox journey", () => {
+  const quiet = { stripe: { configured: false, lastEventAt: null }, tracking: { lastClickAt: null } }
+
+  it("stays out of the checklist unless the plan signal is passed", () => {
+    expect(getActivation(none).steps.map((step) => step.key)).toEqual([
+      "workspace",
+      "program",
+      "stripe",
+      "affiliate",
+      "tracking",
+    ])
+    expect(activationSignals({ programs: [], health: quiet, affiliateTotal: 0 })).not.toHaveProperty("liveMode")
+  })
+
+  it("adds testing a conversion before tracking and activating live mode last", () => {
+    const activation = getActivation({ ...none, liveMode: false })
+    expect(activation.steps.map((step) => step.key)).toEqual([
+      "workspace",
+      "program",
+      "stripe",
+      "affiliate",
+      "testConversion",
+      "tracking",
+      "liveMode",
+    ])
+    expect(activation.total).toBe(7)
+
+    const proven = getActivation({ ...all, hasTestCommission: true, liveMode: false })
+    expect(proven.next).toBe("liveMode")
+    expect(getActivation({ ...all, hasTestCommission: true, liveMode: true }).next).toBeNull()
+  })
+
+  it("derives a test commission from test programs and ticks live mode from the plan", () => {
+    const signals = activationSignals({
+      programs: [
+        { clickCount: 1, environment: "test", commissionTotals: [{ currency: "BRL", amountMinor: 990 }] },
+        { clickCount: 0, environment: "live", commissionTotals: [] },
+      ],
+      health: quiet,
+      affiliateTotal: 1,
+      liveMode: false,
+    })
+    expect(signals).toMatchObject({ hasTestCommission: true, hasLiveCommission: false, liveMode: false })
+
+    const activation = getActivation({ ...signals, stripeEventReceived: true })
+    expect(activation.steps.find((step) => step.key === "testConversion")?.done).toBe(true)
+    expect(activation.steps.find((step) => step.key === "liveMode")?.done).toBe(false)
+  })
+
+  it("treats a live commission as a proven conversion", () => {
+    const signals = activationSignals({
+      programs: [{ clickCount: 5, environment: "live", commissionTotals: [{ currency: "BRL", amountMinor: 100 }] }],
+      health: quiet,
+      affiliateTotal: 1,
+      liveMode: true,
+    })
+    const step = getActivation(signals).steps.find((entry) => entry.key === "testConversion")
+    expect(step?.done).toBe(true)
+  })
+})

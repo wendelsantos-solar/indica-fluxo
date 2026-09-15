@@ -10,6 +10,7 @@ import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
 import { listParticipationsForUser } from "@/server/repositories/affiliates"
 import { listPayoutsForAffiliate, PAYOUT_HISTORY_LIMIT } from "@/server/repositories/commissions"
+import { EnvironmentBadge } from "@/features/programs/environment-badge"
 
 import { PayoutBadge } from "../_components/portal-badges"
 import { PortalList, PortalListItem } from "../_components/portal-list"
@@ -73,6 +74,10 @@ export default async function AffiliatePayoutsPage() {
                   <TR key={row.id}>
                     <TD mono className="text-foreground">
                       {row.reference}
+                      {/* A test batch moved no money: labelled, never counted as received. */}
+                      {row.environment === "test" ? (
+                        <EnvironmentBadge environment="test" className="ml-2 font-sans" />
+                      ) : null}
                     </TD>
                     <TD numeric className="font-medium text-foreground">
                       {f.money(row.amountMinor, row.currency)}
@@ -95,7 +100,12 @@ export default async function AffiliatePayoutsPage() {
               <PortalListItem
                 key={row.id}
                 title={<span className="font-mono text-caption">{row.reference}</span>}
-                status={<PayoutBadge status={row.status} />}
+                status={
+                  <span className="flex items-center gap-1.5">
+                    {row.environment === "test" ? <EnvironmentBadge environment="test" /> : null}
+                    <PayoutBadge status={row.status} />
+                  </span>
+                }
                 amount={f.money(row.amountMinor, row.currency)}
                 details={
                   paidLine(row) || row.externalReference ? (

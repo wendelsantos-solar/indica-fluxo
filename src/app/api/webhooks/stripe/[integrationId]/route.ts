@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server"
 import { z } from "zod"
 
 import { billingProvider } from "@/lib/billing/provider"
-import { verifyStripeWebhook } from "@/lib/billing/stripe/webhook"
+import { StripeLivemodeMismatchError, verifyStripeWebhookWithSecrets } from "@/lib/billing/stripe/webhook"
 import { logger } from "@/lib/logger"
 import { ingestVerifiedWebhook } from "@/server/services/billing-events"
 import {
@@ -19,8 +19,9 @@ const paramsSchema = z.object({ integrationId: z.uuid() })
 
 /**
  * Per-workspace Stripe endpoint: the URL a founder adds in their own Stripe
- * dashboard, verified with that endpoint's own signing secret
- * (DOCS_TECHNICAL_FINDINGS.md T1).
+ * dashboard — once in test mode, once in live mode — verified with that
+ * endpoint's own signing secret (DOCS_TECHNICAL_FINDINGS.md T1). The event's
+ * `livemode` routes it to test or live programs (docs/PLANS.md §2).
  *
  * The workspace comes from the integration this URL names — never from
  * `event.account`, which Stripe only sets for Connect. The signing secret is
@@ -57,16 +58,19 @@ export async function POST(
 
   let verified
   try {
-    verified = await verifyStripeWebhook(rawBody, signature, target.webhookSecret)
-  } catch {
+    // Tried against the test and the live endpoint secrets; the one that
+    // verifies must agree with the event's own `livemode`.
+    verified = await verifyStripeWebhookWithSecrets(rawBody, signature, target.secrets)
+  } catch (error) {
+    const mismatch = error instanceof StripeLivemodeMismatchError
     // Never echo the reason: it tells a prober how close they got. The
     // founder does see *that* a delivery was rejected, on Integrations.
-    logger.warn("stripe webhook signature rejected", {
+    logger.warn(mismatch ? "stripe webhook livemode does not match its secret" : "stripe webhook signature rejected", {
       provider: "stripe",
       workspaceId: target.workspaceId,
     })
     await recordWebhookRejection(integrationId)
-    return NextResponse.json({ error: "invalid_signature" }, { status: 400 })
+    return NextResponse.json({ error: mismatch ? "livemode_mismatch" : "invalid_signature" }, { status: 400 })
   }
 
   const result = await ingestVerifiedWebhook({

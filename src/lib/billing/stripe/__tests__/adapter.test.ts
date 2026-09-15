@@ -6,14 +6,30 @@ const { StripeAdapter } = await import("../adapter")
 
 const adapter = new StripeAdapter()
 
-function normalize(type: string, object: Record<string, unknown>) {
+function normalize(type: string, object: Record<string, unknown>, livemode = false) {
   return adapter.normalizeEvent({
     providerEventId: "evt_1",
     rawType: type,
     providerAccountId: null,
-    payload: { id: "evt_1", type, created: 1_760_000_000, data: { object } },
+    environment: livemode ? "live" : "test",
+    payload: { id: "evt_1", type, created: 1_760_000_000, livemode, data: { object } },
   })
 }
+
+describe("StripeAdapter — environment", () => {
+  const invoice = { id: "in_env", amount_paid: 100, currency: "brl", customer: "cus_env" }
+
+  it("routes a test-mode event to the test ledger", () => {
+    expect(normalize("invoice.paid", invoice, false)).toMatchObject({ environment: "test" })
+  })
+
+  it("routes a live-mode event to the live ledger", () => {
+    expect(normalize("invoice.paid", invoice, true)).toMatchObject({ environment: "live" })
+    expect(normalize("refund.created", { id: "re_env", amount: 100, currency: "brl", charge: "ch_env", status: "succeeded" }, true)).toMatchObject({
+      environment: "live",
+    })
+  })
+})
 
 describe("StripeAdapter — payment references (T6)", () => {
   it("records an invoice payment under the invoice, with the ids of an expanded payment", () => {

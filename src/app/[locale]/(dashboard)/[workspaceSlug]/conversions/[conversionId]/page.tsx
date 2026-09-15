@@ -21,6 +21,7 @@ import { Term } from "@/components/ui/term"
 import { buildConversionTrail, landingPath, type TrailEvent } from "@/features/conversions/trail"
 import { formatBatchLabel } from "@/features/payouts/batch-label"
 import { describeRuleApplied } from "@/features/conversions/rule-applied"
+import { EnvironmentBadge } from "@/features/programs/environment-badge"
 import { getFormatters } from "@/i18n/format"
 import { parseUuidParam } from "@/lib/list-params"
 import { cn } from "@/lib/utils"
@@ -283,7 +284,15 @@ export default async function ConversionTrailPage({ params }: ConversionTrailPag
           </Link>,
         ]}
         title={t("title", { customer: data.customer.ref })}
-        meta={opened ? <StatusBadge status={opened.status} label={tcomm(`statusLabel.${opened.status}`)} /> : undefined}
+        meta={
+          opened || data.program.environment === "test" ? (
+            // The trail opens whichever environment the dashboard shows; a test one says so.
+            <span className="flex items-center gap-1.5">
+              {data.program.environment === "test" ? <EnvironmentBadge environment="test" /> : null}
+              {opened ? <StatusBadge status={opened.status} label={tcomm(`statusLabel.${opened.status}`)} /> : null}
+            </span>
+          ) : undefined
+        }
         description={t("description")}
       />
 

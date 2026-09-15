@@ -3,6 +3,7 @@ import "server-only"
 import { and, asc, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm"
 
 import { orderMoneyTotals, toMoneyTotals, type MoneyTotal } from "@/lib/money-totals"
+import type { ViewEnvironment } from "@/lib/view-environment"
 import { type DbClient } from "@/server/db"
 import { qualified } from "@/server/db/qualify"
 import {
@@ -14,6 +15,7 @@ import {
   referralLinks,
 } from "@/server/db/schema"
 import type { ParticipationRules } from "@/server/domain/types"
+import { commissionInEnvironment } from "@/server/repositories/commissions"
 
 export interface AffiliateListRow {
   affiliateId: string
@@ -53,6 +55,12 @@ export type AffiliateSortField = "name" | "joined" | "revenue" | "commission"
 
 export interface AffiliateListParams {
   workspaceId: string
+  /**
+   * Only participations in programs of this environment (plus affiliates with
+   * no participation yet, who belong to neither). A list narrowed to one
+   * program may omit it.
+   */
+  environment?: ViewEnvironment
   programId?: string
   search?: string
   status?: "pending" | "approved" | "rejected" | "suspended"
@@ -70,9 +78,12 @@ export async function listAffiliates(
   tx: DbClient,
   params: AffiliateListParams,
 ): Promise<{ rows: AffiliateListRow[]; total: number }> {
-  const { workspaceId, programId, search, status, sort, limit = 25, offset = 0 } = params
+  const { workspaceId, environment, programId, search, status, sort, limit = 25, offset = 0 } = params
 
   const filters: SQL[] = [eq(affiliates.workspaceId, workspaceId)]
+  if (environment) {
+    filters.push(sql`(${programAffiliates.id} is null or ${programs.environment} = ${environment})`)
+  }
   if (programId) filters.push(eq(programAffiliates.programId, programId))
   if (status) filters.push(eq(programAffiliates.status, status))
   if (search) {
@@ -163,6 +174,7 @@ export async function listAffiliates(
     .select({ value: sql<number>`count(*)::int` })
     .from(affiliates)
     .leftJoin(programAffiliates, eq(programAffiliates.affiliateId, affiliates.id))
+    .leftJoin(programs, eq(programs.id, programAffiliates.programId))
     .where(where)
 
   return { rows, total: totals?.value ?? 0 }
@@ -260,6 +272,17 @@ export function toParticipationRules(row: {
  * `active`) and where the default link points. Both come through the
  * `programs_affiliate_select` policy, which exposes the enrolled program's row.
  */
+/** Whether the user takes part in any program — without loading the participations. */
+export async function userHasParticipation(tx: DbClient, userId: string): Promise<boolean> {
+  const [row] = await tx
+    .select({ id: programAffiliates.id })
+    .from(affiliates)
+    .innerJoin(programAffiliates, eq(programAffiliates.affiliateId, affiliates.id))
+    .where(eq(affiliates.userId, userId))
+    .limit(1)
+  return Boolean(row)
+}
+
 export async function listParticipationsForUser(tx: DbClient, userId: string) {
   return tx
     .select({
@@ -360,12 +383,22 @@ export async function participationStats(tx: DbClient, participationId: string) 
 }
 
 /** Participations waiting for the founder's decision, across the workspace. */
-export async function countPendingParticipations(tx: DbClient, workspaceId: string): Promise<number> {
+export async function countPendingParticipations(
+  tx: DbClient,
+  workspaceId: string,
+  environment?: ViewEnvironment,
+): Promise<number> {
   const [row] = await tx
     .select({ value: sql<number>`count(*)::int` })
     .from(programAffiliates)
     .innerJoin(programs, eq(programs.id, programAffiliates.programId))
-    .where(and(eq(programs.workspaceId, workspaceId), eq(programAffiliates.status, "pending")))
+    .where(
+      and(
+        eq(programs.workspaceId, workspaceId),
+        eq(programAffiliates.status, "pending"),
+        environment ? eq(programs.environment, environment) : undefined,
+      ),
+    )
   return Number(row?.value ?? 0)
 }
 
@@ -402,6 +435,7 @@ export interface AffiliateDetailParticipation {
   programId: string
   programName: string
   programSlug: string
+  programEnvironment: ViewEnvironment
   status: "pending" | "approved" | "rejected" | "suspended"
   code: string
   currency: string
@@ -422,8 +456,12 @@ export interface AffiliateDetail {
   country: string | null
   status: "invited" | "active" | "suspended"
   createdAt: Date
+  /** Every participation, in both environments: the page badges test programs. */
   participations: AffiliateDetailParticipation[]
-  /** Base amounts of the commissions that earned (positive, not rejected), per currency. */
+  /**
+   * Base amounts of the commissions that earned (positive, not rejected), per
+   * currency — in `environment` when one is given.
+   */
   revenue: MoneyTotal[]
 }
 
@@ -436,6 +474,7 @@ export async function getAffiliateDetail(
   tx: DbClient,
   workspaceId: string,
   affiliateId: string,
+  environment?: ViewEnvironment,
 ): Promise<AffiliateDetail | null> {
   const [affiliate] = await tx
     .select({
@@ -458,6 +497,7 @@ export async function getAffiliateDetail(
       programId: programs.id,
       programName: programs.name,
       programSlug: programs.slug,
+      programEnvironment: programs.environment,
       status: programAffiliates.status,
       code: programAffiliates.code,
       currency: programs.currency,
@@ -492,6 +532,7 @@ export async function getAffiliateDetail(
         eq(programAffiliates.affiliateId, affiliateId),
         sql`${commissions.commissionAmountMinor} > 0`,
         sql`${commissions.status} <> 'rejected'`,
+        environment ? commissionInEnvironment(environment) : undefined,
       ),
     )
     .groupBy(commissions.currency)
@@ -519,6 +560,7 @@ export async function listLinksForAffiliate(
       campaign: referralLinks.campaign,
       createdAt: referralLinks.createdAt,
       programName: programs.name,
+      programEnvironment: programs.environment,
       clicks: sql<number>`coalesce((
         select count(*)::int from ${referralClicks}
          where ${referralClicks.referralLinkId} = ${qualified(referralLinks.id)}), 0)`.mapWith(Number),
@@ -529,4 +571,96 @@ export async function listLinksForAffiliate(
     .where(and(eq(programAffiliates.affiliateId, affiliateId), eq(programs.workspaceId, workspaceId)))
     .orderBy(desc(referralLinks.createdAt))
     .limit(limit)
+}
+
+/**
+ * Approved participations of one program, by name — who a sandbox simulation
+ * can credit. Bounded like every list read.
+ */
+export async function listApprovedParticipationOptions(
+  tx: DbClient,
+  workspaceId: string,
+  programId: string,
+  limit = 200,
+): Promise<{ id: string; name: string }[]> {
+  return tx
+    .select({ id: programAffiliates.id, name: affiliates.name })
+    .from(programAffiliates)
+    .innerJoin(affiliates, eq(affiliates.id, programAffiliates.affiliateId))
+    .innerJoin(programs, eq(programs.id, programAffiliates.programId))
+    .where(
+      and(
+        eq(programAffiliates.programId, programId),
+        eq(programs.workspaceId, workspaceId),
+        eq(programAffiliates.status, "approved"),
+      ),
+    )
+    .orderBy(asc(sql`lower(${affiliates.name})`), asc(programAffiliates.id))
+    .limit(limit)
+}
+
+/**
+ * Whether the affiliate already takes a slot of the plan's `affiliates` limit —
+ * the same rule as `public.workspace_plan_usage` (migration 0010): not
+ * suspended, with a pending or approved participation in this workspace. A
+ * write that would make an uncounted affiliate counted must check the limit.
+ */
+export async function isAffiliateCountedTowardPlan(
+  tx: DbClient,
+  workspaceId: string,
+  affiliateId: string,
+): Promise<boolean> {
+  const [row] = await tx.execute<{ counted: boolean }>(sql`
+    select exists (
+      select 1
+        from ${affiliates} a
+        join ${programAffiliates} pa on pa.affiliate_id = a.id
+        join ${programs} p on p.id = pa.program_id and p.workspace_id = ${workspaceId}
+       where a.id = ${affiliateId}
+         and a.workspace_id = ${workspaceId}
+         and a.status <> 'suspended'
+         and pa.status in ('pending', 'approved')
+    ) as counted
+  `)
+  return Boolean(row?.counted)
+}
+
+/**
+ * Serialises referral-code allocation per workspace for the rest of the
+ * transaction. Codes are unique per workspace in practice (the tracker resolves
+ * a `ref` across the workspace's programs); the database only enforces them per
+ * program, so two concurrent invites could otherwise pick the same code.
+ */
+export async function lockReferralCodes(tx: DbClient, workspaceId: string): Promise<void> {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`referral-code:${workspaceId}`}, 0))`)
+}
+
+/** Whether `code` is used by any participation in any program of the workspace. */
+export async function referralCodeTaken(tx: DbClient, workspaceId: string, code: string): Promise<boolean> {
+  const [row] = await tx
+    .select({ id: programAffiliates.id })
+    .from(programAffiliates)
+    .innerJoin(programs, eq(programs.id, programAffiliates.programId))
+    .where(and(eq(programs.workspaceId, workspaceId), eq(programAffiliates.code, code)))
+    .limit(1)
+  return Boolean(row)
+}
+
+/**
+ * A participation owned by the signed-in affiliate (`affiliates.user_id`), or
+ * null. Being a workspace admin is not enough: the portal acts only on the
+ * reader's own participations.
+ */
+export async function findOwnParticipation(tx: DbClient, userId: string, participationId: string) {
+  const [row] = await tx
+    .select({
+      id: programAffiliates.id,
+      status: programAffiliates.status,
+      workspaceId: affiliates.workspaceId,
+    })
+    .from(programAffiliates)
+    .innerJoin(affiliates, eq(affiliates.id, programAffiliates.affiliateId))
+    .where(and(eq(programAffiliates.id, participationId), eq(affiliates.userId, userId)))
+    .limit(1)
+  return row ?? null
 }

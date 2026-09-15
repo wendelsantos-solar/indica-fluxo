@@ -1,12 +1,14 @@
-import { Lock, ScrollText } from "lucide-react"
+import { ScrollText } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 
 import { EmptyState } from "@/components/feedback/empty-state"
 import { SectionHeader } from "@/components/layout/page-header"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
 import { createFormatters } from "@/lib/money"
-import { hasPlanFeature, planWithFeature, type PlanKey } from "@/lib/plans"
+import type { PlanCode } from "@/lib/plans"
 import type { AuditLogEntry } from "@/server/services/audit"
+
+import { UpgradePrompt } from "./upgrade-prompt"
 
 /** A zone stored before validation existed must not take the page down. */
 function dateTimeFormat(locale: string, timeZone: string): Intl.DateTimeFormat {
@@ -18,31 +20,37 @@ function dateTimeFormat(locale: string, timeZone: string): Intl.DateTimeFormat {
 }
 
 /**
- * Settings → Audit log. On a plan with `auditLog` it lists the recent entries;
- * otherwise it explains the feature is part of Growth. Owners and admins only —
+ * Settings → Registro de auditoria. With the `auditLog` feature it lists the
+ * recent entries; otherwise the upgrade prompt says which plan has it (the
+ * trail keeps recording meanwhile — docs/PLANS.md §6). Owners and admins only —
  * render it for them alone.
  *
  * Load entries with `listAuditLog(user.id, workspace.id)` from
- * `@/server/services/audit` only when `hasPlanFeature(plan, "auditLog")`; it
- * throws `PlanFeatureError` otherwise. Pass `[]` when locked.
+ * `@/server/services/audit` only when `entitlements.capabilities.features.auditLog`;
+ * it throws `FeatureNotAvailableError` otherwise. Pass `[]` when locked.
  */
 export function AuditLogPanel({
-  plan,
+  available,
+  subscribedPlan,
+  workspaceSlug,
   entries,
   currentUserId,
   timeZone,
 }: {
-  plan: PlanKey
+  /** The plan includes `auditLog`. */
+  available: boolean
+  /** For the upgrade prompt: the offer is above it. */
+  subscribedPlan: PlanCode
+  workspaceSlug: string
   entries: AuditLogEntry[]
   currentUserId: string
   /** The workspace's IANA zone; times are shown in it. */
   timeZone: string
 }) {
   const t = useTranslations("plans.audit")
-  const tn = useTranslations("plans.names")
   const locale = useLocale()
   const f = createFormatters(locale)
-  const locked = !hasPlanFeature(plan, "auditLog")
+  const locked = !available
 
   const when = dateTimeFormat(locale, timeZone)
 
@@ -65,14 +73,10 @@ export function AuditLogPanel({
       />
 
       {locked ? (
-        <TableContainer>
-          <EmptyState
-            icon={Lock}
-            title={t("locked.title", { plan: tn(planWithFeature("auditLog")) })}
-            description={t("locked.description", { plan: tn(planWithFeature("auditLog")) })}
-            className="py-10"
-          />
-        </TableContainer>
+        <div className="space-y-3">
+          <p className="max-w-[68ch] text-pretty text-caption text-muted-foreground">{t("locked.summary")}</p>
+          <UpgradePrompt reason="auditLog" workspaceSlug={workspaceSlug} currentPlan={subscribedPlan} />
+        </div>
       ) : entries.length === 0 ? (
         <TableContainer>
           <EmptyState icon={ScrollText} title={t("empty.title")} description={t("empty.description")} className="py-10" />

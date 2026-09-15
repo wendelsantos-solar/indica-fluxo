@@ -21,9 +21,17 @@ export interface ActivationProgram {
   commissionValue: number
   commissionDurationMonths: number | null
   currency: string
+  /** From `listPrograms`; lets "Testar uma conversão" open the test program. */
+  slug?: string
+  environment?: "test" | "live"
 }
 
-function stepHref(key: ActivationStepKey, done: boolean, workspaceSlug: string): Href {
+function stepHref(
+  key: ActivationStepKey,
+  done: boolean,
+  workspaceSlug: string,
+  testProgramSlug: string | null,
+): Href {
   const params = { workspaceSlug }
   switch (key) {
     case "workspace":
@@ -39,13 +47,27 @@ function stepHref(key: ActivationStepKey, done: boolean, workspaceSlug: string):
     case "tracking":
       // Straight to the tracking section, not the top of Integrations.
       return { pathname: "/[workspaceSlug]/integrations", params, hash: "tracking" }
+    case "testConversion":
+      // The simulation lives on the test program's page.
+      return testProgramSlug
+        ? { pathname: "/[workspaceSlug]/programs/[programSlug]", params: { workspaceSlug, programSlug: testProgramSlug } }
+        : { pathname: "/[workspaceSlug]/programs", params }
+    case "liveMode":
+      return { pathname: "/[workspaceSlug]/settings", params, hash: "plano" }
   }
+}
+
+/** The newest test program, where a conversion can be simulated. */
+function testProgramSlug(programs: readonly { slug?: string; environment?: "test" | "live"; status?: string }[]) {
+  return programs.find((program) => program.environment === "test" && program.status !== "archived")?.slug ?? null
 }
 
 /**
  * The overview's main content while setup is incomplete and nothing has
  * happened yet (see `shouldShowActivationChecklist`): what
- * was just achieved, then the five things between here and a first commission.
+ * was just achieved, then the steps between here and a first commission —
+ * with the Sandbox journey (test conversion, live mode) when the overview
+ * passes `liveMode` to `activationSignals`.
  * One amber action — on the next pending step — and nothing else competing.
  */
 export async function ActivationChecklist({
@@ -178,7 +200,7 @@ export async function ActivationChecklist({
                   variant={isNext ? "primary" : done ? "ghost" : "secondary"}
                   size={isNext ? "md" : "sm"}
                 >
-                  <Link href={stepHref(key, done, workspaceSlug)}>
+                  <Link href={stepHref(key, done, workspaceSlug, testProgramSlug(programs))}>
                     {label}
                     {isNext ? <ArrowRight aria-hidden="true" /> : null}
                   </Link>
@@ -257,9 +279,12 @@ function StepMarker({ done, next }: { done: boolean; next: boolean }) {
 export async function ActivationReminder({
   workspaceSlug,
   activation,
+  programs = [],
 }: {
   workspaceSlug: string
   activation: Activation
+  /** Optional: lets the "Testar uma conversão" reminder open the test program. */
+  programs?: readonly Pick<ActivationProgram, "slug" | "environment" | "status">[]
 }) {
   if (!activation.next) return null
   const t = await getTranslations("dashboard.overview.activation")
@@ -271,7 +296,7 @@ export async function ActivationReminder({
         {t("reminder", { done: activation.doneCount, total: activation.total })}
       </span>
       <Link
-        href={stepHref(activation.next, false, workspaceSlug)}
+        href={stepHref(activation.next, false, workspaceSlug, testProgramSlug(programs))}
         className="inline-flex items-center gap-1 rounded-badge text-foreground-secondary transition-colors duration-[120ms] hover:text-foreground"
       >
         {nextStep?.waiting ? t("steps.stripe.titleWaiting") : t(`steps.${activation.next}.title`)}

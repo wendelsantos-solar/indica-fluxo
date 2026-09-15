@@ -7,11 +7,11 @@ import { db } from "@/server/db"
 
 import { assertNotProduction, describeTarget } from "./bootstrap"
 import { deleteUsers } from "./auth"
-import { DEMO_EMAILS, DEMO_WORKSPACE } from "./blueprint"
+import { DEMO_EMAILS, DEMO_WORKSPACE_SLUGS } from "./blueprint"
 
 /**
  * Removes everything the seed created — and nothing else. Scoped by the demo
- * workspace slug and the demo e-mail addresses, so pointing this at a database
+ * workspace slugs and the demo e-mail addresses, so pointing this at a database
  * that also holds real data cannot touch that data.
  *
  * Deletion is ordered by hand rather than left to `ON DELETE CASCADE`: the
@@ -20,9 +20,17 @@ import { DEMO_EMAILS, DEMO_WORKSPACE } from "./blueprint"
  * either fail or depend on the order Postgres happens to pick.
  */
 export async function resetDemo(): Promise<{ workspaces: number; users: number }> {
-  const slug = DEMO_WORKSPACE.slug
+  let removed = 0
+  for (const slug of DEMO_WORKSPACE_SLUGS) removed += await resetWorkspace(slug)
 
-  const removed = await db.transaction(async (tx) => {
+  // Deleting the auth user cascades to `profiles`.
+  const users = await deleteUsers(DEMO_EMAILS)
+
+  return { workspaces: removed, users }
+}
+
+async function resetWorkspace(slug: string): Promise<number> {
+  return db.transaction(async (tx) => {
     const found = await tx.execute<{ id: string }>(
       sql`select id from workspaces where slug = ${slug}`,
     )
@@ -75,15 +83,11 @@ export async function resetDemo(): Promise<{ workspaces: number; users: number }
     await tx.execute(sql`delete from webhook_events where workspace_id in ${scope}`)
     await tx.execute(sql`delete from workspace_invites where workspace_id in ${scope}`)
     await tx.execute(sql`delete from workspace_members where workspace_id in ${scope}`)
+    await tx.execute(sql`delete from workspace_subscriptions where workspace_id in ${scope}`)
     await tx.execute(sql`delete from workspaces where slug = ${slug}`)
 
     return ids.length
   })
-
-  // Deleting the auth user cascades to `profiles`.
-  const users = await deleteUsers(DEMO_EMAILS)
-
-  return { workspaces: removed, users }
 }
 
 async function main() {

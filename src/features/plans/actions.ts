@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { actionError, successMessage } from "@/i18n/errors"
-import { PLAN_KEYS } from "@/lib/plans"
 import { DASHBOARD_LAYOUT } from "@/lib/revalidate"
 import { requireUser } from "@/server/auth/session"
 import { requestPlanUpgrade } from "@/server/services/plans"
@@ -16,12 +15,14 @@ export interface PlanActionState {
 
 const requestSchema = z.object({
   workspaceId: z.string().uuid(),
-  plan: z.enum(PLAN_KEYS),
+  // The purchasable plans (`PURCHASABLE_PLANS` in `@/lib/plans`).
+  plan: z.enum(["launch", "growth"]),
 })
 
 /**
- * Files a request for a higher plan. Nothing is charged and nothing changes
- * yet: the team follows up and the operator switches `workspaces.plan`.
+ * Manual activation request — only offered where platform billing is not
+ * configured (docs/PLANS.md §5). Nothing is charged and nothing changes yet:
+ * the team follows up and grants the plan.
  */
 export async function requestPlanUpgradeAction(
   _prev: PlanActionState,

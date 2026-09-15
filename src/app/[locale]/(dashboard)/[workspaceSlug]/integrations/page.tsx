@@ -54,6 +54,15 @@ export default async function IntegrationsPage({
     lastEventFailed: health.stripe.lastEventFailed,
   })
   const lastEventWhen = relative(health.stripe.lastEventAt)
+  const evidence = (environment: "test" | "live") => {
+    const line = health.stripe.environments[environment]
+    return {
+      when: relative(line.lastEventAt),
+      type: line.lastEventType,
+      failed: line.lastEventFailed,
+      exact: line.exact,
+    }
+  }
   const lastClickWhen = relative(health.tracking.lastClickAt)
 
   return (
@@ -68,7 +77,10 @@ export default async function IntegrationsPage({
             workspaceSlug={workspaceSlug}
             state={state}
             providerAccountId={setup?.providerAccountId ?? null}
-            secretSaved={setup?.secretSaved ?? false}
+            secrets={setup?.secrets ?? { test: false, live: false }}
+            environments={{ test: evidence("test"), live: evidence("live") }}
+            // Only admins see the secret forms, and only admins load keys.
+            liveModeAvailable={keys?.liveModeAvailable ?? true}
             webhookUrl={setup ? `${appUrl}${stripeWebhookPath(setup.integrationId)}` : null}
             lastEvent={
               lastEventWhen && health.stripe.lastEventType
@@ -84,7 +96,8 @@ export default async function IntegrationsPage({
             // itself — complete only right after a key is generated.
             <ApiKeysPanel
               workspaceSlug={workspaceSlug}
-              keys={keys}
+              keys={keys.keys}
+              liveModeAvailable={keys.liveModeAvailable}
               trackerUrl={`${appUrl}${TRACKER_PATH}`}
               lastClickWhen={lastClickWhen}
             />

@@ -20,8 +20,25 @@ export const DEMO_WORKSPACE = {
   slug: "acme",
   currency: "BRL",
   timezone: "America/Sao_Paulo",
+  /**
+   * Growth, as an operator-granted (`manual`) active subscription: the demo
+   * gives Agency Labs a negotiated rate and shows the audit log, both Growth
+   * features, and runs a live program. On Sandbox the demo data itself would
+   * break the rules enforced for real workspaces (docs/PLANS.md).
+   */
   plan: "growth",
 } as const
+
+/** A second workspace left on Sandbox (no subscription row): test data only. */
+export const DEMO_SANDBOX_WORKSPACE = {
+  name: "Beta Labs",
+  slug: "beta-labs",
+  currency: "BRL",
+  timezone: "America/Sao_Paulo",
+} as const
+
+/** Every workspace the seed creates, for the reset. */
+export const DEMO_WORKSPACE_SLUGS = [DEMO_WORKSPACE.slug, DEMO_SANDBOX_WORKSPACE.slug] as const
 
 export const DEMO_FOUNDER = {
   email: `founder@${DEMO_EMAIL_DOMAIN}`,
@@ -31,6 +48,8 @@ export const DEMO_FOUNDER = {
 export const DEMO_PROGRAM = {
   name: "Acme Partners",
   slug: "acme-partners",
+  /** The demo's real money: live keys, live Stripe events. */
+  environment: "live",
   description:
     "Indique times para a Acme e ganhe 30% de cada pagamento nos primeiros 12 meses.",
   status: "active",
@@ -42,6 +61,38 @@ export const DEMO_PROGRAM = {
   attributionWindowDays: 60,
   /** Short enough that the demo shows both `pending` and `available` rows. */
   commissionHoldDays: 14,
+  currency: "BRL",
+} as const
+
+/** Where the founder tries a new rule before taking it live. No affiliates yet. */
+export const DEMO_TEST_PROGRAM = {
+  name: "Acme Partners (teste)",
+  slug: "acme-partners-teste",
+  description: "Programa de teste: chaves de teste e eventos do modo de teste do Stripe.",
+  status: "active",
+  environment: "test",
+  commissionType: "percentage",
+  commissionValue: 3500,
+  commissionDurationMonths: 12,
+  attributionModel: "last_click",
+  attributionWindowDays: 60,
+  commissionHoldDays: 14,
+  currency: "BRL",
+} as const
+
+/** The Sandbox workspace's only program — the one test program Sandbox allows. */
+export const DEMO_SANDBOX_PROGRAM = {
+  name: "Beta Partners",
+  slug: "beta-partners",
+  description: "Programa de teste de um workspace ainda no Sandbox.",
+  status: "active",
+  environment: "test",
+  commissionType: "percentage",
+  commissionValue: 2000,
+  commissionDurationMonths: null,
+  attributionModel: "first_click",
+  attributionWindowDays: 30,
+  commissionHoldDays: 30,
   currency: "BRL",
 } as const
 

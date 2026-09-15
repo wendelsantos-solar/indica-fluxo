@@ -4,14 +4,14 @@ import { getTranslations, setRequestLocale } from "next-intl/server"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { PlanLineList } from "@/features/plans/plan-lines"
-import { getFormatters } from "@/i18n/format"
 import { getPathname, Link } from "@/i18n/navigation"
-import { DEFAULT_CURRENCY, type Locale } from "@/i18n/routing"
+import { PLAN_OFFERS } from "@/lib/plans"
+import { CORE_FEATURES, formatPlanPrice, PRICING_CARDS } from "@/lib/plans-display"
 import { localeAlternates } from "@/lib/site"
 import { cn } from "@/lib/utils"
+import { PAST_DUE_GRACE_DAYS } from "@/server/domain/entitlements"
 
-import { MARKETING_PLANS, marketingPlanLines, PRICE_MINOR } from "../_lib/plans"
+import { PlanLines } from "../_components/plan-lines"
 
 export async function generateMetadata({
   params,
@@ -21,101 +21,119 @@ export async function generateMetadata({
   const { canonical, languages } = localeAlternates("/pricing", locale, (target) =>
     getPathname({ href: "/pricing", locale: target }),
   )
-  return { title: t("metaTitle"), alternates: { canonical, languages } }
+  // Prices in the description come from PLAN_OFFERS, never from the catalogue.
+  const description = t("metaDescription", {
+    launchPrice: formatPlanPrice(locale, PLAN_OFFERS.launch.priceMonthlyMinor ?? 0, PLAN_OFFERS.launch.currency),
+    growthPrice: formatPlanPrice(locale, PLAN_OFFERS.growth.priceMonthlyMinor ?? 0, PLAN_OFFERS.growth.currency),
+  })
+  return { title: t("metaTitle"), description, alternates: { canonical, languages } }
 }
 
-/** What happens between signing up and being on Growth, in order. */
-const NEXT_STEPS = ["signup", "request", "contact"] as const
+/** How IndicaFluxo charges, in the order a founder meets it (docs/PLANS.md §5–6). */
+const BILLING_QUESTIONS = ["sandbox", "activate", "change", "cancel", "pastDue"] as const
 
 export default async function PricingPage({ params }: PageProps<"/[locale]/pricing">) {
   const { locale } = await params
   setRequestLocale(locale)
 
-  const t = await getTranslations("pricing")
-  const tf = await getTranslations("marketing.home.pricing")
-  const f = await getFormatters()
-  const currency = DEFAULT_CURRENCY[locale as Locale]
-  const prices = PRICE_MINOR[locale as Locale]
+  const t = await getTranslations()
 
   return (
     <div className="mx-auto w-full max-w-page px-4 py-24 sm:px-6 sm:py-32">
       <div className="max-w-3xl">
         <h1 className="text-balance text-heading-sm text-foreground sm:text-heading lg:text-heading-lg">
-          {t("title")}
+          {t("pricing.title")}
         </h1>
-        <p className="mt-6 max-w-2xl text-pretty text-body text-muted-foreground">
-          {t("subtitle")}
-        </p>
+        <p className="mt-6 max-w-2xl text-pretty text-body text-muted-foreground">{t("pricing.subtitle")}</p>
       </div>
 
-      <div className="mt-16 grid max-w-4xl gap-3 sm:mt-20 md:grid-cols-2">
-        {MARKETING_PLANS.map((plan) => (
-          <div
-            key={plan.key}
-            className={cn(
-              "flex flex-col rounded-panel border bg-surface-1 p-6",
-              plan.featured ? "border-border-strong" : "border-border",
-            )}
-          >
-            <div className="flex h-5 items-center justify-between gap-3">
-              <h2 className="text-ui font-medium text-foreground">{t(`plans.${plan.key}.name`)}</h2>
-              {plan.featured ? (
-                <Badge tone="primary" dot={false}>
-                  {t("onRequest")}
-                </Badge>
-              ) : null}
-            </div>
-
-            <p className="mt-6 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <span className="whitespace-nowrap text-heading-sm tabular-nums text-foreground">
-                {prices[plan.key] === 0 ? tf("free") : f.money(prices[plan.key], currency)}
-              </span>
-              <span className="text-caption text-muted-foreground">
-                {t(`plans.${plan.key}.cadence`)}
-              </span>
-            </p>
-
-            <p className="mt-3 text-pretty text-caption text-muted-foreground">
-              {t(`plans.${plan.key}.description`)}
-            </p>
-
-            {/* Both lead to sign-up: every workspace starts on Starter, and
-                Growth is requested from inside the product. The label says so. */}
-            <Button
-              asChild
-              variant={plan.featured ? "primary" : "secondary"}
-              size="lg"
-              className="mt-6 w-full"
+      {/* Three comparable cards: each lists only what differs between plans
+          (mode, limits, added features), so they read side by side at the
+          same height. What every plan shares is said once, below. */}
+      <div className="mt-16 grid gap-3 sm:mt-20 lg:grid-cols-3">
+        {PRICING_CARDS.map((plan) => {
+          const free = plan.priceMonthlyMinor === 0
+          return (
+            <div
+              key={plan.code}
+              className={cn(
+                "flex flex-col rounded-panel border bg-surface-1 p-6",
+                plan.recommended ? "border-border-strong" : "border-border",
+              )}
             >
-              <Link href="/signup">
-                {t(`plans.${plan.key}.cta`)}
-                <ArrowRight aria-hidden="true" />
-              </Link>
-            </Button>
+              <div className="flex h-5 items-center justify-between gap-3">
+                <h2 className="text-ui font-medium text-foreground">{t(plan.nameKey)}</h2>
+                {plan.recommended ? (
+                  <Badge tone="primary" dot={false}>
+                    {t("pricing.recommended")}
+                  </Badge>
+                ) : free ? (
+                  <Badge dot={false}>{t("pricing.testOnlyBadge")}</Badge>
+                ) : null}
+              </div>
 
-            <PlanLineList
-              lines={marketingPlanLines(plan.key)}
-              className="mt-6 flex-1 border-t border-border-faint pt-6"
-            />
-          </div>
-        ))}
+              <p className="mt-6 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span className="whitespace-nowrap text-heading-sm tabular-nums text-foreground">
+                  {free ? t("pricing.free") : formatPlanPrice(locale, plan.priceMonthlyMinor, plan.currency)}
+                </span>
+                <span className="text-caption text-muted-foreground">
+                  {free ? t("pricing.noExpiry") : t("pricing.perMonth")}
+                </span>
+              </p>
+
+              <p className="mt-3 min-h-10 text-pretty text-caption text-muted-foreground">{t(plan.descriptionKey)}</p>
+
+              {/* Every CTA leads to sign-up: a workspace starts on Sandbox and a
+                  plan is activated in Settings, through Stripe Checkout. */}
+              <Button
+                asChild
+                variant={plan.recommended ? "primary" : "secondary"}
+                size="lg"
+                className="mt-6 w-full"
+              >
+                <Link href={plan.cta.href}>
+                  {t(plan.cta.key)}
+                  <ArrowRight aria-hidden="true" />
+                </Link>
+              </Button>
+
+              <PlanLines lines={plan.lines} className="mt-6 flex-1 border-t border-border-faint pt-6" />
+            </div>
+          )
+        })}
       </div>
 
-      <p className="mt-6 max-w-4xl text-pretty text-caption text-muted-foreground">{t("startsOnStarter")}</p>
+      <p className="mt-6 max-w-3xl text-pretty text-caption text-muted-foreground">
+        {t("pricing.startNote")} {t("pricing.currencyNote")}
+      </p>
 
-      <section aria-labelledby="pricing-next" className="mt-20 max-w-4xl border-t border-border pt-12">
-        <h2 id="pricing-next" className="text-subheading text-foreground">
-          {t("next.title")}
+      <section aria-labelledby="pricing-core" className="mt-16 rounded-panel border border-border bg-surface-1 p-6 sm:p-8">
+        <div className="max-w-2xl">
+          <h2 id="pricing-core" className="text-title text-foreground">
+            {t("pricing.core.title")}
+          </h2>
+          <p className="mt-2 text-pretty text-caption text-muted-foreground">{t("pricing.core.subtitle")}</p>
+        </div>
+        <PlanLines
+          lines={CORE_FEATURES.map((item) => ({ kind: "core" as const, item }))}
+          className="mt-6 grid gap-x-8 gap-y-3 space-y-0 sm:grid-cols-2 lg:grid-cols-3"
+        />
+      </section>
+
+      <section aria-labelledby="pricing-billing" className="mt-20 border-t border-border pt-12">
+        <h2 id="pricing-billing" className="text-subheading text-foreground">
+          {t("pricing.billing.title")}
         </h2>
-        <ol className="mt-8 grid gap-6 md:grid-cols-3">
-          {NEXT_STEPS.map((step, index) => (
-            <li key={step}>
-              <p className="text-meta tabular-nums text-faint-foreground">{f.number(index + 1)}</p>
-              <p className="mt-2 text-caption font-medium text-foreground">{t(`next.${step}.title`)}</p>
-              <p className="mt-1 text-pretty text-caption text-muted-foreground">{t(`next.${step}.body`)}</p>
-            </li>
+        <dl className="mt-8 grid gap-x-12 gap-y-8 md:grid-cols-2">
+          {BILLING_QUESTIONS.map((question) => (
+            <div key={question}>
+              <dt className="text-caption font-medium text-foreground">{t(`pricing.billing.${question}.question`)}</dt>
+              <dd className="mt-1 text-pretty text-caption text-muted-foreground">
+                {t(`pricing.billing.${question}.answer`, { days: PAST_DUE_GRACE_DAYS })}
+              </dd>
+            </div>
           ))}
-        </ol>
+        </dl>
       </section>
     </div>
   )

@@ -27,6 +27,7 @@ import {
 import { Field } from "@/components/ui/field"
 import { Input, Select } from "@/components/ui/input"
 import { useActionResult } from "@/components/ui/use-action-result"
+import { Link } from "@/i18n/navigation"
 import { useFormatters } from "@/i18n/use-formatters"
 import { minorUnitExponent } from "@/lib/money"
 import {
@@ -57,6 +58,12 @@ export interface AffiliateRowActionsProps {
   currency: string
   programRate: Rate | null
   customRate: Rate | null
+  /**
+   * The plan includes custom affiliate rates. Without it a rate can still be
+   * removed (a downgraded workspace keeps the ones it has) but not set or
+   * changed; the dialog says where to get the feature. Off unless the page says so.
+   */
+  customRatesAvailable?: boolean
 }
 
 type Confirmable = "suspended" | "rejected"
@@ -262,6 +269,7 @@ function CustomRateForm({
   currency,
   programRate,
   customRate,
+  customRatesAvailable = false,
   onDone,
 }: AffiliateRowActionsProps & { onDone: () => void }) {
   const t = useTranslations("forms.customRate")
@@ -311,43 +319,59 @@ function CustomRateForm({
       </DialogHeader>
 
       <DialogBody>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={t("type")} htmlFor={`${fieldId}-type`}>
-            <Select
-              id={`${fieldId}-type`}
-              name="type"
-              value={type}
-              onChange={(event) => setType(event.target.value as CustomRateType)}
-            >
-              <option value="percentage">{t("typePercentage")}</option>
-              <option value="fixed">{t("typeFixed", { currency })}</option>
-            </Select>
-          </Field>
-
-          <Field
-            label={type === "percentage" ? t("valuePercentage") : t("valueFixed", { currency })}
-            htmlFor={`${fieldId}-value`}
-            hint={type === "percentage" ? t("hintPercentage") : t("hintFixed")}
-            error={valueError}
+        {customRatesAvailable ? null : (
+          <InlineAlert
+            title={t("upgradeTitle")}
+            action={
+              <Button asChild variant="ghost" size="sm">
+                <Link href={{ pathname: "/[workspaceSlug]/settings", params: { workspaceSlug }, hash: "plano" }}>
+                  {t("upgradeAction")}
+                </Link>
+              </Button>
+            }
           >
-            <Input
-              id={`${fieldId}-value`}
-              name="value"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              max={type === "percentage" ? "100" : undefined}
-              step={type === "percentage" || exponent > 0 ? "0.01" : "1"}
-              value={value}
-              onChange={(event) => setValue(event.target.value)}
-              onKeyDown={onValueKeyDown}
-              autoComplete="off"
-              invalid={Boolean(valueError)}
-              aria-describedby={`${fieldId}-value-${valueError ? "error" : "hint"}`}
-              className="tabular-nums"
-            />
-          </Field>
-        </div>
+            {customRate ? t("upgradeBodyExisting") : t("upgradeBody")}
+          </InlineAlert>
+        )}
+        {customRatesAvailable ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label={t("type")} htmlFor={`${fieldId}-type`}>
+              <Select
+                id={`${fieldId}-type`}
+                name="type"
+                value={type}
+                onChange={(event) => setType(event.target.value as CustomRateType)}
+              >
+                <option value="percentage">{t("typePercentage")}</option>
+                <option value="fixed">{t("typeFixed", { currency })}</option>
+              </Select>
+            </Field>
+
+            <Field
+              label={type === "percentage" ? t("valuePercentage") : t("valueFixed", { currency })}
+              htmlFor={`${fieldId}-value`}
+              hint={type === "percentage" ? t("hintPercentage") : t("hintFixed")}
+              error={valueError}
+            >
+              <Input
+                id={`${fieldId}-value`}
+                name="value"
+                type="number"
+                inputMode="decimal"
+                min="0"
+                max={type === "percentage" ? "100" : undefined}
+                step={type === "percentage" || exponent > 0 ? "0.01" : "1"}
+                value={value}
+                onChange={(event) => setValue(event.target.value)}
+                onKeyDown={onValueKeyDown}
+                autoComplete="off"
+                invalid={Boolean(valueError)}
+                aria-describedby={`${fieldId}-value-${valueError ? "error" : "hint"}`}
+                className="tabular-nums"
+              />
+            </Field>
+          </div>
+        ) : null}
 
         {customRate ? (
           <p className="text-meta text-muted-foreground">
@@ -376,9 +400,11 @@ function CustomRateForm({
             {ta("cancel")}
           </Button>
         </DialogClose>
-        <Button type="submit" name="intent" value="set" variant="primary" loading={pending}>
-          {t("save")}
-        </Button>
+        {customRatesAvailable ? (
+          <Button type="submit" name="intent" value="set" variant="primary" loading={pending}>
+            {t("save")}
+          </Button>
+        ) : null}
       </DialogFooter>
     </form>
   )

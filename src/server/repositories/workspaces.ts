@@ -115,6 +115,11 @@ export async function listMembers(tx: DbClient, workspaceId: string) {
     .orderBy(asc(workspaceMembers.createdAt))
 }
 
+/**
+ * Invitations not accepted yet — expired ones included, flagged, so the team
+ * panel can offer to resend or revoke them. An expired invitation is not
+ * claimable and does not count toward the members limit (migration 0010).
+ */
 export async function listPendingInvites(tx: DbClient, workspaceId: string) {
   return tx
     .select({
@@ -122,6 +127,8 @@ export async function listPendingInvites(tx: DbClient, workspaceId: string) {
       email: workspaceInvites.email,
       role: workspaceInvites.role,
       createdAt: workspaceInvites.createdAt,
+      expiresAt: workspaceInvites.expiresAt,
+      expired: sql<boolean>`${workspaceInvites.expiresAt} <= now()`,
     })
     .from(workspaceInvites)
     .where(
@@ -131,6 +138,21 @@ export async function listPendingInvites(tx: DbClient, workspaceId: string) {
       ),
     )
     .orderBy(asc(workspaceInvites.createdAt))
+}
+
+/** Invitations are good for 14 days from when they were last sent. */
+export const INVITE_TTL_SQL = sql`now() + interval '14 days'`
+
+/** Sends an unaccepted invitation's clock back to 14 days; optionally changes its role and sender. */
+export async function renewInvite(
+  tx: DbClient,
+  inviteId: string,
+  changes: { role?: "owner" | "admin" | "member"; invitedBy?: string } = {},
+) {
+  await tx
+    .update(workspaceInvites)
+    .set({ expiresAt: INVITE_TTL_SQL, ...changes })
+    .where(and(eq(workspaceInvites.id, inviteId), sql`${workspaceInvites.acceptedAt} is null`))
 }
 
 export async function findMember(tx: DbClient, workspaceId: string, memberId: string) {
@@ -157,7 +179,12 @@ export async function lockOwners(tx: DbClient, workspaceId: string): Promise<num
 
 export async function findPendingInvite(tx: DbClient, workspaceId: string, inviteId: string) {
   const [row] = await tx
-    .select({ id: workspaceInvites.id, email: workspaceInvites.email, role: workspaceInvites.role })
+    .select({
+      id: workspaceInvites.id,
+      email: workspaceInvites.email,
+      role: workspaceInvites.role,
+      expired: sql<boolean>`${workspaceInvites.expiresAt} <= now()`,
+    })
     .from(workspaceInvites)
     .where(
       and(
@@ -167,5 +194,8 @@ export async function findPendingInvite(tx: DbClient, workspaceId: string, invit
       ),
     )
     .limit(1)
+    // Two resends of one expired invitation must not both re-check the limit
+    // against a count that includes neither.
+    .for("update")
   return row ?? null
 }

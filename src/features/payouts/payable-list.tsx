@@ -40,10 +40,13 @@ export function PayableList({
   workspaceSlug,
   rows,
   currency,
+  environment,
 }: {
   workspaceSlug: string
   rows: PayableRow[]
   currency: string
+  /** A batch pays one environment's commissions. */
+  environment: "test" | "live"
 }) {
   const t = useTranslations("forms.payable")
   const tc = useTranslations("common.table")
@@ -69,6 +72,7 @@ export function PayableList({
     <form action={action}>
       <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
       <input type="hidden" name="currency" value={currency} />
+      <input type="hidden" name="environment" value={environment} />
       {selected.map((id) => (
         <input key={id} type="hidden" name="participationIds" value={id} />
       ))}

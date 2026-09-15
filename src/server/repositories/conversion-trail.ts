@@ -123,6 +123,8 @@ export interface ConversionTrailData {
     id: string
     name: string
     slug: string
+    /** Test or live: the trail opens in either, and says which. */
+    environment: "test" | "live"
     attributionModel: "first_click" | "last_click"
     attributionWindowDays: number
   }
@@ -164,6 +166,7 @@ export async function getConversionTrail(
       programId: programs.id,
       programName: programs.name,
       programSlug: programs.slug,
+      programEnvironment: programs.environment,
       attributionModel: programs.attributionModel,
       attributionWindowDays: programs.attributionWindowDays,
       customerId: customers.id,
@@ -265,6 +268,7 @@ export async function getConversionTrail(
       id: root.programId,
       name: root.programName,
       slug: root.programSlug,
+      environment: root.programEnvironment,
       attributionModel: root.attributionModel,
       attributionWindowDays: root.attributionWindowDays,
     },

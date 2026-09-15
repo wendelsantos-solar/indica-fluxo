@@ -6,6 +6,7 @@ import { notFound } from "next/navigation"
 
 import { ThemeProvider } from "@/components/layout/theme-provider"
 import { Toaster } from "@/components/feedback/toaster"
+import { clientMessages } from "@/i18n/client-messages"
 import { BCP47, routing, type Locale } from "@/i18n/routing"
 import { siteUrl } from "@/lib/site"
 
@@ -16,18 +17,21 @@ import "../globals.css"
  * "opsz" 32` in theme.css has an axis to act on — without it the browser gets
  * a static instance and the optical sizing silently does nothing.
  *
- * `latin-ext` carries the accented glyphs Portuguese needs (ã, ç, õ, ê).
+ * `subsets` decides only what is PRELOADED: every subset is self-hosted with a
+ * `unicode-range`, so a glyph outside `latin` still loads when a page uses it.
+ * Portuguese's accents (ã, ç, õ, ê) are Latin-1, inside `latin`; preloading
+ * `latin-ext` too cost 88 KB of font on every first visit (PERFORMANCE_AUDIT.md).
  */
 const inter = Inter({
   variable: "--font-inter",
-  subsets: ["latin", "latin-ext"],
+  subsets: ["latin"],
   axes: ["opsz"],
   display: "swap",
 })
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
-  subsets: ["latin", "latin-ext"],
+  subsets: ["latin"],
   display: "swap",
 })
 
@@ -68,7 +72,9 @@ export default async function LocaleLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full">
-        <NextIntlClientProvider>
+        {/* Only what this level's client components read; each route group's
+            layout passes its own scope (src/i18n/client-namespaces.ts). */}
+        <NextIntlClientProvider messages={await clientMessages("root")}>
           <ThemeProvider>
             {children}
             <Toaster />

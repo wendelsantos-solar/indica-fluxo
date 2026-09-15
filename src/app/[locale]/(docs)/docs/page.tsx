@@ -14,7 +14,7 @@ import { getLocale, getTranslations, setRequestLocale } from "next-intl/server"
 import type * as React from "react"
 
 import { getFormatters } from "@/i18n/format"
-import { getPathname } from "@/i18n/navigation"
+import { getPathname, Link } from "@/i18n/navigation"
 import { DEFAULT_CURRENCY, type Locale } from "@/i18n/routing"
 import { IDENTIFY_RATE_LIMIT } from "@/lib/api/contract"
 import { STRIPE_HANDLED_EVENTS } from "@/lib/billing/stripe/events"
@@ -369,6 +369,16 @@ export default async function DocsPage({ params }: PageProps<"/[locale]/docs">) 
               filename={t("connectStripe.urlLabel")}
             />
             <Prose>{t.rich("connectStripe.verify", rich)}</Prose>
+            <Callout tone="info" title={t("connectStripe.modesTitle")}>
+              {t.rich("connectStripe.modesBody", {
+                ...rich,
+                a: (chunks) => (
+                  <a href={`#${anchor("environments")}`} className="text-foreground underline decoration-border-strong underline-offset-4 hover:decoration-foreground">
+                    {chunks}
+                  </a>
+                ),
+              })}
+            </Callout>
             <div className="grid gap-3 md:grid-cols-2">
               <Callout tone="info" title={t("connectStripe.idempotentTitle")}>
                 {t("connectStripe.idempotentBody")}
@@ -475,6 +485,43 @@ export default async function DocsPage({ params }: PageProps<"/[locale]/docs">) 
 
           {/* Security */}
           <Section>
+            <SectionHeading id={anchor("environments")} level={2}>
+              {t("environments.title")}
+            </SectionHeading>
+            <Prose>{t.rich("environments.lead", rich)}</Prose>
+            <DefinitionTable
+              label={t("environments.title")}
+              head={[t("environments.head.what"), t("environments.head.test"), t("environments.head.live")]}
+              rows={(["keys", "programs", "stripe", "plan"] as const).map((row) => [
+                t(`environments.rows.${row}.label`),
+                t.rich(`environments.rows.${row}.test`, rich),
+                t.rich(`environments.rows.${row}.live`, rich),
+              ])}
+            />
+            <div className="space-y-2">
+              <p className="text-caption font-medium text-foreground">{t("environments.withoutLiveTitle")}</p>
+              <ul className="space-y-1.5">
+                {(["track", "identify", "webhook"] as const).map((key) => (
+                  <DetailItem key={key}>{t.rich(`environments.withoutLive.${key}`, rich)}</DetailItem>
+                ))}
+              </ul>
+            </div>
+            <Callout tone="warning" title={t("environments.planTitle")}>
+              {t.rich("environments.planBody", {
+                ...rich,
+                pricing: (chunks) => (
+                  <Link href="/pricing" className="text-foreground underline decoration-border-strong underline-offset-4 hover:decoration-foreground">
+                    {chunks}
+                  </Link>
+                ),
+              })}
+            </Callout>
+            <Callout tone="success" title={t("environments.simulateTitle")}>
+              {t("environments.simulateBody")}
+            </Callout>
+          </Section>
+
+          <Section>
             <SectionHeading id={anchor("apiKeys")} level={2}>
               {t("apiKeys.title")}
             </SectionHeading>
@@ -483,14 +530,14 @@ export default async function DocsPage({ params }: PageProps<"/[locale]/docs">) 
               <KeyCard
                 icon={Globe}
                 title={t("apiKeys.publishable.title")}
-                sample="pk_live_…"
+                sample="pk_test_… · pk_live_…"
                 where={t("apiKeys.publishable.where")}
                 uses={[t.rich("apiKeys.publishable.uses.tracker", rich), t("apiKeys.publishable.uses.clicks")]}
               />
               <KeyCard
                 icon={Lock}
                 title={t("apiKeys.secret.title")}
-                sample="sk_live_…"
+                sample="sk_test_… · sk_live_…"
                 where={t("apiKeys.secret.where")}
                 uses={[t.rich("apiKeys.secret.uses.identify", rich), t("apiKeys.secret.uses.env")]}
                 danger
@@ -564,6 +611,8 @@ export default async function DocsPage({ params }: PageProps<"/[locale]/docs">) 
                   ["validation_error", 422],
                   ["unknown_key", 401],
                   ["invalid_ref", 400],
+                  ["LIVE_MODE_REQUIRED", 402],
+                  ["SUBSCRIPTION_REQUIRED", 402],
                   ["rate_limited", 429],
                   ["internal_error", 500],
                 ] as const

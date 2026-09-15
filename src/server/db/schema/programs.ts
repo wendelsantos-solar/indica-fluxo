@@ -14,6 +14,7 @@ import {
 import {
   affiliateStatusEnum,
   attributionModelEnum,
+  environmentEnum,
   commissionTypeEnum,
   programAffiliateStatusEnum,
   programStatusEnum,
@@ -37,6 +38,11 @@ export const programs = pgTable(
      */
     websiteUrl: text("website_url"),
     status: programStatusEnum("status").notNull().default("draft"),
+    /**
+     * Fixed at creation. A test program only ever sees test clicks, test keys
+     * and Stripe test-mode events; a live one needs a plan with live mode.
+     */
+    environment: environmentEnum("environment").notNull().default("test"),
 
     commissionType: commissionTypeEnum("commission_type").notNull().default("percentage"),
     /** Basis points when percentage, minor units when fixed. */
@@ -56,6 +62,7 @@ export const programs = pgTable(
   (t) => [
     uniqueIndex("programs_workspace_slug_key").on(t.workspaceId, t.slug),
     index("programs_workspace_status_idx").on(t.workspaceId, t.status),
+    index("programs_workspace_environment_idx").on(t.workspaceId, t.environment),
     check("programs_commission_value_positive", sql`${t.commissionValue} > 0`),
     check(
       "programs_attribution_window_sane",

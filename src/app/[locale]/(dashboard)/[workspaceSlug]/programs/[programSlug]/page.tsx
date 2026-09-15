@@ -17,16 +17,19 @@ import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui
 import { Term } from "@/components/ui/term"
 import { formatMoneyTotals } from "@/lib/money-totals"
 import { InviteAffiliateDialog } from "@/features/affiliates/invite-affiliate-dialog"
+import { EnvironmentBadge } from "@/features/programs/environment-badge"
 import { ProgramAffiliateActions } from "@/features/programs/program-affiliate-actions"
 import { ProgramForm } from "@/features/programs/program-form"
+import { SimulateConversionDialog } from "@/features/sandbox/simulate-conversion-dialog"
 import { PROGRAM_TABS, ProgramTabs, type ProgramTab } from "@/features/programs/program-tabs"
 import { currencyOptions } from "@/features/workspaces/options"
 import { minorToMajor } from "@/lib/money"
 import { getSessionUser, requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
-import { listAffiliates } from "@/server/repositories/affiliates"
+import { listAffiliates, listApprovedParticipationOptions } from "@/server/repositories/affiliates"
 import { listCommissions } from "@/server/repositories/commissions"
 import { countProgramTabs, findProgramBySlug, getProgramTotals } from "@/server/repositories/programs"
+import { getPlanOverview } from "@/server/services/plans"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
 export const dynamic = "force-dynamic"
@@ -112,8 +115,18 @@ export default async function ProgramDetailPage({
       query: { tab: value },
     }) as const
 
-  const programRef = [{ id: program.id, name: program.name }]
+  // An archived program takes no new affiliates: nothing to invite into.
+  const programRef = program.status === "archived" ? [] : [{ id: program.id, name: program.name }]
   const canManage = workspace.role !== "member"
+  const customRatesAvailable = canManage
+    ? (await getPlanOverview(user.id, workspace.id)).entitlements.capabilities.features.customAffiliateRates
+    : false
+  // A test program can run a whole conversion without Stripe (docs/PLANS.md
+  // §2). Owners and admins only — the service refuses members and live programs.
+  const simulation =
+    canManage && program.environment === "test" && tab !== "settings"
+      ? await withUser(user.id, (tx) => listApprovedParticipationOptions(tx, workspace.id, program.id))
+      : null
 
   const rule =
     program.commissionType === "percentage"
@@ -145,6 +158,7 @@ export default async function ProgramDetailPage({
               workspaceSlug={workspaceSlug}
               programs={programRef}
               defaultProgramId={program.id}
+              customRatesAvailable={customRatesAvailable}
             />
           )
         }
@@ -156,7 +170,10 @@ export default async function ProgramDetailPage({
           <div className="space-y-4">
             {/* The name is already the last crumb of the bar above. */}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <StatusBadge status={program.status} />
+              <span className="flex items-center gap-1.5">
+                <EnvironmentBadge environment={program.environment} />
+                <StatusBadge status={program.status} />
+              </span>
               {program.description ? (
                 <p className="max-w-prose text-pretty text-caption text-muted-foreground">
                   {program.description}
@@ -180,6 +197,24 @@ export default async function ProgramDetailPage({
                 }
               >
                 {t("websiteMissing.description")}
+              </InlineAlert>
+            ) : null}
+
+            {simulation ? (
+              <InlineAlert
+                title={t("simulation.title")}
+                action={
+                  simulation.length > 0 ? (
+                    <SimulateConversionDialog
+                      workspaceSlug={workspaceSlug}
+                      programId={program.id}
+                      participations={simulation}
+                      currency={program.currency}
+                    />
+                  ) : undefined
+                }
+              >
+                {simulation.length > 0 ? t("simulation.description") : t("simulation.needsAffiliate")}
               </InlineAlert>
             ) : null}
 
@@ -257,6 +292,7 @@ export default async function ProgramDetailPage({
                       defaultProgramId={program.id}
                       triggerVariant="secondary"
                       triggerSize="md"
+                      customRatesAvailable={customRatesAvailable}
                     />
                   }
                 />

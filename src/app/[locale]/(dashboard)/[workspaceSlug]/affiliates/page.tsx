@@ -18,6 +18,7 @@ import {
   ApproveParticipationButton,
   AffiliateRowActions,
 } from "@/features/affiliates/affiliate-row-actions"
+import { AffiliateLimitNotice } from "@/features/affiliates/affiliate-limit-notice"
 import { InviteAffiliateDialog } from "@/features/affiliates/invite-affiliate-dialog"
 import {
   firstParam,
@@ -36,6 +37,8 @@ import {
   type AffiliateSortField,
 } from "@/server/repositories/affiliates"
 import { listPrograms } from "@/server/repositories/programs"
+import { getPlanOverview } from "@/server/services/plans"
+import { getViewEnvironment } from "@/server/services/view-environment"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
 export const dynamic = "force-dynamic"
@@ -78,7 +81,16 @@ export default async function AffiliatesPage({
   const user = await requireUser()
   const workspace = await getWorkspaceForUser(user.id, workspaceSlug)
   const f = await getFormatters(workspace.timezone)
-  const programs = await withUser(user.id, (tx) => listPrograms(tx, workspace.id))
+  const [allPrograms, plan, { environment }] = await Promise.all([
+    withUser(user.id, (tx) => listPrograms(tx, workspace.id)),
+    getPlanOverview(user.id, workspace.id),
+    getViewEnvironment(user.id, workspace.id),
+  ])
+  // The list, its filter and the invite dialog follow the shell's environment:
+  // participations and their figures in live and test programs are never mixed.
+  const programs = allPrograms.filter((program) => program.environment === environment)
+  // Custom rates are a plan feature; the dialogs offer them only when included.
+  const customRatesAvailable = plan.entitlements.capabilities.features.customAffiliateRates
 
   // Only a program of this workspace narrows the list; anything else is ignored.
   const rawProgram = firstParam(query.program)
@@ -87,6 +99,7 @@ export default async function AffiliatesPage({
   const [result, pendingCount] = await withUser(user.id, async (tx) => [
     await listAffiliates(tx, {
       workspaceId: workspace.id,
+      environment,
       programId,
       search,
       status,
@@ -94,12 +107,15 @@ export default async function AffiliatesPage({
       limit: PAGE_SIZE,
       offset: (page - 1) * PAGE_SIZE,
     }),
-    await countPendingParticipations(tx, workspace.id),
+    await countPendingParticipations(tx, workspace.id, environment),
   ] as const)
 
   const paging = pageWindow(page, result.total, PAGE_SIZE)
   const filtered = Boolean(search || status || programId)
-  const programOptions = programs.map((program) => ({ id: program.id, name: program.name }))
+  // An archived program takes no new affiliates.
+  const programOptions = programs
+    .filter((program) => program.status !== "archived")
+    .map((program) => ({ id: program.id, name: program.name }))
   const listHref = { pathname: "/[workspaceSlug]/affiliates", params: { workspaceSlug } } as const
   const isDefaultSort = sort.field === SORT.defaultSort.field && sort.dir === SORT.defaultSort.dir
 
@@ -164,12 +180,22 @@ export default async function AffiliatesPage({
             <InviteAffiliateDialog
               workspaceSlug={workspaceSlug}
               programs={programOptions}
-              defaultProgramId={programId}
+              defaultProgramId={programOptions.some((program) => program.id === programId) ? programId : undefined}
               openOnInviteParam
+              customRatesAvailable={customRatesAvailable}
             />
           ) : null
         }
       />
+
+      {canManage ? (
+        <AffiliateLimitNotice
+          workspaceSlug={workspaceSlug}
+          entitlements={plan.entitlements}
+          usage={plan.usage}
+          className="mb-6"
+        />
+      ) : null}
 
       {hasAny ? (
         <FilterBar
@@ -268,6 +294,7 @@ export default async function AffiliatesPage({
                 programs={programOptions}
                 triggerSize="md"
                 openOnInviteParam
+                customRatesAvailable={customRatesAvailable}
               />
             )
           }
@@ -359,6 +386,7 @@ export default async function AffiliatesPage({
                             ? { type: row.customCommissionType, value: row.customCommissionValue }
                             : null
                         }
+                        customRatesAvailable={customRatesAvailable}
                       />
                     </div>
                   ) : null

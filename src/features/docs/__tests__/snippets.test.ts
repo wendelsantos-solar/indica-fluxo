@@ -30,7 +30,7 @@ describe("tracker snippet", () => {
   it("loads the served tracker path with the attribute the script reads", () => {
     const snippet = trackerSnippet(APP)
     expect(snippet).toContain(`src="${APP}/t.js"`)
-    const attribute = snippet.match(/(data-[a-z-]+)="pk_live_/)?.[1]
+    const attribute = snippet.match(/(data-[a-z-]+)="pk_test_/)?.[1]
     expect(attribute).toBe("data-key")
     expect(trackerSource(`${APP}/api/track`)).toContain(`getAttribute("${attribute}")`)
   })
@@ -45,7 +45,7 @@ describe("identify examples", () => {
   it("cURL carries the same JSON and a Bearer secret key", () => {
     const curl = identifyCurl(APP)
     expect(curl).toContain(`${APP}/api/identify`)
-    expect(curl).toMatch(/Authorization: Bearer sk_live_/)
+    expect(curl).toMatch(/Authorization: Bearer sk_test_/)
     const json = curl.slice(curl.indexOf("-d '") + 4, curl.lastIndexOf("'"))
     expect(identifyBodySchema.parse(JSON.parse(json))).toEqual(IDENTIFY_EXAMPLE)
   })

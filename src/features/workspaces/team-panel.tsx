@@ -53,6 +53,11 @@ export interface TeamPanelProps {
    * is reached): shown instead of the invite form, in the reader's language.
    */
   inviteDisabledReason?: string
+  /**
+   * Rendered in place of `inviteDisabledReason`'s plain notice when set — an
+   * `UpgradePrompt` (`@/features/plans/upgrade-prompt`) for the member limit.
+   */
+  inviteDisabledNotice?: React.ReactNode
 }
 
 const INITIAL: FormState = {}
@@ -75,7 +80,7 @@ type DialogState =
  * owners and admins the address a teammate was invited with. Anyone else is
  * "Member", never an internal id.
  */
-export function TeamPanel({ workspaceId, team, inviteDisabledReason }: TeamPanelProps) {
+export function TeamPanel({ workspaceId, team, inviteDisabledReason, inviteDisabledNotice }: TeamPanelProps) {
   const t = useTranslations("dashboard.settings.team")
   const tc = useTranslations("common.table")
   const roleLabel = useRoleLabels()
@@ -109,11 +114,10 @@ export function TeamPanel({ workspaceId, team, inviteDisabledReason }: TeamPanel
               <TH>{t("member")}</TH>
               <TH>{t("role")}</TH>
               <TH className="max-sm:hidden">{tc("joined")}</TH>
-              {canManage ? (
-                <TH className="w-10">
-                  <span className="sr-only">{t("actions")}</span>
-                </TH>
-              ) : null}
+              {/* Everyone gets the column: a plain member can still leave. */}
+              <TH className="w-10">
+                <span className="sr-only">{t("actions")}</span>
+              </TH>
             </tr>
           </THead>
           <TBody>
@@ -139,11 +143,19 @@ export function TeamPanel({ workspaceId, team, inviteDisabledReason }: TeamPanel
                   </span>
                 </TD>
                 <TD>
-                  <Badge tone="warning">{t("pendingRole", { role: roleLabel(invite.role) })}</Badge>
+                  {invite.expired ? (
+                    <Badge tone="danger">{t("expiredRole", { role: roleLabel(invite.role) })}</Badge>
+                  ) : (
+                    <Badge tone="warning">{t("pendingRole", { role: roleLabel(invite.role) })}</Badge>
+                  )}
                 </TD>
-                <TD className="whitespace-nowrap text-muted-foreground max-sm:hidden">—</TD>
-                {canManage ? (
-                  <TD className="text-right">
+                <TD className="whitespace-nowrap text-muted-foreground max-sm:hidden">
+                  {invite.expired
+                    ? t("expiredOn", { date: f.date(invite.expiresAt) })
+                    : t("expiresOn", { date: f.date(invite.expiresAt) })}
+                </TD>
+                <TD className="text-right">
+                  {canManage ? (
                     <InviteMenu
                       invite={invite}
                       onOpen={(kind, trigger) => {
@@ -151,8 +163,8 @@ export function TeamPanel({ workspaceId, team, inviteDisabledReason }: TeamPanel
                         setDialog({ kind, invite })
                       }}
                     />
-                  </TD>
-                ) : null}
+                  ) : null}
+                </TD>
               </TR>
             ))}
           </TBody>
@@ -161,7 +173,9 @@ export function TeamPanel({ workspaceId, team, inviteDisabledReason }: TeamPanel
 
       {canManage ? (
         <div className="pt-4">
-          {inviteDisabledReason ? (
+          {inviteDisabledNotice ? (
+            inviteDisabledNotice
+          ) : inviteDisabledReason ? (
             <InlineAlert>{inviteDisabledReason}</InlineAlert>
           ) : (
             <InviteMemberForm workspaceId={workspaceId} />
@@ -217,18 +231,20 @@ function MemberRow({
   useActionResult(roleState)
 
   const label = memberLabel(member, t("unnamedMember"))
+  // The same rule the service applies: anyone may leave; managing others
+  // needs owner or admin.
   const allowed = (change: Parameters<typeof checkMemberChange>[0]["change"]) =>
-    canManage &&
     checkMemberChange({
       actorRole: team.viewerRole,
       targetRole: member.role,
       ownerCount: team.ownerCount,
       change,
+      self: member.isYou,
     }).ok
 
-  const roleTargets = (["admin", "member"] as const).filter(
-    (role) => role !== member.role && allowed({ kind: "role", to: role }),
-  )
+  const roleTargets = canManage
+    ? (["admin", "member"] as const).filter((role) => role !== member.role && allowed({ kind: "role", to: role }))
+    : []
   const canRemove = allowed({ kind: "remove" })
 
   const changeRole = (role: "admin" | "member") =>
@@ -258,7 +274,7 @@ function MemberRow({
         <Badge dot={false}>{roleLabel(member.role)}</Badge>
       </TD>
       <TD className="whitespace-nowrap text-muted-foreground max-sm:hidden">{f.date(member.joinedAt)}</TD>
-      {canManage ? (
+      {canManage || member.isYou ? (
         <TD className="text-right">
           {roleTargets.length > 0 || canRemove ? (
             <Dropdown modal={false}>
@@ -290,7 +306,9 @@ function MemberRow({
             </Dropdown>
           ) : null}
         </TD>
-      ) : null}
+      ) : (
+        <TD />
+      )}
     </TR>
   )
 }
@@ -315,7 +333,7 @@ function InviteMenu({
       <DropdownContent align="end">
         <DropdownItem onSelect={() => onOpen("resend", trigger.current)}>
           <MailPlus aria-hidden="true" />
-          {t("resend")}
+          {invite.expired ? t("renew") : t("resend")}
         </DropdownItem>
         <DropdownSeparator />
         <DropdownItem className={DANGER_ITEM} onSelect={() => onOpen("revoke", trigger.current)}>
@@ -469,7 +487,7 @@ function ResendInviteForm({
       </DialogHeader>
       <DialogBody>
         <DialogDescription className="text-ui text-foreground-secondary">
-          {t("resendBody", { email: invite.email })}
+          {invite.expired ? t("renewBody", { email: invite.email }) : t("resendBody", { email: invite.email })}
         </DialogDescription>
         {state.error ? <InlineAlert tone="danger">{state.error}</InlineAlert> : null}
       </DialogBody>

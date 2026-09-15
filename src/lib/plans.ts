@@ -1,89 +1,99 @@
 /**
- * What each plan includes — the single definition used by enforcement
- * (`server/services/plans.ts`), the Settings usage panel and the pricing page,
+ * IndicaFluxo's plans — the single source of what each plan allows and what it
+ * costs. Server enforcement (`src/server/services/entitlements.ts`), the
+ * Settings "Plano e cobrança" page and the public pricing all read this module,
  * so what is sold and what is enforced cannot drift. Framework-free and pure.
  *
- * There is no self-serve checkout: a workspace starts on `starter`, a founder
- * requests `growth`, and the operator changes `workspaces.plan`.
+ * Read docs/PLANS.md before changing anything here.
+ *
+ * Price here is what the product displays. What Stripe charges is the Price
+ * behind `STRIPE_LAUNCH_PRICE_ID` / `STRIPE_GROWTH_PRICE_ID`; keep them equal.
  */
-export const PLAN_KEYS = ["starter", "growth"] as const
-export type PlanKey = (typeof PLAN_KEYS)[number]
 
-export type PlanResource = "programs" | "affiliates" | "members"
-export type PlanFeature = "customRates" | "teamInvites" | "auditLog"
+export const PLAN_CODES = ["sandbox", "launch", "growth", "scale"] as const
+export type PlanCode = (typeof PLAN_CODES)[number]
 
-interface PlanDefinition {
-  /** `null` = unlimited. Members counts people in the workspace plus pending invites. */
-  limits: Record<PlanResource, number | null>
+/** Countable resources. `null` = unlimited, never a large sentinel number. */
+export const PLAN_LIMITS = ["livePrograms", "testPrograms", "affiliates", "members"] as const
+export type PlanLimit = (typeof PLAN_LIMITS)[number]
+
+/** On/off capabilities. */
+export const PLAN_FEATURES = ["liveMode", "customAffiliateRates", "auditLog"] as const
+export type PlanFeature = (typeof PLAN_FEATURES)[number]
+
+export interface PlanCapabilities {
+  limits: Record<PlanLimit, number | null>
   features: Record<PlanFeature, boolean>
 }
 
-export const PLANS: Record<PlanKey, PlanDefinition> = {
-  starter: {
-    limits: { programs: 1, affiliates: 10, members: 1 },
-    features: { customRates: false, teamInvites: false, auditLog: false },
+export const PLAN_CAPABILITIES: Record<PlanCode, PlanCapabilities> = {
+  // Prove the integration works before paying: test data only.
+  sandbox: {
+    limits: { livePrograms: 0, testPrograms: 1, affiliates: 10, members: 1 },
+    features: { liveMode: false, customAffiliateRates: false, auditLog: false },
   },
+  // The whole core, in production, for one program.
+  launch: {
+    limits: { livePrograms: 1, testPrograms: 1, affiliates: 100, members: 2 },
+    features: { liveMode: true, customAffiliateRates: false, auditLog: false },
+  },
+  // Scale, team and control on top of the same core.
   growth: {
-    limits: { programs: null, affiliates: null, members: 10 },
-    features: { customRates: true, teamInvites: true, auditLog: true },
+    limits: { livePrograms: null, testPrograms: null, affiliates: null, members: 10 },
+    features: { liveMode: true, customAffiliateRates: true, auditLog: true },
+  },
+  // Accepted by the model, not sold: nothing exclusive exists yet (docs/PLANS.md).
+  scale: {
+    limits: { livePrograms: null, testPrograms: null, affiliates: null, members: 10 },
+    features: { liveMode: true, customAffiliateRates: true, auditLog: true },
   },
 }
 
-export function planLimit(plan: PlanKey, resource: PlanResource): number | null {
-  return PLANS[plan].limits[resource]
+export interface PlanOffer {
+  /** Shown on the pricing page and in Settings. */
+  public: boolean
+  /** Can be bought through checkout. */
+  purchasable: boolean
+  /** Monthly price in minor units of `currency`; `0` for free, `null` when not priced. */
+  priceMonthlyMinor: number | null
+  currency: "BRL"
+  recommended: boolean
 }
 
-/** Whether `adding` more of `resource` fits, given what already exists. */
-export function fitsPlan(plan: PlanKey, resource: PlanResource, current: number, adding = 1): boolean {
-  const limit = planLimit(plan, resource)
+export const PLAN_OFFERS: Record<PlanCode, PlanOffer> = {
+  sandbox: { public: true, purchasable: false, priceMonthlyMinor: 0, currency: "BRL", recommended: false },
+  launch: { public: true, purchasable: true, priceMonthlyMinor: 9900, currency: "BRL", recommended: false },
+  growth: { public: true, purchasable: true, priceMonthlyMinor: 19700, currency: "BRL", recommended: true },
+  scale: { public: false, purchasable: false, priceMonthlyMinor: null, currency: "BRL", recommended: false },
+}
+
+/** Plans a founder can pay for, cheapest first. */
+export const PURCHASABLE_PLANS = PLAN_CODES.filter((code) => PLAN_OFFERS[code].purchasable)
+
+export function planLimit(plan: PlanCode, limit: PlanLimit): number | null {
+  return PLAN_CAPABILITIES[plan].limits[limit]
+}
+
+/** Whether `adding` more fits, given what already exists. */
+export function fitsLimit(limit: number | null, current: number, adding = 1): boolean {
   return limit === null || current + adding <= limit
 }
 
-export function hasPlanFeature(plan: PlanKey, feature: PlanFeature): boolean {
-  return PLANS[plan].features[feature]
+export function planHasFeature(plan: PlanCode, feature: PlanFeature): boolean {
+  return PLAN_CAPABILITIES[plan].features[feature]
 }
 
-/** The cheapest plan that includes a feature — what an upgrade prompt offers. */
-export function planWithFeature(feature: PlanFeature): PlanKey {
-  return PLAN_KEYS.find((key) => PLANS[key].features[feature]) ?? "growth"
+/** The cheapest purchasable plan that includes `feature` — what an upgrade prompt offers. */
+export function cheapestPlanWithFeature(feature: PlanFeature): PlanCode | null {
+  return PURCHASABLE_PLANS.find((code) => planHasFeature(code, feature)) ?? null
 }
 
-export const PLAN_RESOURCES = ["programs", "affiliates", "members"] as const satisfies readonly PlanResource[]
-export const PLAN_FEATURES = ["customRates", "teamInvites", "auditLog"] as const satisfies readonly PlanFeature[]
-
-/**
- * One line of "what this plan includes", in display order: every limit (with
- * `null` for unlimited), then every gated feature with whether it is in. The
- * pricing page and the Settings panel both render this, so a line can only say
- * what `PLANS` enforces.
- */
-export type PlanLine =
-  | { kind: "limit"; resource: PlanResource; limit: number | null }
-  | { kind: "feature"; feature: PlanFeature; included: boolean }
-
-export function planLines(plan: PlanKey): PlanLine[] {
-  return [
-    ...PLAN_RESOURCES.map((resource) => ({ kind: "limit" as const, resource, limit: planLimit(plan, resource) })),
-    ...PLAN_FEATURES.map((feature) => ({
-      kind: "feature" as const,
-      feature,
-      included: hasPlanFeature(plan, feature),
-    })),
-  ]
+/** The cheapest purchasable plan whose `limit` fits `needed` items. */
+export function cheapestPlanForLimit(limit: PlanLimit, needed: number): PlanCode | null {
+  return PURCHASABLE_PLANS.find((code) => fitsLimit(planLimit(code, limit), 0, needed)) ?? null
 }
 
-/** The next plan up, or `null` on the highest one. */
-export function nextPlan(plan: PlanKey): PlanKey | null {
-  return PLAN_KEYS[PLAN_KEYS.indexOf(plan) + 1] ?? null
-}
-
-/** The lines of `to` that are better than on `from` — what an upgrade adds. */
-export function upgradeLines(from: PlanKey, to: PlanKey): PlanLine[] {
-  const current = planLines(from)
-  return planLines(to).filter((line, index) => {
-    const before = current[index]
-    if (line.kind === "limit" && before?.kind === "limit") return line.limit !== before.limit
-    if (line.kind === "feature" && before?.kind === "feature") return line.included && !before.included
-    return true
-  })
+/** Rank for comparisons: a higher rank includes at least everything below it. */
+export function planRank(plan: PlanCode): number {
+  return PLAN_CODES.indexOf(plan)
 }

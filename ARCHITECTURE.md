@@ -37,7 +37,7 @@ Allowed to import downward. **Never upward.** Concretely:
 | --- | --- |
 | `repositories` importing from `features` or `app` | inverts the graph |
 | a React component importing `drizzle-orm` or `server/db` | leaks SQL into render |
-| `import Stripe` anywhere outside `lib/billing/stripe/` | locks us to one provider |
+| `import Stripe` anywhere outside `lib/billing/stripe/` and `lib/platform-billing/stripe/` | locks us to one provider |
 | a Route Handler containing calculation logic | untestable, unreusable |
 | `server/domain/*` importing anything with I/O | kills pure unit tests |
 
@@ -93,7 +93,10 @@ RLS is bypassed in exactly two mechanisms, and they are not the same thing:
    `server/services/tracking.ts` (anonymous click writes), `app/api/webhooks/stripe`
    and `app/api/webhooks/stripe/[integrationId]` (provider-authenticated reads
    and writes: the integration's encrypted signing secret, `webhook_events`,
-   the ledger), and `server/db/seed` (development only).
+   the ledger), `app/api/platform-billing/stripe/webhook` via
+   `server/services/platform-billing.ts` (Stripe-authenticated writes to
+   `workspace_subscriptions`, which `indica_app` can only read), and
+   `server/db/seed` (development only).
    Everything else goes through `withUser()` / `withAnon()`, which downgrade to
    the `authenticated` / `anon` role so Postgres policies stay the boundary.
 2. **The Supabase admin client** (`SUPABASE_SECRET_KEY`, `lib/supabase/admin.ts`).
@@ -121,16 +124,23 @@ prevents one workspace from probing another's affiliate list by e-mail.
 visitor → cliente.com/?ref=wendel
             │  tracker.js (no React, no framework)
             ▼
-       POST /api/track   { publicKey, ref, url, referrer, utm* }
-            │  Zod parse · public-key lookup · origin check · rate limit
+       POST /api/track   { publicKey, ref, visitorId, url, referrer, utm* }
+            │  Zod parse · public-key lookup (not revoked) · rate limit per IP
             ▼
        TrackingService.recordClick()
-            │  resolve program_affiliate by (program, code)
+            │  key environment → only programs of that environment
+            │  live program without live mode → nothing recorded (204)
+            │  resolve program_affiliate by code (unique per workspace)
             │  insert referral_clicks
-            │  upsert attribution  ← domain/attribution (pure)
+            │  lock + upsert attribution  ← domain/attribution (pure)
+            │  (an attribution already bound to a customer keeps its affiliate)
             ▼
-       Set-Cookie _referral_id (first-party, HttpOnly=false, SameSite=Lax, 1y)
+       204
 ```
+
+The visitor id and the `_referral_id` cookie (365 days, `SameSite=Lax`) are
+written by the tracker itself, on the customer's domain — a first-party cookie.
+The API sets no cookie.
 
 The tracker is plain TypeScript compiled to a standalone script served from
 `/t.js`. It knows nothing about React. `/api/track` contains no business logic,
@@ -143,7 +153,7 @@ A click alone proves nothing. The SaaS customer's **server** calls:
 
 ```
 POST /api/identify
-Authorization: Bearer sk_live_…
+Authorization: Bearer sk_live_…   (or sk_test_… for test programs)
 { visitorId, externalId, providerCustomerId?, email? }
 ```
 
@@ -156,13 +166,21 @@ Authorization: Bearer sk_live_…
 Trusting a `customerId` posted from a browser would let anyone reassign
 commissions. That is why identify is server-to-server, full stop.
 
+The key's environment decides everything identify touches: customers are
+separate per environment, only attributions of programs in that environment are
+bound, and a live key on a workspace without live mode answers
+`402 LIVE_MODE_REQUIRED` (docs/PLANS.md §2). Re-identifying never clears a stored
+provider customer id or e-mail hash.
+
 ### 3.3 Billing webhook → commission
 
 ```
 Stripe → POST /api/webhooks/stripe/<integrationId>     (one endpoint per workspace)
-   │  0. load the integration (service connection), decrypt its whsec_… secret
-   │  1. read raw body, verify the signature with THAT secret (lib/billing/stripe/webhook.ts)
-   │  2. claim (provider, provider_event_id) in webhook_events  ← idempotency gate
+   │  0. load the integration (service connection), decrypt its secrets (test and live)
+   │  1. read raw body, verify the signature; event.livemode must match the secret that verified it
+   │  1b. live event and no live mode → 200 "ignored", NOT claimed (re-sendable later)
+   │  2. claim (scope customer_billing, provider, provider_event_id) in webhook_events
+   │       ← idempotency gate; a previously FAILED event is re-claimed on Stripe's retry
    │       workspace_id = the integration's workspace — never event.account
    │  3. adapter.normalizeEvent() → NormalizedBillingEvent
    │  4. handleBillingEvent(workspaceId, event)
@@ -176,9 +194,10 @@ Stripe → POST /api/webhooks/stripe/<integrationId>     (one endpoint per works
    ▼  200 OK
 ```
 
-Each workspace adds its own endpoint in its own Stripe dashboard, so each
-endpoint has its own signing secret. The founder pastes it in Integrations; it
-is stored AES-256-GCM encrypted in `integrations.encrypted_credentials`
+Each workspace adds its own endpoints in its own Stripe dashboard — one in test
+mode, one in live mode — so each has its own signing secret. The founder pastes
+them in Integrations; they are
+stored AES-256-GCM encrypted in `integrations.encrypted_credentials`
 (`lib/crypto/secrets.ts`) and never shown again. An unknown integration or one
 without a secret answers `404`; a bad signature `400 invalid_signature` (and
 the time of the rejection is noted on the integration, so Integrations can say
@@ -189,10 +208,25 @@ the time of the rejection is noted on the integration, so Integrations can say
 Stripe Connect and for `stripe listen` in development. Both routes share
 `ingestVerifiedWebhook` from step 2 on.
 
-Step 2 is an `INSERT … ON CONFLICT DO NOTHING RETURNING id`. If nothing comes
-back, the event was already claimed and we return `200` immediately. Combined
-with `UNIQUE (workspace_id, provider, provider_transaction_id)` on transactions,
-a duplicate delivery can never produce a second commission.
+Step 2 is `claimWebhookEvent` (`server/repositories/webhook-events.ts`): an
+insert that conflicts on `(scope, provider, provider_event_id)` and re-claims the
+row only when its status is `failed`. A duplicate of a received/processed event
+returns `200` immediately; a failed one is processed again when Stripe retries.
+A refund that arrives before its payment fails on purpose (500) so the retry
+finds the payment. Combined with `UNIQUE (workspace_id, provider,
+provider_transaction_id)` on transactions, a duplicate delivery can never
+produce a second commission.
+
+One payment, several ids: a subscription invoice paid by a PaymentIntent can
+arrive as `invoice.paid`, `payment_intent.succeeded` and `invoice_payment.paid`,
+in any order. Each event takes an advisory lock on every id it knows, and
+`transaction_references` points them at one transaction; if two transactions
+were recorded before the link arrived, the later one is reversed in full with a
+`dup_<id>` adjustment, so the net is always one commission.
+
+Customers, transactions and attribution lookups stay inside the event's
+environment (`livemode`); renewals keep crediting the affiliate who converted
+the customer.
 
 Steps 3–5 run inside one database transaction.
 
@@ -206,11 +240,22 @@ reads the latest event through `public.latest_webhook_event()` under
 
 ### 3.4 Payout
 
-Payouts move no money. `PayoutService.createBatch()` snapshots the selected
-`available`/`approved` commissions into `payout_items`, locks them by flipping
-their status, and `markPaid()` stamps `paid_at` on both the batch and the
-commissions, writing an audit log entry. Reversing a paid batch is a new,
-explicit operation — never a delete.
+Payouts move no money. A batch belongs to one environment (a test batch pays
+test commissions and nothing real is owed). `createPayoutBatch()` snapshots the
+selected `available` commissions into `payout_items` and locks them by flipping
+their status to `approved`. `markBatchPaid()` and `cancelPayoutBatch()` lock the
+batch row, then its commissions:
+
+- a commission reversed by a refund while its batch was open **stays
+  `reversed` and is never paid**; each item's amount and the batch total are
+  recomputed from what is still owed, an item with nothing left is cancelled,
+  and the difference goes into the audit entry. A batch whose commissions were
+  all reversed cannot be marked paid;
+- cancelling returns only `approved` commissions to `available` — never a
+  reversed one.
+
+Reversing a paid batch is a new, explicit operation — never a delete (the app
+role has no `DELETE` on batches or items, migration 0009).
 
 ---
 
@@ -247,6 +292,33 @@ AES-256-GCM encrypted with `ENCRYPTION_KEY` in `integrations.encrypted_credentia
 as `{ webhookSecret }`, dropped on disconnect, and never returned to the browser.
 Stripe Connect OAuth (`buildConnectUrl` / `exchangeConnectCode`) exists in the
 adapter but is not wired to the UI.
+
+### Platform billing
+
+IndicaFluxo charging workspaces for Launch/Growth is a second, separate Stripe
+responsibility — see the table in `docs/PLANS.md` §5. It never shares code,
+keys or tables with the founders' billing above.
+
+```
+Settings → startCheckoutAction / openBillingPortalAction   (features/billing/actions.ts)
+   │  services/platform-billing.ts: requireMembership(admin) under withUser()
+   │  PlatformBillingGateway (lib/platform-billing/stripe/gateway.ts) → Checkout / Billing Portal
+   ▼  redirect to Stripe; the redirect back is not trusted
+
+Stripe (IndicaFluxo's account) → POST /api/platform-billing/stripe/webhook
+   │  1. verify with PLATFORM_STRIPE_WEBHOOK_SECRET, interpret (lib/platform-billing/stripe/normalize.ts)
+   │  2. claimWebhookEvent(scope platform_billing)      ← a FAILED event is claimable again
+   │  3. fetch the subscription from Stripe when the event only names it
+   │  4. upsert workspace_subscriptions by workspace (service connection),
+   │     never with an event older than provider_event_at
+   ▼  200, or 500 so Stripe retries
+```
+
+`lib/platform-billing/stripe/` holds everything Stripe-shaped (client over
+`PLATFORM_STRIPE_SECRET_KEY`, price ↔ plan mapping from `STRIPE_LAUNCH_PRICE_ID`
+/ `STRIPE_GROWTH_PRICE_ID`, verification, a pure normaliser). The service sees
+only `PlatformBillingEvent` and `PlatformBillingGateway`, which tests replace.
+What a subscription row allows is `server/domain/entitlements.ts`.
 
 ---
 

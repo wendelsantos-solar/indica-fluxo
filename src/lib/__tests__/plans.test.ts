@@ -1,80 +1,90 @@
 import { describe, expect, it } from "vitest"
 
-import { marketingPlanLines, MARKETING_PLANS, PRICE_MINOR } from "@/app/[locale]/(marketing)/_lib/plans"
-
 import {
-  fitsPlan,
-  hasPlanFeature,
-  nextPlan,
-  PLAN_KEYS,
-  PLANS,
+  cheapestPlanForLimit,
+  cheapestPlanWithFeature,
+  fitsLimit,
+  PLAN_CAPABILITIES,
+  PLAN_CODES,
+  PLAN_OFFERS,
+  planHasFeature,
   planLimit,
-  planLines,
-  planWithFeature,
-  upgradeLines,
+  PURCHASABLE_PLANS,
 } from "../plans"
 
-describe("plans", () => {
-  it("caps starter at one program and ten affiliates", () => {
-    expect(fitsPlan("starter", "programs", 0)).toBe(true)
-    expect(fitsPlan("starter", "programs", 1)).toBe(false)
-    expect(fitsPlan("starter", "affiliates", 9)).toBe(true)
-    expect(fitsPlan("starter", "affiliates", 10)).toBe(false)
-    expect(fitsPlan("starter", "members", 1)).toBe(false)
+describe("plan capabilities", () => {
+  it("sandbox is test-only and free", () => {
+    expect(planHasFeature("sandbox", "liveMode")).toBe(false)
+    expect(planLimit("sandbox", "livePrograms")).toBe(0)
+    expect(planLimit("sandbox", "testPrograms")).toBe(1)
+    expect(PLAN_OFFERS.sandbox.priceMonthlyMinor).toBe(0)
+    expect(PLAN_OFFERS.sandbox.purchasable).toBe(false)
   })
 
-  it("lifts program and affiliate limits on growth", () => {
-    expect(planLimit("growth", "programs")).toBeNull()
-    expect(fitsPlan("growth", "affiliates", 10_000)).toBe(true)
-    expect(fitsPlan("growth", "members", 9)).toBe(true)
-    expect(fitsPlan("growth", "members", 10)).toBe(false)
+  it("launch carries the core in production: 1 live program, 100 affiliates, 2 members", () => {
+    expect(planHasFeature("launch", "liveMode")).toBe(true)
+    expect(planLimit("launch", "livePrograms")).toBe(1)
+    expect(planLimit("launch", "affiliates")).toBe(100)
+    expect(planLimit("launch", "members")).toBe(2)
+    expect(planHasFeature("launch", "customAffiliateRates")).toBe(false)
+    expect(planHasFeature("launch", "auditLog")).toBe(false)
+    expect(PLAN_OFFERS.launch.priceMonthlyMinor).toBe(9900)
   })
 
-  it("gates growth features", () => {
-    expect(hasPlanFeature("starter", "customRates")).toBe(false)
-    expect(hasPlanFeature("growth", "auditLog")).toBe(true)
-    expect(planWithFeature("teamInvites")).toBe("growth")
+  it("growth adds scale and control: unlimited programs and affiliates, 10 members, custom rates, audit log", () => {
+    expect(planLimit("growth", "livePrograms")).toBeNull()
+    expect(planLimit("growth", "affiliates")).toBeNull()
+    expect(planLimit("growth", "members")).toBe(10)
+    expect(planHasFeature("growth", "customAffiliateRates")).toBe(true)
+    expect(planHasFeature("growth", "auditLog")).toBe(true)
+    expect(PLAN_OFFERS.growth.priceMonthlyMinor).toBe(19700)
+    expect(PLAN_OFFERS.growth.recommended).toBe(true)
   })
 
-  it("orders plans for the upgrade path", () => {
-    expect(nextPlan("starter")).toBe("growth")
-    expect(nextPlan("growth")).toBeNull()
+  it("scale is modelled but not public or purchasable", () => {
+    expect(PLAN_CODES).toContain("scale")
+    expect(PLAN_OFFERS.scale.public).toBe(false)
+    expect(PURCHASABLE_PLANS).toEqual(["launch", "growth"])
   })
 
-  it("lists only what an upgrade actually adds", () => {
-    const added = upgradeLines("starter", "growth")
-    expect(added).toContainEqual({ kind: "limit", resource: "programs", limit: null })
-    expect(added).toContainEqual({ kind: "feature", feature: "auditLog", included: true })
-    expect(added.every((line) => line.kind !== "feature" || line.included)).toBe(true)
+  it("never uses a sentinel for unlimited", () => {
+    for (const code of PLAN_CODES) {
+      for (const value of Object.values(PLAN_CAPABILITIES[code].limits)) {
+        expect(value === null || value < 1000).toBe(true)
+      }
+    }
+  })
+
+  it("each higher plan includes at least what the lower one does", () => {
+    const order = ["sandbox", "launch", "growth"] as const
+    for (let i = 1; i < order.length; i++) {
+      const lower = PLAN_CAPABILITIES[order[i - 1]!]
+      const higher = PLAN_CAPABILITIES[order[i]!]
+      for (const [limit, max] of Object.entries(lower.limits)) {
+        const next = higher.limits[limit as keyof typeof lower.limits]
+        expect(next === null || (max !== null && next >= max)).toBe(true)
+      }
+      for (const [feature, on] of Object.entries(lower.features)) {
+        if (on) expect(higher.features[feature as keyof typeof lower.features]).toBe(true)
+      }
+    }
   })
 })
 
-describe("marketing plan lines", () => {
-  it("prices exactly the plans that exist", () => {
-    expect(MARKETING_PLANS.map((plan) => plan.key)).toEqual([...PLAN_KEYS])
-    for (const prices of Object.values(PRICE_MINOR)) {
-      expect(Object.keys(prices).sort()).toEqual([...PLAN_KEYS].sort())
-      expect(prices.starter).toBe(0)
-    }
+describe("limit helpers", () => {
+  it("fitsLimit treats null as unlimited", () => {
+    expect(fitsLimit(null, 10_000)).toBe(true)
+    expect(fitsLimit(1, 0)).toBe(true)
+    expect(fitsLimit(1, 1)).toBe(false)
+    expect(fitsLimit(100, 99)).toBe(true)
+    expect(fitsLimit(100, 100)).toBe(false)
   })
 
-  it.each(PLAN_KEYS)("derives every limit and feature of %s from PLANS", (key) => {
-    const lines = marketingPlanLines(key)
-    expect(lines.slice(0, planLines(key).length)).toEqual(planLines(key))
-
-    for (const [resource, limit] of Object.entries(PLANS[key].limits)) {
-      expect(lines).toContainEqual({ kind: "limit", resource, limit })
-    }
-    for (const [feature, included] of Object.entries(PLANS[key].features)) {
-      expect(lines).toContainEqual({ kind: "feature", feature, included })
-    }
-    // Everything else is an ungated base item, never a hand-typed plan perk.
-    expect(lines.filter((line) => line.kind !== "limit" && line.kind !== "feature").every((line) => line.kind === "base")).toBe(true)
-  })
-
-  it("changes with the table, not with copy", () => {
-    const starter = marketingPlanLines("starter")
-    expect(starter).toContainEqual({ kind: "limit", resource: "affiliates", limit: PLANS.starter.limits.affiliates })
-    expect(starter).toContainEqual({ kind: "feature", feature: "customRates", included: false })
+  it("points upgrades at the cheapest plan that fits", () => {
+    expect(cheapestPlanForLimit("livePrograms", 2)).toBe("growth")
+    expect(cheapestPlanForLimit("livePrograms", 1)).toBe("launch")
+    expect(cheapestPlanForLimit("members", 11)).toBeNull()
+    expect(cheapestPlanWithFeature("customAffiliateRates")).toBe("growth")
+    expect(cheapestPlanWithFeature("liveMode")).toBe("launch")
   })
 })

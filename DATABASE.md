@@ -235,8 +235,11 @@ attributions       (program_id, visitor_id) UNIQUE
                    (customer_external_id)  WHERE NOT NULL
 transactions       (workspace_id, occurred_at DESC), (subscription_id)
 commissions        (workspace_id, status, eligible_at)
+                   (workspace_id, created_at DESC, id)          -- list order (0014)
                    (program_affiliate_id, status)
                    (transaction_id)
+                   (reversal_of_commission_id) WHERE NOT NULL   -- refund ingest (0014)
+customers          (workspace_id, environment, email_hash) WHERE NOT NULL  -- payment fallback (0014)
 payout_items       (payout_batch_id), (program_affiliate_id)
 webhook_events     (status, received_at DESC), (workspace_id, received_at DESC)
 transaction_references (workspace_id, provider, reference_id) UNIQUE
@@ -251,14 +254,42 @@ partitioning once volume justifies it — not before.
 
 ## 6. Row Level Security
 
-RLS is `ENABLE`d **and** `FORCE`d on every tenant table. Three
-`SECURITY DEFINER` helpers keep policies short and index-friendly:
+> Since migration 0009 the privileges this section attributes to `authenticated`
+> belong to `indica_app` (a member of `authenticated`, so the policies below apply
+> unchanged); `authenticated` itself holds none. See §8, "The application role".
+
+RLS is `ENABLE`d **and** `FORCE`d on every tenant table. `SECURITY DEFINER`
+helpers keep policies short:
 
 ```sql
 public.is_workspace_member(ws uuid) returns boolean
 public.has_workspace_role(ws uuid, roles text[]) returns boolean
 public.current_affiliate_ids() returns setof uuid
 ```
+
+**Policies on hot tables use the set form (migration 0013).** A helper that
+takes a row value (`is_workspace_member(workspace_id)`) cannot be inlined —
+it is SECURITY DEFINER — so it runs a lookup for every row a query scans. At
+300k clicks that made a 30-day click count 24× slower under RLS (2 352 ms vs
+96 ms). Migration 0013 rewrote the policies of the ten workspace-scoped tables
+in the matrix below, `program_affiliates`, `referral_clicks`, `attributions`
+and `commissions_affiliate_select` to test membership in a set computed once
+per statement:
+
+```sql
+public.member_workspace_ids()      returns setof uuid  -- ⇔ is_workspace_member(ws)
+public.admin_workspace_ids()       returns setof uuid  -- ⇔ has_workspace_role(ws, '{owner,admin}')
+public.member_program_ids()        returns setof uuid  -- ⇔ is_workspace_member(program_workspace(p))
+public.admin_program_ids()         returns setof uuid  -- ⇔ has_workspace_role(program_workspace(p), '{owner,admin}')
+public.current_participation_ids() returns setof uuid  -- ⇔ owns_participation(pa)
+-- used as:  USING (workspace_id IN (SELECT public.member_workspace_ids()))
+```
+
+The authorisation is unchanged: every rewritten predicate was checked against
+the old one on every row, for every user of the dev database, at synthetic
+volume (`RLS_MIGRATION=0013_rls_set_membership pnpm perf:explain`: 509 750
+row checks, 0 mismatches). **A new policy on a large table should use the set
+form**, not a per-row helper call. Details in PERFORMANCE_AUDIT.md.
 
 Policy shapes:
 
@@ -347,44 +378,63 @@ the class of defect that test would have caught.
 
 ---
 
-## 8. Plans
+## 8. Plans, billing and environments
 
-Migration `0006` makes the plans on the pricing page real. There is **no
-checkout and no automatic billing**: a workspace starts on Starter, an owner or
-admin requests Growth from Settings → Plan, the team arranges payment, and the
-operator switches the plan with the service connection (README, "Mudar o plano
-de um workspace").
+What each plan includes is **not** in the database: `src/lib/plans.ts` is the one
+table, and `docs/PLANS.md` is the contract. The database stores who is subscribed
+to what, which environment each row belongs to, and one function that counts
+usage.
+
+### Objects (migrations 0006, 0010, 0011)
 
 | Object | Shape |
 | --- | --- |
-| `workspace_plan` enum | `starter`, `growth` |
-| `workspaces.plan` | `workspace_plan NOT NULL DEFAULT 'starter'` |
-| `plan_upgrade_requests` | `workspace_id` (FK, cascade), `requested_plan`, `requested_by` (auth user id), `handled_at` (null while open), `created_at`. Index `(workspace_id, created_at DESC)`; **partial UNIQUE `(workspace_id, requested_plan) WHERE handled_at IS NULL`** — one open request per plan, so a double click cannot file two |
+| `plan_code` enum | `sandbox`, `launch`, `growth`, `scale` |
+| `platform_subscription_status` enum | `free`, `trialing`, `active`, `past_due`, `cancelled`, `incomplete` |
+| `environment` enum | `test`, `live` |
+| `webhook_scope` enum | `customer_billing`, `platform_billing` |
+| `workspace_subscriptions` | one row per workspace (UNIQUE `workspace_id`); `plan`, `status`, `provider` (`stripe`/`manual`), `provider_customer_id`, `provider_subscription_id` (partial UNIQUE with provider), `provider_price_id`, `current_period_start/end`, `cancel_at_period_end`, `trial_started_at/ends_at`, `past_due_since`, `cancelled_at`, `provider_event_at` (newest provider event applied — older events never overwrite). **No row = Sandbox.** Not `subscriptions`, which holds the founders' customers' subscriptions |
+| `environment` columns | `programs`, `api_keys`, `customers`, `transactions`, `payout_batches` (NOT NULL); `webhook_events` (nullable, from Stripe `livemode`). Uniques include it: `customers (workspace, environment, provider, provider_customer_id)`, `customers (workspace, environment, external_id)`, `payout_batches (workspace, environment, reference)` |
+| `webhook_events.scope` | UNIQUE `(scope, provider, provider_event_id)` — the same Stripe event can reach both the founder-billing and the platform-billing endpoint |
+| `workspace_invites.expires_at` | default `now() + 14 days`; expired invitations are neither claimed nor counted |
+| `plan_upgrade_requests` | manual activation requests, used only when platform billing is not configured; `requested_plan plan_code` |
+| `public.workspace_plan_usage(workspace_id)` | `SECURITY DEFINER`, member-only; returns `live_programs`, `test_programs`, `affiliates`, `members` with the counting rules of `docs/PLANS.md` §3. Executed by `indica_app` only |
 
-What each plan includes is not in the database. `src/lib/plans.ts` is the one
-table — limits (Starter: 1 program, 10 affiliates, 1 member; Growth: unlimited
-programs and affiliates, 10 members) and gated features (custom rates, team
-invites, audit log). Services enforce it with `assertWithinPlan()` /
-`assertPlanFeature()` from `server/services/plans.ts` inside their own
-transaction, right before the write; the pricing page and the Settings panel
-render the same table. "Members" counts `workspace_members` plus unaccepted
-`workspace_invites`.
+`workspaces.plan` (0006) was removed in 0011 after 0010 copied its only
+commercial state — operator-granted `growth` — into a `manual` active
+subscription. Every other workspace became Sandbox, and all existing programs,
+keys, customers, transactions and payout batches were marked `live`.
 
-### Grants and RLS
+### Access
 
-- **Column grant on `workspaces`.** `0001` granted table-wide `UPDATE` to
-  `authenticated`, and RLS has no column scope, so an owner/admin could have set
-  `plan = 'growth'` through the Supabase API. `0006` revokes `UPDATE` and grants
-  it back only on `(name, slug, logo_url, default_currency, timezone,
-  updated_at)`. `plan` is writable by the service connection alone. A new
-  user-editable column on `workspaces` must be added to that grant.
-- **`plan_upgrade_requests`** is `ENABLE`d and `FORCE`d. `authenticated` has
-  `SELECT, INSERT` only:
-  - `plan_upgrade_requests_member_select` — `is_workspace_member(workspace_id)`.
-  - `plan_upgrade_requests_admin_insert` — `requested_by = auth.uid()`,
-    `handled_at IS NULL`, and `has_workspace_role(workspace_id, owner|admin)`.
-  - No `UPDATE`/`DELETE`: marking a request handled is an operator action.
-- `audit_logs` needs nothing new: its `member_select` policy (`0001`) already
-  lets members read, and `listAuditLog()` narrows the Settings view to
-  owners/admins on a plan with `auditLog`. Filing a request writes a
-  `plan.upgrade_requested` audit row.
+- `workspace_subscriptions`: `ENABLE` + `FORCE` RLS; `indica_app` has `SELECT`
+  only (`workspace_subscriptions_member_select`). Written by the platform-billing
+  webhook on the service connection and by the operator.
+- `plan_upgrade_requests`: members read; owners/admins insert as themselves; no
+  update/delete (0006).
+- The audit log keeps recording on every plan; reading it in Settings needs the
+  `auditLog` feature.
+
+### The application role (migration 0009)
+
+The app no longer impersonates `authenticated`. `withUser()` sets role
+`indica_app`, a `NOLOGIN` role that is a **member of `authenticated`** — so every
+policy written `TO authenticated` applies, and `auth.uid()` reads the same claims
+— but that PostgREST's `authenticator` cannot assume. All table, column and
+function privileges moved from `authenticated` to `indica_app`; `authenticated`
+and `anon` hold none on `public`, and Supabase's default privileges for new
+objects were revoked. Consequences:
+
+- The Supabase Data API with a user's session can no longer read or write
+  product tables, so rules that RLS cannot express — plan limits, "an admin
+  cannot touch an owner", the append-only ledger, payout history — cannot be
+  bypassed around the services.
+- `indica_app` additionally lost `UPDATE`/`DELETE` on `audit_logs` and `DELETE`
+  on `payout_batches` and `payout_items`.
+- **Every new table needs an explicit `GRANT … TO indica_app`** (and RLS). Never
+  grant a product table to `authenticated` or `anon`.
+
+Verified on the dev database: as `authenticated`, `SELECT`/`INSERT`/`UPDATE` on
+product tables and helper functions are denied (42501); as `indica_app`, members
+read their workspace, non-members read nothing, `DELETE` on `audit_logs` is
+denied.

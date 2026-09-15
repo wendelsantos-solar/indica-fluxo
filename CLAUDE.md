@@ -9,6 +9,7 @@ Operating rules for any AI agent (or human) working in this repository.
 | Any UI, component, page, token, colour | `DESIGN.md` |
 | Any module, boundary, service, adapter | `ARCHITECTURE.md` |
 | Any table, column, index, migration, RLS policy | `DATABASE.md` |
+| Plans, billing, limits, entitlements, pricing | `docs/PLANS.md` |
 
 ## The ten rules
 
@@ -23,8 +24,12 @@ Operating rules for any AI agent (or human) working in this repository.
    below.
 5. **No business logic in React components or Route Handlers.**
    Route Handler = parse → validate (Zod) → authorize → call service → respond.
-6. **Never import `stripe` outside `src/lib/billing/stripe/`.**
-   The commission engine must only ever see a `NormalizedBillingEvent`.
+6. **Never import `stripe` outside `src/lib/billing/stripe/` and
+   `src/lib/platform-billing/stripe/`.** The first reads the founders' Stripe;
+   the commission engine must only ever see a `NormalizedBillingEvent`. The
+   second is IndicaFluxo's own billing; services only see
+   `PlatformBillingEvent` / `PlatformBillingGateway`. The two never share a
+   client or a key (docs/PLANS.md §5).
 7. **Never store money in a float.** Integer minor units only
    (`amount_minor`), plus an explicit ISO-4217 `currency`.
 8. **Webhooks must be idempotent.** Every provider event is claimed in
@@ -63,6 +68,15 @@ This project uses Supabase's current API-key model, never the legacy
 | Drizzle | `DATABASE_URL` | `withUser()` / `withAnon()`, else bypasses RLS |
 
 ## Additional standing rules
+
+- **Before changing plans, billing, limits or pricing, read `docs/PLANS.md`.**
+  Never branch on a plan code (`if (plan === "growth")`) outside
+  `src/lib/plans.ts` / `src/server/domain/entitlements.ts`; services call
+  `src/server/services/entitlements.ts`. UI gating is a convenience; the server
+  check is the rule.
+- The app connects as `indica_app` (migration 0009). A new table needs its own
+  `GRANT … TO indica_app`; never grant product tables to `authenticated` or
+  `anon` — that re-opens the Supabase Data API.
 
 - `server-only` at the top of every module that reads secrets or the DB.
 - All external input is parsed with Zod at the boundary. No `as any` casts to

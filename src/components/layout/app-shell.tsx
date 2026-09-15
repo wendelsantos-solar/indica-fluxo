@@ -131,6 +131,8 @@ export function AppShell({
   sections,
   footer,
   account,
+  environment,
+  banner,
   commands,
   search,
   focus = false,
@@ -146,6 +148,10 @@ export function AppShell({
   /** Nav items pinned to the bottom (settings). */
   footer: NavItem[]
   account: React.ReactNode
+  /** Sidebar control above the footer items: the dashboard's Live / Test switch. */
+  environment?: React.ReactNode
+  /** A strip across the top of the content panel, above every page (test mode). */
+  banner?: React.ReactNode
   /** Page-independent actions for the palette, beyond navigation. */
   commands: Command[]
   /** Record lookup for the palette. Without it the trigger says "Comandos", not "Buscar". */
@@ -301,6 +307,7 @@ export function AppShell({
       sections={sections}
       footer={footer}
       account={account}
+      environment={environment}
       pathname={pathname}
       searchable={Boolean(search)}
       onNavigate={onNavigate}
@@ -392,6 +399,7 @@ export function AppShell({
             data-slot="scrollable"
             className="relative min-h-[calc(100dvh-3rem)] bg-surface-1 pb-[env(safe-area-inset-bottom)] md:h-full md:min-h-0 md:overflow-y-auto md:rounded-panel md:border md:border-border"
           >
+            {banner}
             <div className="px-4 pb-16 md:px-6 [&>*:not([data-page-header])]:mx-auto [&>*:not([data-page-header])]:max-w-content">
               {children}
             </div>
@@ -413,6 +421,7 @@ function SidebarContent({
   sections,
   footer,
   account,
+  environment,
   pathname,
   searchable,
   onNavigate,
@@ -422,6 +431,7 @@ function SidebarContent({
   sections: NavSection[]
   footer: NavItem[]
   account: React.ReactNode
+  environment?: React.ReactNode
   pathname: string
   searchable: boolean
   onNavigate?: () => void
@@ -510,6 +520,7 @@ function SidebarContent({
             </button>
           </Tooltip>
         ) : null}
+        {environment}
         {footer.map((item) => (
           <NavLink key={item.key} item={item} pathname={pathname} onNavigate={onNavigate} />
         ))}

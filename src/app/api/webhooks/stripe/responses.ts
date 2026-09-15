@@ -8,7 +8,9 @@ export function ingestResponse(result: IngestResult): NextResponse {
     case "duplicate":
       return NextResponse.json({ received: true, duplicate: true })
     case "ignored":
-      return NextResponse.json({ received: true, ignored: true })
+      // A live event without live mode is not claimed, so it can be re-sent
+      // from the Stripe dashboard once the plan is active again.
+      return NextResponse.json({ received: true, ignored: result.reason ?? true })
     case "processed":
       return NextResponse.json({ received: true })
     case "failed":

@@ -4,7 +4,23 @@
  * the checklist-versus-dashboard gate are unit-tested rather than eyeballed.
  */
 
-export const ACTIVATION_STEPS = ["workspace", "program", "stripe", "affiliate", "tracking"] as const
+export const ACTIVATION_STEPS = [
+  "workspace",
+  "program",
+  "stripe",
+  "affiliate",
+  "testConversion",
+  "tracking",
+  "liveMode",
+] as const
+
+/**
+ * The Sandbox journey (docs/PLANS.md §2): prove a conversion in test, then
+ * activate live mode. Only part of the checklist when the caller passes the
+ * plan signal (`liveMode`), so an overview that does not read the plan keeps
+ * the original five steps.
+ */
+export const SANDBOX_STEPS = ["testConversion", "liveMode"] as const
 
 export type ActivationStepKey = (typeof ACTIVATION_STEPS)[number]
 
@@ -20,6 +36,15 @@ export interface ActivationSignals {
   hasAffiliate: boolean
   /** At least one referral click recorded, ever — proof the tracker is live. */
   hasClick: boolean
+  /** A test-program commission exists, ever (a simulated or test-mode conversion). */
+  hasTestCommission?: boolean
+  /** A live-program commission exists, ever: the pipeline is proven in production. */
+  hasLiveCommission?: boolean
+  /**
+   * The plan's `liveMode` right now (`entitlements.capabilities.features.liveMode`).
+   * `undefined` leaves the Sandbox steps out of the checklist.
+   */
+  liveMode?: boolean
 }
 
 export interface ActivationStep {
@@ -49,11 +74,19 @@ export interface ActivationHealth {
  * click) and `listAffiliates(...).total`.
  */
 export function activationSignals(input: {
-  programs: readonly { clickCount: number | string }[]
+  programs: readonly {
+    clickCount: number | string
+    /** From `listPrograms`; needed for the Sandbox steps. */
+    environment?: "test" | "live"
+    /** From `listPrograms` (non-rejected commissions per currency). */
+    commissionTotals?: readonly unknown[]
+  }[]
   health: ActivationHealth
   affiliateTotal: number
+  /** `entitlements.capabilities.features.liveMode`. Omit to leave the Sandbox steps out. */
+  liveMode?: boolean
 }): ActivationSignals {
-  return {
+  const signals: ActivationSignals = {
     hasProgram: input.programs.length > 0,
     stripeConfigured: input.health.stripe.configured,
     stripeEventReceived: input.health.stripe.lastEventAt !== null,
@@ -62,13 +95,26 @@ export function activationSignals(input: {
       input.health.tracking.lastClickAt !== null ||
       input.programs.some((program) => Number(program.clickCount) > 0),
   }
+  if (input.liveMode === undefined) return signals
+
+  const earned = (environment: "test" | "live") =>
+    input.programs.some(
+      (program) => program.environment === environment && (program.commissionTotals?.length ?? 0) > 0,
+    )
+  return {
+    ...signals,
+    hasTestCommission: earned("test"),
+    hasLiveCommission: earned("live"),
+    liveMode: input.liveMode,
+  }
 }
 
 /**
  * Order follows dependency, not importance: tracking can only be verified by a
  * click, and a click needs an affiliate's link — so "invite" comes before
  * "install tracking", or the checklist would point at a step the founder has
- * already finished but cannot yet prove.
+ * already finished but cannot yet prove. A test conversion needs an approved
+ * affiliate too; live mode comes last, once the whole path is proven in test.
  */
 export function getActivation(signals: ActivationSignals): Activation {
   const done: Record<ActivationStepKey, boolean> = {
@@ -77,10 +123,18 @@ export function getActivation(signals: ActivationSignals): Activation {
     program: signals.hasProgram,
     stripe: signals.stripeEventReceived,
     affiliate: signals.hasAffiliate,
+    // A live commission proves more than a test one: nothing left to rehearse.
+    testConversion: Boolean(signals.hasTestCommission || signals.hasLiveCommission),
     tracking: signals.hasClick,
+    liveMode: Boolean(signals.liveMode),
   }
 
-  const steps = ACTIVATION_STEPS.map((key) => ({
+  const withSandbox = signals.liveMode !== undefined
+  const keys = ACTIVATION_STEPS.filter(
+    (key) => withSandbox || !(SANDBOX_STEPS as readonly string[]).includes(key),
+  )
+
+  const steps = keys.map((key) => ({
     key,
     done: done[key],
     waiting: key === "stripe" && !done.stripe && signals.stripeConfigured,

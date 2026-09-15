@@ -8,6 +8,13 @@
 
 export type BillingProviderId = "stripe" | "paddle" | "manual"
 
+/**
+ * Test or live money, from the provider's own flag (Stripe `livemode`). A test
+ * event only ever reaches test programs, customers and transactions; a live
+ * one only live ones (docs/PLANS.md §2).
+ */
+export type BillingEnvironment = "test" | "live"
+
 export interface ProviderAccount {
   providerAccountId: string
   displayName?: string
@@ -43,6 +50,8 @@ interface BaseEvent {
   occurredAt: Date
   /** The connected account this event belongs to. */
   providerAccountId: string | null
+  /** Which ledger the event belongs to. Never inferred: it comes from the provider. */
+  environment: BillingEnvironment
 }
 
 export interface PaymentSucceededEvent extends BaseEvent {
@@ -109,6 +118,8 @@ export interface VerifiedWebhook {
   providerEventId: string
   rawType: string
   providerAccountId: string | null
+  /** From the provider's live/test flag; `null` when the provider has none. */
+  environment: BillingEnvironment | null
   /** Opaque to callers: only the owning adapter may interpret it. */
   payload: unknown
 }

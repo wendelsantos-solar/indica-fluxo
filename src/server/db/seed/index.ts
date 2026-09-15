@@ -13,6 +13,7 @@ import {
   referralClicks,
   referralLinks,
   workspaceMembers,
+  workspaceSubscriptions,
   workspaces,
 } from "@/server/db/schema"
 import { promoteEligibleCommissions } from "@/server/repositories/commissions"
@@ -30,7 +31,10 @@ import {
   DEMO_FOUNDER,
   DEMO_PASSWORD,
   DEMO_PROGRAM,
+  DEMO_SANDBOX_PROGRAM,
+  DEMO_SANDBOX_WORKSPACE,
   DEMO_STRIPE_ACCOUNT,
+  DEMO_TEST_PROGRAM,
   DEMO_WORKSPACE,
   SEED_LOCALE,
   HISTORY_DAYS,
@@ -83,16 +87,24 @@ async function createWorkspace(): Promise<Seeded> {
       slug: DEMO_WORKSPACE.slug,
       defaultCurrency: DEMO_WORKSPACE.currency,
       timezone: DEMO_WORKSPACE.timezone,
-      // Growth, explicitly: the demo gives Agency Labs a negotiated rate and
-      // shows the audit log, both Growth features. On Starter the demo data
-      // itself would break the rules enforced for real workspaces.
-      plan: DEMO_WORKSPACE.plan,
     })
     .returning({ id: workspaces.id })
 
   const workspaceId = workspace!.id
 
   await db.insert(workspaceMembers).values({ workspaceId, userId: founderUserId, role: "owner" })
+
+  // Growth, as an operator grant (`manual`): subscriptions are written only by
+  // the platform-billing webhook or the operator, on the service connection —
+  // the app role can only read them (migration 0010). Inserted before any
+  // program, so live processing below runs with live mode.
+  await db.insert(workspaceSubscriptions).values({
+    workspaceId,
+    plan: DEMO_WORKSPACE.plan,
+    status: "active",
+    provider: "manual",
+    currentPeriodStart: daysAgo(HISTORY_DAYS + 5),
+  })
 
   const [program] = await db
     .insert(programs)
@@ -102,6 +114,9 @@ async function createWorkspace(): Promise<Seeded> {
     .returning({ id: programs.id })
 
   const programId = program!.id
+
+  // A test program beside the live one: where a new rule is tried first.
+  await db.insert(programs).values({ workspaceId, ...DEMO_TEST_PROGRAM, websiteUrl: APP_URL })
 
   // A connected billing account, so the integrations page is not an empty state
   // and `workspaceForProviderAccount` can route demo events.
@@ -266,6 +281,7 @@ async function seedConvertingTraffic(seeded: Seeded, conversions: Conversion[]):
   for (const conversion of conversions) {
     await recordClick({
       workspaceId: seeded.workspaceId,
+      environment: DEMO_PROGRAM.environment,
       code: conversion.code,
       visitorId: conversion.visitorId,
       landingUrl: `${APP_URL}/?ref=${conversion.code}`,
@@ -283,6 +299,7 @@ async function seedConvertingTraffic(seeded: Seeded, conversions: Conversion[]):
     if (random() > 0.6 && conversion.clickDay > conversion.signupDay) {
       await recordClick({
         workspaceId: seeded.workspaceId,
+        environment: DEMO_PROGRAM.environment,
         code: conversion.code,
         visitorId: conversion.visitorId,
         landingUrl: `${APP_URL}/pricing?ref=${conversion.code}`,
@@ -294,6 +311,7 @@ async function seedConvertingTraffic(seeded: Seeded, conversions: Conversion[]):
     // Server-side identify: binds the anonymous visitor to a known customer.
     await identifyCustomer({
       workspaceId: seeded.workspaceId,
+      environment: DEMO_PROGRAM.environment,
       visitorId: conversion.visitorId,
       externalId: conversion.externalId,
       providerCustomerId: conversion.providerCustomerId,
@@ -314,6 +332,7 @@ function subscriptionEvent(
     providerEventId: `evt_demo_sub_${conversion.code}_${conversion.index}_${status}`,
     rawType: "customer.subscription.updated",
     occurredAt: at,
+    environment: DEMO_PROGRAM.environment,
     providerAccountId: DEMO_STRIPE_ACCOUNT,
     customerEmail: `${conversion.externalId}@example.com`,
     subscription: {
@@ -366,6 +385,7 @@ async function seedBilling(seeded: Seeded, conversions: Conversion[]): Promise<n
           providerEventId: `evt_demo_pay_${conversion.code}_${conversion.index}_${cycle}`,
           rawType: "invoice.payment_succeeded",
           occurredAt,
+          environment: DEMO_PROGRAM.environment,
           providerAccountId: DEMO_STRIPE_ACCOUNT,
           providerTransactionId: chargeId,
           providerReferences: [],
@@ -391,6 +411,7 @@ async function seedBilling(seeded: Seeded, conversions: Conversion[]): Promise<n
             providerEventId: `evt_demo_refund_${conversion.code}_${conversion.index}_${cycle}`,
             rawType: "refund.created",
             occurredAt: refundedAt,
+            environment: DEMO_PROGRAM.environment,
             providerAccountId: DEMO_STRIPE_ACCOUNT,
             providerTransactionId: `re_demo_${conversion.code}_${conversion.index}_${cycle}`,
             paymentReferences: [chargeId],
@@ -412,6 +433,7 @@ async function seedBilling(seeded: Seeded, conversions: Conversion[]): Promise<n
         providerEventId: `evt_demo_cancel_${conversion.code}_${conversion.index}`,
         rawType: "customer.subscription.deleted",
         occurredAt: cancelledAt,
+        environment: DEMO_PROGRAM.environment,
         providerAccountId: DEMO_STRIPE_ACCOUNT,
         providerSubscriptionId: conversion.providerSubscriptionId,
         providerCustomerId: conversion.providerCustomerId,
@@ -439,6 +461,7 @@ async function seedPayout(seeded: Seeded): Promise<string | null> {
 
   try {
     const batch = await createPayoutBatch(seeded.founderUserId, seeded.workspaceId, {
+      environment: DEMO_PROGRAM.environment,
       currency: DEMO_PROGRAM.currency,
       participationIds,
       periodStart: daysAgo(60),
@@ -462,6 +485,28 @@ async function seedPayout(seeded: Seeded): Promise<string | null> {
   }
 }
 
+/**
+ * A second workspace of the same founder, left on Sandbox — no subscription
+ * row — with its one test program and test keys: what a new sign-up sees.
+ */
+async function createSandboxWorkspace(founderUserId: string) {
+  const [workspace] = await db
+    .insert(workspaces)
+    .values({
+      name: DEMO_SANDBOX_WORKSPACE.name,
+      slug: DEMO_SANDBOX_WORKSPACE.slug,
+      defaultCurrency: DEMO_SANDBOX_WORKSPACE.currency,
+      timezone: DEMO_SANDBOX_WORKSPACE.timezone,
+    })
+    .returning({ id: workspaces.id })
+  const workspaceId = workspace!.id
+
+  await db.insert(workspaceMembers).values({ workspaceId, userId: founderUserId, role: "owner" })
+  await db.insert(programs).values({ workspaceId, ...DEMO_SANDBOX_PROGRAM, websiteUrl: APP_URL })
+  const keys = await createApiKeyPair(db, workspaceId, founderUserId, "test")
+  return { workspaceId, keys }
+}
+
 async function main() {
   assertNotProduction("pnpm db:seed")
 
@@ -471,7 +516,10 @@ async function main() {
   const seeded = await createWorkspace()
   console.log(`  workspace  ${DEMO_WORKSPACE.name} (/${DEMO_WORKSPACE.slug})`)
 
-  const keys = await createApiKeyPair(db, seeded.workspaceId, seeded.founderUserId)
+  const keys = [
+    ...(await createApiKeyPair(db, seeded.workspaceId, seeded.founderUserId, "live")),
+    ...(await createApiKeyPair(db, seeded.workspaceId, seeded.founderUserId, "test")),
+  ]
 
   const noise = await seedNoiseClicks(seeded)
   const conversions = planConversions(seeded)
@@ -484,6 +532,9 @@ async function main() {
   const payout = await seedPayout(seeded)
   if (payout) console.log(`  payout     ${payout}`)
 
+  const sandbox = await createSandboxWorkspace(seeded.founderUserId)
+  console.log(`  workspace  ${DEMO_SANDBOX_WORKSPACE.name} (/${DEMO_SANDBOX_WORKSPACE.slug}) — Sandbox, test only`)
+
   console.log("\nDone. Sign in at /login with:\n")
   console.log(`  founder    ${DEMO_FOUNDER.email}`)
   for (const affiliate of DEMO_AFFILIATES.filter((a) => a.withLogin)) {
@@ -493,7 +544,10 @@ async function main() {
 
   console.log("Demo API keys (shown once, exactly as the product does):")
   for (const key of keys) {
-    console.log(`  ${key.type.padEnd(12)} ${key.plaintext}`)
+    console.log(`  ${DEMO_WORKSPACE.slug.padEnd(10)} ${key.type.padEnd(12)} ${key.plaintext}`)
+  }
+  for (const key of sandbox.keys) {
+    console.log(`  ${DEMO_SANDBOX_WORKSPACE.slug.padEnd(10)} ${key.type.padEnd(12)} ${key.plaintext}`)
   }
 
   process.exit(0)

@@ -29,13 +29,39 @@ export async function listIntegrations(tx: Transaction, workspaceId: string) {
 
 /**
  * What is stored, encrypted, in `integrations.encrypted_credentials` for a
- * Stripe integration. Parsed on the way out so a malformed row fails closed.
+ * Stripe integration: the signing secret of the founder's LIVE endpoint
+ * (`webhookSecret`, the original field — rows saved before test mode existed
+ * hold live secrets, as migration 0010 marked their data live) and of the TEST
+ * endpoint. Each is saved and replaced on its own. Parsed on the way out so a
+ * malformed row fails closed.
  */
-const stripeCredentialsSchema = z.object({ webhookSecret: z.string().startsWith("whsec_") })
+const stripeCredentialsSchema = z
+  .object({
+    webhookSecret: z.string().startsWith("whsec_").optional(),
+    testWebhookSecret: z.string().startsWith("whsec_").optional(),
+  })
+  .refine((value) => Boolean(value.webhookSecret || value.testWebhookSecret))
+
+type StripeCredentials = z.infer<typeof stripeCredentialsSchema>
+
+export type StripeSecretEnvironment = "test" | "live"
+
+const SECRET_FIELD: Record<StripeSecretEnvironment, keyof StripeCredentials> = {
+  live: "webhookSecret",
+  test: "testWebhookSecret",
+}
+
+function readCredentials(encrypted: string | null): StripeCredentials | null {
+  if (!encrypted) return null
+  const parsed = stripeCredentialsSchema.safeParse(JSON.parse(decryptSecret(encrypted)))
+  return parsed.success ? parsed.data : null
+}
 
 /** Non-sensitive bookkeeping kept in `integrations.metadata`. */
 const setupMetadataSchema = z.object({
   secretSavedAt: z.iso.datetime().optional().catch(undefined),
+  testSecretSavedAt: z.iso.datetime().optional().catch(undefined),
+  liveSecretSavedAt: z.iso.datetime().optional().catch(undefined),
   lastRejectedAt: z.iso.datetime().optional().catch(undefined),
 })
 
@@ -43,8 +69,11 @@ export interface StripeSetup {
   integrationId: string
   status: "connected" | "disconnected" | "error"
   providerAccountId: string | null
-  /** Whether a signing secret is stored. The secret itself never leaves the server. */
+  /** Whether any signing secret is stored. The secrets themselves never leave the server. */
   secretSaved: boolean
+  /** Which endpoint secrets are stored. */
+  secrets: Record<StripeSecretEnvironment, boolean>
+  /** When a secret was last saved, whichever environment. */
   secretSavedAt: Date | null
   /** Last delivery to this endpoint whose signature did not verify. */
   lastRejectedAt: Date | null
@@ -60,7 +89,7 @@ export async function getStripeSetup(userId: string, workspaceId: string): Promi
         id: integrations.id,
         status: integrations.status,
         providerAccountId: integrations.providerAccountId,
-        secretSaved: sql<boolean>`${integrations.encryptedCredentials} is not null`,
+        encryptedCredentials: integrations.encryptedCredentials,
         metadata: integrations.metadata,
       })
       .from(integrations)
@@ -71,11 +100,24 @@ export async function getStripeSetup(userId: string, workspaceId: string): Promi
     const metadata = setupMetadataSchema.safeParse(row.metadata)
     const meta = metadata.success ? metadata.data : {}
 
+    // Decrypted only to tell which fields are present; nothing is returned but booleans.
+    let credentials: StripeCredentials | null = null
+    try {
+      credentials = readCredentials(row.encryptedCredentials)
+    } catch {
+      credentials = null
+    }
+    const secrets = {
+      live: Boolean(credentials?.webhookSecret),
+      test: Boolean(credentials?.testWebhookSecret),
+    }
+
     return {
       integrationId: row.id,
       status: row.status,
       providerAccountId: row.providerAccountId,
-      secretSaved: row.secretSaved,
+      secretSaved: row.encryptedCredentials !== null,
+      secrets,
       secretSavedAt: meta.secretSavedAt ? new Date(meta.secretSavedAt) : null,
       lastRejectedAt: meta.lastRejectedAt ? new Date(meta.lastRejectedAt) : null,
     }
@@ -115,36 +157,50 @@ export async function startStripeIntegration(
 }
 
 /**
- * Step 3: stores the endpoint's signing secret, encrypted (AES-256-GCM), and
- * marks the integration connected. "Connected" means *configured*; whether
- * events actually arrive is `integration-health`'s job, not this status.
+ * Step 3: stores one endpoint's signing secret — the test endpoint's or the
+ * live endpoint's — encrypted (AES-256-GCM), keeping the other one, and marks
+ * the integration connected. "Connected" means *configured*; whether events
+ * actually arrive is `integration-health`'s job, not this status.
  */
 export async function saveStripeWebhookSecret(
   userId: string,
   workspaceId: string,
+  environment: StripeSecretEnvironment,
   webhookSecret: string,
 ): Promise<void> {
-  const credentials = stripeCredentialsSchema.parse({ webhookSecret })
-  const encrypted = encryptSecret(JSON.stringify(credentials))
+  const secret = z.string().startsWith("whsec_").parse(webhookSecret)
   const now = new Date()
 
   return withUser(userId, async (tx) => {
     await requireMembership(tx, workspaceId, userId, "admin")
 
     const [existing] = await tx
-      .select({ id: integrations.id, secretSaved: sql<boolean>`${integrations.encryptedCredentials} is not null` })
+      .select({ id: integrations.id, encryptedCredentials: integrations.encryptedCredentials })
       .from(integrations)
       .where(and(eq(integrations.workspaceId, workspaceId), eq(integrations.provider, "stripe")))
       .limit(1)
+      .for("update")
 
     if (!existing) {
       throw new NotFoundError("Start the Stripe integration before saving its secret.", "stripeSetupMissing")
     }
 
+    // An unreadable row (another ENCRYPTION_KEY, a malformed value) is replaced
+    // rather than merged: its secrets could not verify anything anyway.
+    let current: StripeCredentials | null = null
+    try {
+      current = readCredentials(existing.encryptedCredentials)
+    } catch {
+      current = null
+    }
+    const field = SECRET_FIELD[environment]
+    const replaced = Boolean(current?.[field])
+    const credentials = stripeCredentialsSchema.parse({ ...current, [field]: secret })
+
     await tx
       .update(integrations)
       .set({
-        encryptedCredentials: encrypted,
+        encryptedCredentials: encryptSecret(JSON.stringify(credentials)),
         status: "connected",
         connectedAt: now,
         disconnectedAt: null,
@@ -152,6 +208,7 @@ export async function saveStripeWebhookSecret(
         metadata: sql`(${integrations.metadata} - 'lastRejectedAt') || ${JSON.stringify({
           mode: "webhook_secret",
           secretSavedAt: now.toISOString(),
+          [environment === "live" ? "liveSecretSavedAt" : "testSecretSavedAt"]: now.toISOString(),
         })}::jsonb`,
         updatedAt: now,
       })
@@ -163,7 +220,7 @@ export async function saveStripeWebhookSecret(
       entityType: "integration",
       entityId: existing.id,
       action: "integration.connected",
-      metadata: { provider: "stripe", secretReplaced: existing.secretSaved },
+      metadata: { provider: "stripe", environment, secretReplaced: replaced },
     })
   })
 }
@@ -183,7 +240,7 @@ export async function disconnectIntegration(
         disconnectedAt: new Date(),
         // Credentials are dropped on disconnect; nothing to leak afterwards.
         encryptedCredentials: null,
-        metadata: sql`${integrations.metadata} - 'secretSavedAt' - 'lastRejectedAt'`,
+        metadata: sql`${integrations.metadata} - 'secretSavedAt' - 'testSecretSavedAt' - 'liveSecretSavedAt' - 'lastRejectedAt'`,
       })
       .where(
         and(eq(integrations.workspaceId, workspaceId), eq(integrations.provider, provider)),
@@ -204,14 +261,14 @@ export async function disconnectIntegration(
  *
  * Called by `POST /api/webhooks/stripe/<integrationId>`, whose caller is
  * Stripe, not a user: there is no session to impersonate, and the decrypted
- * secret is what authenticates the delivery (ARCHITECTURE.md §2). The secret
- * is returned to the route for verification only and is never logged.
+ * secrets are what authenticate the delivery (ARCHITECTURE.md §2). They are
+ * returned to the route for verification only and are never logged.
  *
  * `null` for an unknown id, a non-Stripe integration, or one without a secret.
  */
 export async function webhookTargetForIntegration(
   integrationId: string,
-): Promise<{ workspaceId: string; webhookSecret: string } | null> {
+): Promise<{ workspaceId: string; secrets: { test: string | null; live: string | null } } | null> {
   const [row] = await db
     .select({
       workspaceId: integrations.workspaceId,
@@ -224,8 +281,12 @@ export async function webhookTargetForIntegration(
   if (!row?.encryptedCredentials) return null
 
   try {
-    const credentials = stripeCredentialsSchema.parse(JSON.parse(decryptSecret(row.encryptedCredentials)))
-    return { workspaceId: row.workspaceId, webhookSecret: credentials.webhookSecret }
+    const credentials = readCredentials(row.encryptedCredentials)
+    if (!credentials) throw new Error("malformed credentials")
+    return {
+      workspaceId: row.workspaceId,
+      secrets: { live: credentials.webhookSecret ?? null, test: credentials.testWebhookSecret ?? null },
+    }
   } catch {
     // Wrong ENCRYPTION_KEY or a malformed row: fail closed, say which integration only.
     logger.error("stripe integration credentials unreadable", {

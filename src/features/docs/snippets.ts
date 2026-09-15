@@ -11,8 +11,12 @@ import { REF_QUERY_PARAMS, TRACKER_PATH, VISITOR_COOKIE, VISITOR_COOKIE_MAX_AGE_
  * the API's own vocabulary. Checked in `__tests__/snippets.test.ts`.
  */
 
-export const PLACEHOLDER_PUBLISHABLE_KEY = "pk_live_xxxxxxxxxxxxxxxx"
-export const PLACEHOLDER_SECRET_KEY = "sk_live_xxxxxxxxxxxxxxxx"
+/**
+ * The quickstart starts in test mode, which works on every plan; the guide says
+ * to swap in the `pk_live_`/`sk_live_` pair when going live.
+ */
+export const PLACEHOLDER_PUBLISHABLE_KEY = "pk_test_xxxxxxxxxxxxxxxx"
+export const PLACEHOLDER_SECRET_KEY = "sk_test_xxxxxxxxxxxxxxxx"
 
 export const TRACKER_FACTS = {
   cookie: VISITOR_COOKIE,

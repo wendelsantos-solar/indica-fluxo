@@ -22,6 +22,7 @@ import { Field } from "@/components/ui/field"
 import { Input, Select } from "@/components/ui/input"
 import { useActionResult } from "@/components/ui/use-action-result"
 import { InviteOutcome } from "@/features/workspaces/invite-outcome"
+import { Link } from "@/i18n/navigation"
 
 import { inviteAffiliateAction, type AffiliateFormState } from "./actions"
 
@@ -37,6 +38,7 @@ export function InviteAffiliateDialog({
   triggerVariant = "primary",
   triggerSize = "sm",
   openOnInviteParam = false,
+  customRatesAvailable = false,
 }: {
   workspaceSlug: string
   programs: { id: string; name: string }[]
@@ -53,6 +55,12 @@ export function InviteAffiliateDialog({
    * shared link does not reopen the dialog.
    */
   openOnInviteParam?: boolean
+  /**
+   * The plan includes custom affiliate rates (`customAffiliateRates`). Without
+   * it the field is replaced by where to get it; `inviteAffiliate` refuses a
+   * rate either way. Off unless the page says so.
+   */
+  customRatesAvailable?: boolean
 }) {
   const t = useTranslations("forms.inviteAffiliate")
   const ta = useTranslations("common.actions")
@@ -208,27 +216,45 @@ export function InviteAffiliateDialog({
                   />
                 </Field>
 
-                <Field
-                  label={t("customRate")}
-                  htmlFor="customRate"
-                  hint={t("customRateHint")}
-                  error={error("customRate")}
-                >
-                  <Input
-                    id="customRate"
-                    name="customRate"
-                    type="number"
-                    inputMode="decimal"
-                    min="0"
-                    max="100"
-                    step="0.5"
-                    value={values.customRate}
-                    onChange={set("customRate")}
-                    aria-describedby={describedBy("customRate", true)}
-                    invalid={Boolean(errors.customRate)}
-                    className="tabular-nums"
-                  />
-                </Field>
+                {customRatesAvailable ? (
+                  <Field
+                    label={t("customRate")}
+                    htmlFor="customRate"
+                    hint={t("customRateHint")}
+                    error={error("customRate")}
+                  >
+                    <Input
+                      id="customRate"
+                      name="customRate"
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      max="100"
+                      step="0.5"
+                      value={values.customRate}
+                      onChange={set("customRate")}
+                      aria-describedby={describedBy("customRate", true)}
+                      invalid={Boolean(errors.customRate)}
+                      className="tabular-nums"
+                    />
+                  </Field>
+                ) : (
+                  <div className="space-y-1.5">
+                    <p className="text-meta font-medium text-muted-foreground">{t("customRate")}</p>
+                    <p className="text-meta text-faint-foreground">
+                      {t.rich("customRateUpgrade", {
+                        link: (chunks) => (
+                          <Link
+                            href={{ pathname: "/[workspaceSlug]/settings", params: { workspaceSlug }, hash: "plano" }}
+                            className="text-foreground-secondary underline underline-offset-2 hover:text-foreground"
+                          >
+                            {chunks}
+                          </Link>
+                        ),
+                      })}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <Field label={t("company")} htmlFor="companyName" hint={t("optional")} error={error("companyName")}>

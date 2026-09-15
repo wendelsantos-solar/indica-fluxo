@@ -3,6 +3,7 @@ import "server-only"
 import { and, asc, desc, eq, gt, gte, inArray, lte, sql, type SQL } from "drizzle-orm"
 
 import { orderMoneyTotals, toMoneyTotals, type MoneyTotal } from "@/lib/money-totals"
+import type { ViewEnvironment } from "@/lib/view-environment"
 import { type DbClient } from "@/server/db"
 import { qualified } from "@/server/db/qualify"
 import {
@@ -29,6 +30,12 @@ export type CommissionSortField = "date" | "amount" | "status"
 
 export interface CommissionListParams {
   workspaceId: string
+  /**
+   * Only commissions of programs in this environment. Every workspace-wide
+   * list passes the dashboard's environment; a read already narrowed to one
+   * program may omit it (the program has a single environment).
+   */
+  environment?: ViewEnvironment
   programId?: string
   participationId?: string
   /** Every participation of one affiliate, across programs. */
@@ -82,6 +89,7 @@ export function effectiveCommissionStatusSql(alias?: string): SQL<CommissionStat
 
 function filters(params: CommissionListParams): SQL | undefined {
   const parts: SQL[] = [eq(commissions.workspaceId, params.workspaceId)]
+  if (params.environment) parts.push(commissionInEnvironment(params.environment))
   if (params.programId) parts.push(eq(commissions.programId, params.programId))
   if (params.participationId) {
     parts.push(eq(commissions.programAffiliateId, params.participationId))
@@ -190,7 +198,7 @@ function commissionOrder(sort: CommissionListParams["sort"]): SQL[] {
  */
 export async function commissionTotalsByStatus(
   tx: DbClient,
-  params: { workspaceId: string; affiliateId: string },
+  params: { workspaceId: string; affiliateId: string; environment?: ViewEnvironment },
 ): Promise<Record<CommissionStatus, MoneyTotal[]>> {
   const status = effectiveCommissionStatusSql()
   const rows = await tx
@@ -200,7 +208,9 @@ export async function commissionTotalsByStatus(
       amountMinor: sql<number>`coalesce(sum(${commissions.commissionAmountMinor}), 0)::bigint`.mapWith(Number),
     })
     .from(commissions)
-    .where(filters({ workspaceId: params.workspaceId, affiliateId: params.affiliateId }))
+    .where(
+      filters({ workspaceId: params.workspaceId, affiliateId: params.affiliateId, environment: params.environment }),
+    )
     .groupBy(status, commissions.currency)
 
   const result: Record<CommissionStatus, MoneyTotal[]> = {
@@ -281,10 +291,25 @@ export function payableCommissionFilter(now: SQL = sql`now()`): SQL {
          and ${payoutItems.status} <> 'cancelled'))`
 }
 
-/** What the founder actually owes right now, grouped by affiliate and currency. */
+/**
+ * The commission belongs to a program of `environment`. A sub-query rather than
+ * a join, so a `SELECT … FOR UPDATE` over commissions locks commissions only.
+ */
+export function commissionInEnvironment(environment: "test" | "live"): SQL {
+  return sql`exists (
+    select 1 from ${programs}
+     where ${programs.id} = ${qualified(commissions.programId)}
+       and ${programs.environment} = ${environment})`
+}
+
+/**
+ * What the founder actually owes right now in one environment, grouped by
+ * affiliate and currency. Test and live are never paid in the same batch.
+ */
 export async function listPayableByAffiliate(
   tx: DbClient,
   workspaceId: string,
+  environment: "test" | "live",
 ): Promise<PayableAffiliate[]> {
   return tx
     .select({
@@ -302,7 +327,9 @@ export async function listPayableByAffiliate(
     .from(commissions)
     .innerJoin(programAffiliates, eq(programAffiliates.id, commissions.programAffiliateId))
     .innerJoin(affiliates, eq(affiliates.id, programAffiliates.affiliateId))
-    .where(and(eq(commissions.workspaceId, workspaceId), payableCommissionFilter()))
+    .where(
+      and(eq(commissions.workspaceId, workspaceId), commissionInEnvironment(environment), payableCommissionFilter()),
+    )
     .groupBy(
       commissions.programAffiliateId,
       affiliates.id,
@@ -318,6 +345,7 @@ export async function listPayableByAffiliate(
 export interface AffiliateCommissionRow {
   id: string
   programName: string
+  programEnvironment: "test" | "live"
   customerRef: string
   currency: string
   baseAmountMinor: number
@@ -363,6 +391,7 @@ export async function listCommissionsForAffiliate(
     .select({
       id: commissions.id,
       programName: programs.name,
+      programEnvironment: programs.environment,
       customerRef: sql<string>`coalesce(${customers.externalId}, ${customers.providerCustomerId}, left(${commissions.customerId}::text, 8))`,
       currency: commissions.currency,
       baseAmountMinor: commissions.baseAmountMinor,
@@ -394,6 +423,8 @@ export interface AffiliatePayoutRow {
   status: "pending" | "paid" | "failed" | "cancelled"
   paidAt: Date | null
   externalReference: string | null
+  /** A test batch moved no money; the portal labels it and leaves it out of totals. */
+  environment: "test" | "live"
 }
 
 /**
@@ -417,6 +448,7 @@ export async function listPayoutsForAffiliate(
       status: payoutItems.status,
       paidAt: payoutItems.paidAt,
       externalReference: payoutItems.externalReference,
+      environment: payoutBatches.environment,
     })
     .from(payoutItems)
     .innerJoin(payoutBatches, eq(payoutBatches.id, payoutItems.payoutBatchId))

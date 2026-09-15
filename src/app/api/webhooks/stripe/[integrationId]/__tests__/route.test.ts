@@ -54,7 +54,7 @@ function call(integrationId: string, secret: string | null) {
 describe("POST /api/webhooks/stripe/[integrationId]", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    services.webhookTargetForIntegration.mockResolvedValue({ workspaceId: WORKSPACE_ID, webhookSecret: SECRET })
+    services.webhookTargetForIntegration.mockResolvedValue({ workspaceId: WORKSPACE_ID, secrets: { test: SECRET, live: null } })
     services.ingestVerifiedWebhook.mockResolvedValue({ status: "processed" })
   })
 
@@ -93,6 +93,23 @@ describe("POST /api/webhooks/stripe/[integrationId]", () => {
 
     expect(response.status).toBe(404)
     expect(services.webhookTargetForIntegration).not.toHaveBeenCalled()
+  })
+
+  it("rejects a test-mode event signed with the live endpoint's secret", async () => {
+    services.webhookTargetForIntegration.mockResolvedValue({ workspaceId: WORKSPACE_ID, secrets: { test: null, live: SECRET } })
+    const response = await call(INTEGRATION_ID, SECRET)
+
+    expect(response.status).toBe(400)
+    expect(await response.json()).toEqual({ error: "livemode_mismatch" })
+    expect(services.ingestVerifiedWebhook).not.toHaveBeenCalled()
+  })
+
+  it("acknowledges a live event without live mode as ignored, so Stripe stops retrying", async () => {
+    services.ingestVerifiedWebhook.mockResolvedValue({ status: "ignored", reason: "live_mode_inactive" })
+    const response = await call(INTEGRATION_ID, SECRET)
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ received: true, ignored: "live_mode_inactive" })
   })
 
   it("requires the signature header", async () => {

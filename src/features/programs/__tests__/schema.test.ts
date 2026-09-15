@@ -91,3 +91,17 @@ describe("program form: commission", () => {
     ])
   })
 })
+
+describe("program form: environment", () => {
+  it("passes the chosen environment through, and leaves it out when the form has none", () => {
+    const live = parseProgramForm(form({ environment: "live" }))
+    expect(live.success && toProgramInput(live.data).environment).toBe("live")
+
+    const edit = parseProgramForm(form())
+    expect(edit.success && toProgramInput(edit.data).environment).toBeUndefined()
+  })
+
+  it("rejects anything but test or live", () => {
+    expect(fieldErrors(form({ environment: "staging" })).environment).toBeDefined()
+  })
+})

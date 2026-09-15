@@ -30,6 +30,8 @@ export interface ProgramFormValues {
    */
   websiteUrl?: string
   status: "draft" | "active" | "paused" | "archived"
+  /** Create only. Fixed at creation (docs/PLANS.md §2), so never on the edit form. */
+  environment?: "test" | "live"
   commissionType: "percentage" | "fixed"
   commissionAmount: string
   recurrence: "lifetime" | "first_only" | "months"
@@ -41,6 +43,25 @@ export interface ProgramFormValues {
 }
 
 /** Fields behind "Advanced settings", per variant; an error in one reveals it. */
+/** Settings a live program can start from: everything but its identity. */
+export type ProgramTemplateValues = Omit<ProgramFormValues, "id" | "name" | "environment">
+
+/**
+ * What the create form may offer, decided on the server from the plan
+ * (`getPlanOverview`). `createProgram` enforces the same rules; this only keeps
+ * a choice that cannot be saved from being offered.
+ */
+export interface EnvironmentChoice {
+  /** A test program fits the plan's limit. */
+  test: boolean
+  /** A live program fits: live mode included and in good standing, and under the limit. */
+  live: boolean
+  /** Why live is not offered: the plan has no live mode, or its live limit is reached. */
+  liveBlockedBy: "plan" | "limit" | null
+  /** Test programs whose settings a new live program can copy. */
+  templates: { id: string; name: string; values: ProgramTemplateValues }[]
+}
+
 const ADVANCED_FIELDS = {
   full: ["attributionModel", "attributionWindowDays", "commissionHoldDays"],
   onboarding: [
@@ -77,6 +98,7 @@ export function ProgramForm({
   mode,
   variant = "full",
   currencyOptions,
+  environmentChoice,
 }: {
   workspaceSlug: string
   defaultValues: ProgramFormValues
@@ -87,6 +109,8 @@ export function ProgramForm({
    * so `Intl` names cannot differ at hydration. Bare codes without it.
    */
   currencyOptions?: SelectOption[]
+  /** Create only, full variant. Without it a new program is a test program. */
+  environmentChoice?: EnvironmentChoice
 }) {
   const t = useTranslations("forms.program")
   const ts = useTranslations("status")
@@ -172,6 +196,72 @@ export function ProgramForm({
         />
       </Field>
     )
+
+  const [copyFrom, setCopyFrom] = useState("")
+  const choice = mode === "create" && variant === "full" ? environmentChoice : undefined
+  const environment = values.environment ?? "test"
+
+  const copySettings = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const template = choice?.templates.find((candidate) => candidate.id === event.target.value)
+    setCopyFrom(event.target.value)
+    // The name stays the founder's: two programs of a workspace cannot share one.
+    if (template) setValues((current) => ({ ...current, ...template.values, environment: "live" }))
+  }
+
+  const environmentField = choice ? (
+    <div className="space-y-3">
+      <Field
+        label={t("environment.label")}
+        htmlFor="environment"
+        hint={environment === "live" ? t("environment.hintLive") : t("environment.hintTest")}
+        error={error("environment")}
+      >
+        <Select
+          id="environment"
+          name="environment"
+          value={environment}
+          onChange={set("environment")}
+          aria-invalid={errors.environment ? true : undefined}
+          aria-describedby={describedBy("environment", true)}
+        >
+          <option value="test" disabled={!choice.test}>
+            {choice.test ? t("environment.test") : t("environment.testAtLimit")}
+          </option>
+          <option value="live" disabled={!choice.live}>
+            {choice.live ? t("environment.live") : t("environment.liveUnavailable")}
+          </option>
+        </Select>
+      </Field>
+
+      {choice.liveBlockedBy ? (
+        <InlineAlert
+          title={choice.liveBlockedBy === "plan" ? t("environment.planTitle") : t("environment.limitTitle")}
+          action={
+            <Button asChild variant="ghost" size="sm">
+              <Link href={{ pathname: "/[workspaceSlug]/settings", params: { workspaceSlug }, hash: "plano" }}>
+                {t("environment.planAction")}
+              </Link>
+            </Button>
+          }
+        >
+          {choice.liveBlockedBy === "plan" ? t("environment.planBody") : t("environment.limitBody")}
+        </InlineAlert>
+      ) : null}
+
+      {environment === "live" && choice.templates.length > 0 ? (
+        <Field label={t("environment.copyFrom")} htmlFor="copyFrom" hint={t("environment.copyFromHint")}>
+          <Select id="copyFrom" value={copyFrom} onChange={copySettings} aria-describedby="copyFrom-hint">
+            <option value="">{t("environment.copyFromNone")}</option>
+            {choice.templates.map((template) => (
+              <option key={template.id} value={template.id}>
+                {template.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      ) : null}
+    </div>
+  ) : null
 
   const statusField = (
     <Field label={t("status")} htmlFor="status" error={error("status")}>
@@ -389,6 +479,8 @@ export function ProgramForm({
       <form action={action} noValidate>
         {hiddenFields}
         <input type="hidden" name="onboarding" value="1" />
+        {/* A new workspace is on Sandbox: its first program is a test program. */}
+        <input type="hidden" name="environment" value="test" />
 
         <Card className="space-y-4 p-4 sm:p-6">
           {nameField}
@@ -476,6 +568,8 @@ export function ProgramForm({
               <div className="sm:col-span-2">{nameField}</div>
               {statusField}
             </div>
+
+            {environmentField}
 
             <Field
               label={t("description")}

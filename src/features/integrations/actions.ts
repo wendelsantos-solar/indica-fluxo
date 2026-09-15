@@ -63,6 +63,8 @@ export async function startStripeAction(
 
 const secretSchema = z.object({
   workspaceSlug: z.string().min(1),
+  /** Which Stripe endpoint the secret belongs to: the test-mode one or the live one. */
+  environment: z.enum(["test", "live"]),
   // Stripe endpoint signing secrets are `whsec_` plus an opaque token.
   webhookSecret: z
     .string()
@@ -72,8 +74,9 @@ const secretSchema = z.object({
 })
 
 /**
- * Step 3: the endpoint's signing secret. Stored encrypted and never returned —
- * not in this result, not on the page.
+ * Step 3: one endpoint's signing secret, test or live, each saved and replaced
+ * on its own. Stored encrypted and never returned — not in this result, not on
+ * the page.
  */
 export async function saveStripeSecretAction(
   _prev: IntegrationFormState,
@@ -82,6 +85,7 @@ export async function saveStripeSecretAction(
   const user = await requireUser()
   const parsed = secretSchema.safeParse({
     workspaceSlug: formData.get("workspaceSlug"),
+    environment: formData.get("environment"),
     webhookSecret: formData.get("webhookSecret"),
   })
 
@@ -92,7 +96,7 @@ export async function saveStripeSecretAction(
 
   try {
     const workspace = await getWorkspaceForUser(user.id, parsed.data.workspaceSlug)
-    await saveStripeWebhookSecret(user.id, workspace.id, parsed.data.webhookSecret)
+    await saveStripeWebhookSecret(user.id, workspace.id, parsed.data.environment, parsed.data.webhookSecret)
   } catch (error) {
     return { error: await actionError(error, "stripeSecretNotSaved") }
   }
@@ -126,6 +130,7 @@ export async function disconnectStripeAction(
 const rotateSchema = z.object({
   workspaceSlug: z.string().min(1),
   type: z.enum(["publishable", "secret"]),
+  environment: z.enum(["test", "live"]),
 })
 
 export async function rotateKeyAction(
@@ -136,13 +141,15 @@ export async function rotateKeyAction(
   const parsed = rotateSchema.safeParse({
     workspaceSlug: formData.get("workspaceSlug"),
     type: formData.get("type"),
+    environment: formData.get("environment"),
   })
 
   if (!parsed.success) return { error: await actionError(null, "invalidRequest") }
 
   try {
     const workspace = await getWorkspaceForUser(user.id, parsed.data.workspaceSlug)
-    const key = await rotateApiKey(user.id, workspace.id, parsed.data.type)
+    // A live key needs live mode; the service refuses it with LIVE_MODE_REQUIRED otherwise.
+    const key = await rotateApiKey(user.id, workspace.id, parsed.data.type, parsed.data.environment)
 
     revalidatePath(DASHBOARD_LAYOUT, "layout")
     return {

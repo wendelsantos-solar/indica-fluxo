@@ -28,12 +28,28 @@ import { CodeField } from "./code-field"
 import { needsSetup, stripeBadgeStatus, type StripeConnectionState } from "./stripe-status"
 
 const INITIAL: IntegrationFormState = {}
+const SECRET_ENVIRONMENTS = ["test", "live"] as const
+export type SecretEnvironment = (typeof SECRET_ENVIRONMENTS)[number]
+
+export interface EnvironmentEvidence {
+  /** "há 5 minutos", or `null` when nothing arrived in this mode. */
+  when: string | null
+  type: string | null
+  failed: boolean
+  /** `false` when derived from the latest recorded payment rather than from the event itself. */
+  exact: boolean
+}
 
 export interface StripePanelProps {
   workspaceSlug: string
   state: StripeConnectionState
   providerAccountId: string | null
-  secretSaved: boolean
+  /** Which endpoint signing secrets are stored: the Stripe test-mode endpoint's and the live one's. */
+  secrets: Record<SecretEnvironment, boolean>
+  /** Latest evidence per Stripe mode, pre-formatted on the server. */
+  environments: Record<SecretEnvironment, EnvironmentEvidence>
+  /** Whether live events are processed on this plan; `false` shows why they are not. */
+  liveModeAvailable: boolean
   /** This integration's own endpoint; `null` until step 1 has created the integration. */
   webhookUrl: string | null
   /** Pre-formatted on the server ("há 5 minutos") so server and client agree. */
@@ -142,10 +158,10 @@ function EventList() {
 // gives step 2 a URL to show; step 3 stores the endpoint's signing secret.
 // ---------------------------------------------------------------------------
 
-function SetupWizard({ workspaceSlug, state, providerAccountId, webhookUrl }: StripePanelProps) {
+function SetupWizard(props: StripePanelProps) {
+  const { workspaceSlug, state, providerAccountId, webhookUrl } = props
   const t = useTranslations("forms.stripe")
   const [accountState, saveAccount, savingAccount] = useActionState(startStripeAction, INITIAL)
-  const [secretState, saveSecret, savingSecret] = useActionState(saveStripeSecretAction, INITIAL)
   const [editingAccount, setEditingAccount] = useState(false)
   // The forms show their own outcome inline; no toasts.
   useActionResult(accountState, {
@@ -233,13 +249,22 @@ function SetupWizard({ workspaceSlug, state, providerAccountId, webhookUrl }: St
 
         <Step index={3} status={started ? "current" : "upcoming"} title={t("steps.secret.title")}>
           {started ? (
-            <SecretForm
-              workspaceSlug={workspaceSlug}
-              action={saveSecret}
-              pending={savingSecret}
-              error={secretState.error}
-              description={t.rich("steps.secret.description", { strong })}
-            />
+            <div className="space-y-4">
+              <p className="max-w-prose text-meta text-muted-foreground">
+                {t.rich("steps.secret.description", { strong })}
+              </p>
+              {SECRET_ENVIRONMENTS.map((environment) => (
+                <SecretSlot
+                  key={environment}
+                  workspaceSlug={workspaceSlug}
+                  environment={environment}
+                  saved={props.secrets[environment]}
+                  liveModeAvailable={props.liveModeAvailable}
+                  // Test first: it is where every plan starts.
+                  primary={environment === "test"}
+                />
+              ))}
+            </div>
           ) : (
             <p className="text-meta text-faint-foreground">{t("steps.locked")}</p>
           )}
@@ -293,30 +318,104 @@ function Step({
   )
 }
 
+/**
+ * One endpoint's signing secret: saved state, then a form to save or replace
+ * it. Test and live are independent — replacing one never touches the other.
+ */
+function SecretSlot({
+  workspaceSlug,
+  environment,
+  saved,
+  liveModeAvailable,
+  primary = false,
+}: {
+  workspaceSlug: string
+  environment: SecretEnvironment
+  saved: boolean
+  liveModeAvailable: boolean
+  /** The step's one primary action (the setup wizard's test slot). */
+  primary?: boolean
+}) {
+  const t = useTranslations("forms.stripe")
+  const [state, save, saving] = useActionState(saveStripeSecretAction, INITIAL)
+  const [editing, setEditing] = useState(false)
+  useActionResult(state, { onSuccess: () => setEditing(false), toastOnSuccess: false, toastOnError: false })
+  const open = editing || !saved
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-caption text-muted-foreground">{t(`secretEnvironments.${environment}.label`)}</p>
+          <p className="mt-1 flex items-center gap-1.5 text-caption text-foreground">
+            {saved ? (
+              <>
+                <Check className="size-3.5 text-success-foreground" aria-hidden="true" />
+                {t("secretSaved")}
+              </>
+            ) : (
+              t("secretMissingEnvironment")
+            )}
+          </p>
+        </div>
+        {saved && !editing ? (
+          <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(true)}>
+            {t("replaceSecret")}
+          </Button>
+        ) : null}
+      </div>
+      {environment === "live" && !liveModeAvailable ? (
+        <p className="max-w-prose text-meta text-muted-foreground">{t("liveNeedsPlan")}</p>
+      ) : null}
+      {state.success && !open ? <InlineAlert tone="success">{state.success}</InlineAlert> : null}
+      {open ? (
+        <SecretForm
+          workspaceSlug={workspaceSlug}
+          environment={environment}
+          action={save}
+          pending={saving}
+          error={state.error}
+          primary={primary}
+          onCancel={saved ? () => setEditing(false) : undefined}
+        />
+      ) : null}
+    </div>
+  )
+}
+
 function SecretForm({
   workspaceSlug,
+  environment,
   action,
   pending,
   error,
-  description,
+  primary = false,
   onCancel,
 }: {
   workspaceSlug: string
+  environment: SecretEnvironment
   action: (formData: FormData) => void
   pending: boolean
   error?: string
-  description?: React.ReactNode
+  primary?: boolean
   onCancel?: () => void
 }) {
   const t = useTranslations("forms.stripe")
+  const id = `webhookSecret-${environment}`
   return (
     <form action={action} noValidate className="space-y-3">
       <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
-      {description ? <p className="max-w-prose text-meta text-muted-foreground">{description}</p> : null}
-      <Field label={t("secret")} htmlFor="webhookSecret" required hint={t("secretHint")} error={error}>
+      <input type="hidden" name="environment" value={environment} />
+      <Field
+        label={t(`secretEnvironments.${environment}.label`)}
+        htmlFor={id}
+        required
+        hint={t(`secretEnvironments.${environment}.hint`)}
+        error={error}
+      >
         {/* A password field: the secret is never shown back, and not echoed on screen while typed. */}
         <Input
-          id="webhookSecret"
+          id={id}
           name="webhookSecret"
           type="password"
           placeholder={t("secretPlaceholder")}
@@ -324,12 +423,12 @@ function SecretForm({
           autoComplete="off"
           spellCheck={false}
           required
-          aria-describedby={error ? "webhookSecret-error" : "webhookSecret-hint"}
+          aria-describedby={error ? `${id}-error` : `${id}-hint`}
           invalid={Boolean(error)}
         />
       </Field>
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" variant="primary" size="sm" loading={pending}>
+        <Button type="submit" variant={primary ? "primary" : "secondary"} size="sm" loading={pending}>
           {t("saveSecret")}
         </Button>
         {onCancel ? (
@@ -339,6 +438,38 @@ function SecretForm({
         ) : null}
       </div>
     </form>
+  )
+}
+
+/** The latest event of each Stripe mode, one line each. */
+function EnvironmentEvidenceList({ environments }: { environments: Record<SecretEnvironment, EnvironmentEvidence> }) {
+  const t = useTranslations("forms.stripe.evidence")
+  return (
+    <ul className="space-y-1">
+      {SECRET_ENVIRONMENTS.map((environment) => {
+        const evidence = environments[environment]
+        return (
+          <li key={environment} className="text-meta text-muted-foreground">
+            {evidence.when ? (
+              <>
+                {t(evidence.failed ? "failed" : evidence.exact ? "lastEvent" : "lastRecorded", {
+                  environment,
+                  when: evidence.when,
+                })}
+                {evidence.type ? (
+                  <>
+                    {" · "}
+                    <code className="font-mono text-meta">{evidence.type}</code>
+                  </>
+                ) : null}
+              </>
+            ) : (
+              t("none", { environment })
+            )}
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
@@ -352,20 +483,13 @@ function ConnectedSummary(
     disconnectError?: string
   },
 ) {
-  const { workspaceSlug, providerAccountId, secretSaved, webhookUrl, readOnly = false } = props
+  const { workspaceSlug, providerAccountId, webhookUrl, readOnly = false } = props
   const t = useTranslations("forms.stripe")
-  const [secretState, saveSecret, savingSecret] = useActionState(saveStripeSecretAction, INITIAL)
-  const [replacing, setReplacing] = useState(false)
-  useActionResult(secretState, {
-    onSuccess: () => setReplacing(false),
-    toastOnSuccess: false,
-    toastOnError: false,
-  })
 
   return (
     <div className="space-y-4">
-      {secretState.success && !replacing ? <InlineAlert tone="success">{secretState.success}</InlineAlert> : null}
       <HealthAlert {...props} />
+      <EnvironmentEvidenceList environments={props.environments} />
 
       <MetricGrid>
         <MetricCell className="min-w-0">
@@ -384,38 +508,16 @@ function ConnectedSummary(
       </div>
 
       {readOnly ? null : (
-        <div className="space-y-3 border-t border-border-faint pt-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-caption text-muted-foreground">{t("secret")}</p>
-              <p className="mt-1 flex items-center gap-1.5 text-caption text-foreground">
-                {secretSaved ? (
-                  <>
-                    <Check className="size-3.5 text-success-foreground" aria-hidden="true" />
-                    {t("secretSaved")}
-                  </>
-                ) : (
-                  t("secretMissing")
-                )}
-              </p>
-            </div>
-            {replacing ? null : (
-              <Button type="button" variant="secondary" size="sm" onClick={() => setReplacing(true)}>
-                {secretSaved ? t("replaceSecret") : t("saveSecret")}
-              </Button>
-            )}
-          </div>
-          {replacing ? (
-            <SecretForm
+        <div className="space-y-4 border-t border-border-faint pt-4">
+          {SECRET_ENVIRONMENTS.map((environment) => (
+            <SecretSlot
+              key={environment}
               workspaceSlug={workspaceSlug}
-              action={saveSecret}
-              pending={savingSecret}
-              error={secretState.error}
-              onCancel={() => setReplacing(false)}
+              environment={environment}
+              saved={props.secrets[environment]}
+              liveModeAvailable={props.liveModeAvailable}
             />
-          ) : secretState.error ? (
-            <InlineAlert tone="danger">{secretState.error}</InlineAlert>
-          ) : null}
+          ))}
         </div>
       )}
 

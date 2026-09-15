@@ -3,13 +3,16 @@ import "server-only"
 import { and, eq } from "drizzle-orm"
 
 import { slugify } from "@/lib/utils"
-import { withUser } from "@/server/db"
-import { programs } from "@/server/db/schema"
+import { type Transaction, withUser } from "@/server/db"
+import { programAffiliates, programs } from "@/server/db/schema"
+import type { environmentEnum } from "@/server/db/schema/enums"
 import { ConflictError, NotFoundError, ValidationError } from "@/server/policies/errors"
 import { requireMembership } from "@/server/policies/workspace"
 
 import { recordAudit } from "./audit"
-import { assertWithinPlan } from "./plans"
+import { assertCanCreate, assertLiveMode, assertWithinLimit, getWorkspaceEntitlements } from "./entitlements"
+
+export type ProgramEnvironment = (typeof environmentEnum.enumValues)[number]
 
 export interface ProgramInput {
   name: string
@@ -20,6 +23,12 @@ export interface ProgramInput {
    */
   websiteUrl?: string | null
   status: "draft" | "active" | "paused" | "archived"
+  /**
+   * Chosen at creation and never changed (docs/PLANS.md §2). Required to
+   * create; on update it may be omitted, and anything but the stored value is
+   * refused.
+   */
+  environment?: ProgramEnvironment
   commissionType: "percentage" | "fixed"
   /** Basis points for percentage, minor units for fixed. */
   commissionValue: number
@@ -43,10 +52,25 @@ function assertRule(input: ProgramInput): void {
   }
 }
 
+/**
+ * The plan checks for one more program of `environment` that counts toward the
+ * limits (not archived): live needs live mode, then a free slot. Takes the
+ * per-workspace lock, so call it in the write's transaction, right before it.
+ */
+async function assertProgramSlot(tx: Transaction, workspaceId: string, environment: ProgramEnvironment) {
+  const entitlements = await getWorkspaceEntitlements(tx, workspaceId)
+  if (environment === "live") {
+    assertLiveMode(entitlements)
+    await assertWithinLimit(tx, workspaceId, entitlements, "livePrograms")
+  } else {
+    await assertWithinLimit(tx, workspaceId, entitlements, "testPrograms")
+  }
+}
+
 export async function createProgram(
   userId: string,
   workspaceId: string,
-  input: ProgramInput,
+  input: ProgramInput & { environment: ProgramEnvironment },
 ): Promise<{ id: string; slug: string }> {
   assertRule(input)
 
@@ -65,8 +89,15 @@ export async function createProgram(
     if (existing) throw new ConflictError("A program with that name already exists.", "programNameTaken")
 
     // Inside the transaction and right before the write, so the count it reads
-    // is the one the insert lands on.
-    await assertWithinPlan(tx, workspaceId, "programs")
+    // is the one the insert lands on. An archived program takes no slot, but
+    // a live one still needs live mode.
+    if (input.status === "archived") {
+      const entitlements = await getWorkspaceEntitlements(tx, workspaceId)
+      assertCanCreate(entitlements)
+      if (input.environment === "live") assertLiveMode(entitlements)
+    } else {
+      await assertProgramSlot(tx, workspaceId, input.environment)
+    }
 
     const [row] = await tx
       .insert(programs)
@@ -77,6 +108,7 @@ export async function createProgram(
         description: input.description?.trim() || null,
         websiteUrl: input.websiteUrl?.trim() || null,
         status: input.status,
+        environment: input.environment,
         commissionType: input.commissionType,
         commissionValue: input.commissionValue,
         commissionDurationMonths: input.commissionDurationMonths,
@@ -94,6 +126,7 @@ export async function createProgram(
       entityId: row!.id,
       action: "program.created",
       metadata: {
+        environment: input.environment,
         commissionType: input.commissionType,
         commissionValue: input.commissionValue,
         attributionModel: input.attributionModel,
@@ -116,12 +149,52 @@ export async function updateProgram(
     await requireMembership(tx, workspaceId, userId, "admin")
 
     const [existing] = await tx
-      .select({ id: programs.id })
+      .select({
+        id: programs.id,
+        status: programs.status,
+        environment: programs.environment,
+        currency: programs.currency,
+      })
       .from(programs)
       .where(and(eq(programs.id, programId), eq(programs.workspaceId, workspaceId)))
       .limit(1)
+      // Serialises two saves of the same program (a restore racing a restore).
+      .for("update")
 
     if (!existing) throw new NotFoundError("Program not found.", "programNotFound")
+
+    // Test data never becomes live data: going live is a new live program.
+    if (input.environment !== undefined && input.environment !== existing.environment) {
+      throw new ValidationError(
+        "A program's environment cannot change.",
+        { environment: ["Immutable."] },
+        "programEnvironmentImmutable",
+      )
+    }
+
+    const currency = input.currency.toUpperCase()
+    if (currency !== existing.currency.trim()) {
+      // A fixed custom rate is an amount in the program's currency; changing
+      // the currency would silently re-denominate it. The founder removes those
+      // rates first (percentage rates are currency-free and stay).
+      const [fixedRate] = await tx
+        .select({ id: programAffiliates.id })
+        .from(programAffiliates)
+        .where(and(eq(programAffiliates.programId, programId), eq(programAffiliates.customCommissionType, "fixed")))
+        .limit(1)
+      if (fixedRate) {
+        throw new ValidationError(
+          "Remove the fixed custom rates before changing the program's currency.",
+          { currency: ["Fixed custom rates exist."] },
+          "customRatesBlockCurrencyChange",
+        )
+      }
+    }
+
+    // Restoring takes a slot again, so it is checked like a creation.
+    if (existing.status === "archived" && input.status !== "archived") {
+      await assertProgramSlot(tx, workspaceId, existing.environment)
+    }
 
     await tx
       .update(programs)
@@ -136,7 +209,7 @@ export async function updateProgram(
         attributionModel: input.attributionModel,
         attributionWindowDays: input.attributionWindowDays,
         commissionHoldDays: input.commissionHoldDays,
-        currency: input.currency.toUpperCase(),
+        currency,
       })
       .where(eq(programs.id, programId))
 
@@ -146,7 +219,7 @@ export async function updateProgram(
       entityType: "program",
       entityId: programId,
       action: "program.updated",
-      metadata: { status: input.status },
+      metadata: { status: input.status, previousStatus: existing.status },
     })
   })
 }

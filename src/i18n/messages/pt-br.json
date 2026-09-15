@@ -33,7 +33,21 @@
     "navigation": "Navegação",
     "home": "Início",
     "commands": "Comandos",
-    "commandsLabel": "Abrir comandos"
+    "commandsLabel": "Abrir comandos",
+    "environment": {
+      "switchLabel": "Dados de teste",
+      "testOn": "Dados de teste ativados",
+      "testOff": "Mostrando dados de produção",
+      "sandboxBadge": "Sandbox · dados de teste",
+      "sandboxLabel": "Sandbox: só dados de teste. Ver planos",
+      "strip": {
+        "test": "Você está vendo dados de teste. Nada aqui é dinheiro real.",
+        "sandbox": "Sandbox: todos os dados são de teste e nenhum dinheiro real é movimentado.",
+        "liveReadOnly": "Dados de produção visíveis, mas o seu plano não processa novos eventos reais.",
+        "showLive": "Ver dados de produção",
+        "viewPlans": "Ver planos"
+      }
+    }
   },
   "palette": {
     "dialog": "Menu de comandos",
@@ -77,7 +91,7 @@
       "ctaPrimary": "Começar grátis",
       "ctaSecondary": "Ver como funciona",
       "trust": {
-        "noCard": "Sem cartão de crédito",
+        "noCard": "Comece sem cartão de crédito",
         "noFee": "Sem taxa sobre a sua receita",
         "stripe": "Integra com Stripe"
       },
@@ -122,11 +136,11 @@
         "subtitle": "Nada exige migração, contrato ou mudança no seu checkout.",
         "connect": {
           "title": "Conecte a cobrança",
-          "body": "Informe sua conta Stripe, cadastre o endereço de webhook que geramos para o seu workspace e cole o segredo de assinatura. Lemos os eventos de pagamento — nunca pedimos a chave secreta da sua API."
+          "body": "Informe sua conta Stripe, cadastre o endereço de webhook que geramos para o seu workspace e cole o segredo de assinatura — primeiro no modo de teste do Stripe, depois no de produção. Lemos os eventos de pagamento; nunca pedimos a chave secreta da sua API."
         },
         "commission": {
           "title": "Defina a comissão",
-          "body": "Percentual ou valor fixo, só no primeiro pagamento, por alguns meses ou para sempre. Seu melhor parceiro pode ter uma taxa especial."
+          "body": "Percentual ou valor fixo, só no primeiro pagamento, por alguns meses ou para sempre. No Growth, seu melhor parceiro pode ter uma taxa própria."
         },
         "invite": {
           "title": "Convide afiliados",
@@ -217,10 +231,9 @@
       },
       "pricing": {
         "eyebrow": "Preços",
-        "title": "Comece grátis. Cresça quando o canal provar valor.",
-        "cta": "Ver todos os planos",
-        "free": "Grátis",
-        "note": "Todo workspace começa no Starter. O Growth é liberado sob pedido, sem cobrança automática."
+        "title": "Comece grátis no Sandbox. Pague quando for para produção.",
+        "cta": "Ver planos e cobrança",
+        "sandbox": "Teste sua integração antes de colocar o programa em produção: modo de teste do Stripe e conversões simuladas, com dados de teste."
       },
       "closing": {
         "title": "Pronto para transformar indicações em receita?",
@@ -422,6 +435,10 @@
         "partial": "{cause} parcial: {refunded} de {base} devolvidos",
         "final": "{cause} final: {refunded} de {base} devolvidos"
       }
+    },
+    "environment": {
+      "test": "Teste",
+      "live": "Produção"
     }
   },
   "auth": {
@@ -518,35 +535,92 @@
     "title": "Preço de ferramenta, não de imposto.",
     "subtitle": "Não ficamos com um percentual da sua receita de afiliados, porque nunca tocamos no dinheiro. Você paga pela infraestrutura e fica com o ganho.",
     "plans": {
-      "starter": {
-        "name": "Starter",
-        "cadence": "enquanto você valida",
-        "description": "Tudo que você precisa para rodar um programa e provar que o canal funciona.",
-        "cta": "Começar grátis"
-      },
       "growth": {
         "name": "Growth",
-        "cadence": "por mês, combinado com a equipe",
-        "description": "Para um programa que já gera receita: sem limite de programas e afiliados, com time e registro de auditoria.",
-        "cta": "Criar conta e pedir o Growth"
+        "description": "Para times que já transformaram afiliados em um canal de aquisição."
+      },
+      "sandbox": {
+        "name": "Sandbox",
+        "description": "Teste sua integração antes de colocar o programa em produção."
+      },
+      "launch": {
+        "name": "Launch",
+        "description": "Para founders colocando o primeiro programa de afiliados em produção."
       }
     },
-    "onRequest": "Sob pedido",
-    "startsOnStarter": "Todo workspace começa no Starter. Peça o Growth em Configurações → Plano; sem cobrança automática — combinamos o pagamento com você.",
-    "next": {
-      "title": "O que acontece depois",
-      "signup": {
-        "title": "Você cria a conta",
-        "body": "O workspace começa no Starter, grátis e sem cartão. Dá para conectar o Stripe e convidar afiliados no mesmo dia."
+    "metaDescription": "Comece grátis no Sandbox com dados de teste. Launch por {launchPrice}/mês e Growth por {growthPrice}/mês, cobrados pelo Stripe. Sem taxa sobre a sua receita.",
+    "free": "Grátis",
+    "perMonth": "por mês",
+    "recommended": "Recomendado",
+    "currencyNote": "Preços em reais (BRL).",
+    "startNote": "Você começa no Sandbox, sem cartão. Ative Launch ou Growth quando for para produção — cobrança mensal pelo Stripe, cancele quando quiser.",
+    "cta": {
+      "startFree": "Começar grátis",
+      "createFreeAccount": "Criar conta grátis"
+    },
+    "lines": {
+      "limit": {
+        "livePrograms": "{count, plural, one {# programa em produção} other {# programas em produção}}",
+        "testPrograms": "{count, plural, one {# programa de teste} other {# programas de teste}}",
+        "affiliates": "Até {count, plural, one {# afiliado} other {# afiliados}}",
+        "members": "{count, plural, one {# pessoa no workspace} other {Até # pessoas no time}}"
       },
-      "request": {
-        "title": "Pede o Growth quando precisar",
-        "body": "Em Configurações → Plano você vê o uso de cada limite e envia o pedido com um clique."
+      "unlimited": {
+        "livePrograms": "Programas em produção ilimitados",
+        "testPrograms": "Programas de teste ilimitados",
+        "affiliates": "Afiliados ilimitados",
+        "members": "Pessoas ilimitadas no time",
+        "programs": "Programas ilimitados, em produção e teste"
       },
-      "contact": {
-        "title": "A gente entra em contato",
-        "body": "Combinamos o pagamento com você e liberamos o plano. Nada é cobrado automaticamente."
+      "feature": {
+        "liveMode": "Modo produção: comissões sobre pagamentos reais",
+        "customAffiliateRates": "Taxa própria por afiliado",
+        "auditLog": "Registro de auditoria"
+      },
+      "core": {
+        "tracking": "Script de rastreamento e links de indicação",
+        "attribution": "Atribuição por primeiro ou último clique, com janela",
+        "identify": "API de identificação de clientes",
+        "stripe": "Integração com Stripe, com endpoints de teste e produção",
+        "ledger": "Comissões percentuais, fixas e recorrentes, com retenção",
+        "reversals": "Estornos e disputas viram reversões",
+        "portal": "Portal do afiliado",
+        "payouts": "Lotes de pagamento com exportação em CSV",
+        "analytics": "Receita, comissões, cliques, clientes e taxa de conversão"
+      },
+      "mode": {
+        "test": "Só dados de teste (modo de teste do Stripe e conversões simuladas)",
+        "live": "Modo produção: comissões sobre pagamentos reais"
       }
+    },
+    "billing": {
+      "title": "Como funciona a cobrança",
+      "sandbox": {
+        "question": "Tem período de teste?",
+        "answer": "Não há trial pago. O Sandbox é grátis e não tem prazo: nele você integra, testa e simula conversões com dados de teste pelo tempo que precisar."
+      },
+      "activate": {
+        "question": "Como ativo um plano?",
+        "answer": "Em Configurações → Plano e cobrança, escolha Launch ou Growth e pague pelo Stripe Checkout. A cobrança é mensal."
+      },
+      "change": {
+        "question": "Como troco de plano ou cancelo?",
+        "answer": "Troca entre Launch e Growth, cartão, faturas e cancelamento ficam no portal de cobrança do Stripe, aberto a partir de Configurações."
+      },
+      "cancel": {
+        "question": "O que acontece quando cancelo?",
+        "answer": "O plano vale até o fim do período já pago. Depois, o workspace volta ao Sandbox sem apagar programas, afiliados ou comissões."
+      },
+      "pastDue": {
+        "question": "E se um pagamento falhar?",
+        "answer": "Você tem {days, plural, one {# dia} other {# dias}} de tolerância para atualizar o pagamento, com o plano funcionando normalmente. Depois disso, o processamento em produção e a criação de novos itens pausam até a assinatura ser regularizada; seus dados continuam acessíveis."
+      }
+    },
+    "testOnlyBadge": "Só teste",
+    "noExpiry": "sem prazo",
+    "core": {
+      "title": "Incluído em todos os planos",
+      "subtitle": "O produto inteiro está em todos os planos: no Sandbox com dados de teste, no Launch e no Growth em produção."
     }
   },
   "docs": {
@@ -583,7 +657,8 @@
         "apiKeys": "Chaves de API",
         "identifyApi": "API de identificação",
         "webhookEvents": "Eventos do Stripe",
-        "errors": "Erros"
+        "errors": "Erros",
+        "environments": "Teste e produção"
       },
       "subsections": {
         "trackerDetails": "O que o tracker faz",
@@ -653,7 +728,7 @@
       "items": {
         "program": "Um <strong>programa ativo</strong> com o site do produto preenchido (Programas → Novo programa).",
         "affiliate": "Pelo menos <strong>um afiliado aprovado</strong> — só participações aprovadas geram comissão.",
-        "keys": "A <strong>chave pública</strong> e a <strong>chave secreta</strong>, geradas em Integrações.",
+        "keys": "A <strong>chave pública</strong> e a <strong>chave secreta</strong> de teste, geradas em Integrações. As de produção vêm depois, com o plano ativo.",
         "stripe": "Sua <strong>conta Stripe</strong> informada em Integrações.",
         "access": "Acesso ao HTML do seu site e ao código do seu backend."
       },
@@ -662,7 +737,7 @@
     },
     "installTracker": {
       "title": "Instale o tracker no seu site",
-      "lead": "Cole a tag antes de <code>{head}</code> em todas as páginas para onde seus afiliados apontam. Use a chave pública.",
+      "lead": "Cole a tag antes de <code>{head}</code> em todas as páginas para onde seus afiliados apontam. Use a chave pública de teste enquanto valida; em produção, troque pela chave pública de produção.",
       "filename": "index.html",
       "detailsTitle": "O que o tracker faz",
       "details": {
@@ -704,16 +779,18 @@
       "lead": "É pelo webhook do Stripe que o IndicaFluxo sabe que um cliente pagou. Cada workspace tem a própria URL de webhook e o próprio segredo de assinatura. Em Integrações:",
       "steps": {
         "account": "Informe o <strong>ID da conta Stripe</strong> (<code>acct_…</code>) e continue.",
-        "webhook": "Copie a <strong>URL do webhook</strong> que aparece — ela termina no ID da sua integração. No painel do Stripe, em Desenvolvedores → Webhooks, adicione um endpoint com essa URL e selecione os eventos listados em <a>Eventos do Stripe</a>.",
-        "secret": "Na página do endpoint, revele o <strong>segredo de assinatura</strong> (<code>whsec_…</code>) e cole em Integrações. Ele fica guardado criptografado e não é exibido de novo."
+        "webhook": "Copie a <strong>URL do webhook</strong> que aparece — ela termina no ID da sua integração. No painel do Stripe, em Desenvolvedores → Webhooks, adicione um endpoint com essa URL e selecione os eventos listados em <a>Eventos do Stripe</a>. Faça isso no modo de teste e, depois, no modo de produção.",
+        "secret": "Na página de cada endpoint, revele o <strong>segredo de assinatura</strong> (<code>whsec_…</code>) e cole em Integrações, no campo do modo correspondente — teste ou produção. Cada segredo fica guardado criptografado e não é exibido de novo."
       },
       "urlLabel": "URL do webhook",
       "idempotentTitle": "Reentregas não duplicam comissão",
-      "idempotentBody": "Cada evento é verificado pela assinatura e registrado uma única vez. Se o Stripe reenviar, o evento é reconhecido e ignorado.",
+      "idempotentBody": "Cada evento é verificado pela assinatura e registrado uma única vez. Se o Stripe reenviar um evento já registrado, ele é reconhecido e ignorado; se o registro tinha falhado, a nova tentativa processa o evento de novo.",
       "currencyTitle": "Mesma moeda do programa",
       "currencyBody": "Um pagamento só gera comissão se estiver na moeda do programa. Um programa em BRL ignora pagamentos em USD.",
       "urlPlaceholder": "ID_DA_INTEGRACAO",
-      "verify": "Para confirmar, envie um evento de teste pelo Stripe. Integrações mostra <strong>Recebendo eventos</strong> com a hora do último evento; se a assinatura não conferir, mostra <strong>assinatura inválida</strong> — quase sempre um segredo de outro endpoint."
+      "verify": "Para confirmar, envie um evento de teste pelo Stripe. Integrações mostra <strong>Recebendo eventos</strong> com a hora do último evento; se a assinatura não conferir, mostra <strong>assinatura inválida</strong> — quase sempre um segredo de outro endpoint.",
+      "modesTitle": "Um endpoint por modo do Stripe",
+      "modesBody": "A mesma URL recebe os eventos dos dois endpoints. O campo <code>livemode</code> de cada evento decide para onde ele vai: eventos de teste só alcançam programas de teste e eventos de produção, só programas em produção. Um evento assinado pelo segredo do outro modo é recusado. Veja <a>Teste e produção</a>."
     },
     "commission": {
       "title": "Entenda como a comissão é calculada",
@@ -767,7 +844,7 @@
     },
     "apiKeys": {
       "title": "Chaves de API",
-      "lead": "Cada workspace tem dois tipos de chave, geradas em Integrações.",
+      "lead": "Cada workspace tem dois tipos de chave, cada um em teste e em produção, gerados em Integrações. Uma chave de teste nunca alcança um programa em produção, e vice-versa.",
       "publishable": {
         "title": "Chave pública",
         "where": "Pode ficar no navegador",
@@ -792,7 +869,7 @@
       "method": "Método",
       "endpoint": "Endpoint",
       "auth": "Autenticação",
-      "authValue": "<code>Authorization: Bearer sk_live_…</code> (chave secreta)",
+      "authValue": "<code>Authorization: Bearer sk_test_…</code> ou <code>sk_live_…</code> (chave secreta)",
       "body": "Corpo",
       "bodyValue": "JSON — veja <a>Campos</a>",
       "rateLimit": "Limite",
@@ -827,11 +904,54 @@
         "invalid_payload": "O corpo não é um JSON válido para o contrato.",
         "invalid_visitor": "O <code>visitorId</code> não segue o formato <code>v_…</code>.",
         "validation_error": "Um campo obrigatório está vazio.",
-        "unknown_key": "Tracker: a chave pública não pertence a nenhum workspace.",
+        "unknown_key": "Tracker: a chave pública não existe ou foi substituída por uma nova.",
         "invalid_ref": "Tracker: o código de indicação tem formato inválido.",
         "rate_limited": "Limite excedido. Respeite o header <code>Retry-After</code>.",
-        "internal_error": "Falha inesperada do nosso lado. Tente de novo."
+        "internal_error": "Falha inesperada do nosso lado. Tente de novo.",
+        "LIVE_MODE_REQUIRED": "Chave de produção num workspace sem plano com produção (Launch ou Growth).",
+        "SUBSCRIPTION_REQUIRED": "Chave de produção com a assinatura em atraso além do prazo de carência."
       }
+    },
+    "environments": {
+      "title": "Teste e produção",
+      "lead": "Todo programa nasce em <strong>teste</strong> ou em <strong>produção</strong> e não muda depois. Os dois ambientes ficam no mesmo workspace, mas nunca se misturam: cliques, clientes, pagamentos e comissões de teste nunca entram no registro de produção.",
+      "head": {
+        "what": "Item",
+        "test": "Teste",
+        "live": "Produção"
+      },
+      "rows": {
+        "keys": {
+          "label": "Chaves",
+          "test": "<code>pk_test_…</code> e <code>sk_test_…</code>",
+          "live": "<code>pk_live_…</code> e <code>sk_live_…</code>"
+        },
+        "programs": {
+          "label": "Alcançam",
+          "test": "Só programas de teste",
+          "live": "Só programas em produção"
+        },
+        "stripe": {
+          "label": "Stripe",
+          "test": "Endpoint do modo de teste, eventos com <code>livemode: false</code>",
+          "live": "Endpoint do modo de produção, eventos com <code>livemode: true</code>"
+        },
+        "plan": {
+          "label": "Plano",
+          "test": "Todos, inclusive o Sandbox",
+          "live": "Launch ou Growth ativo"
+        }
+      },
+      "withoutLiveTitle": "Sem um plano com produção",
+      "withoutLive": {
+        "track": "<code>/api/track</code> com uma chave de produção responde <code>204</code> e não registra nada.",
+        "identify": "<code>/api/identify</code> com uma chave de produção responde <code>402</code> com <code>LIVE_MODE_REQUIRED</code>.",
+        "webhook": "Eventos de produção do Stripe são confirmados, mas não processados nem registrados — reenvie pelo painel do Stripe depois de ativar o plano."
+      },
+      "planTitle": "Produção exige Launch ou Growth",
+      "planBody": "O modo de produção faz parte dos planos <pricing>Launch e Growth</pricing>. Com o pagamento em atraso além do prazo de carência, o processamento de produção para até a assinatura ser regularizada (<code>SUBSCRIPTION_REQUIRED</code>).",
+      "simulateTitle": "Teste sem Stripe",
+      "simulateBody": "Na página de um programa de teste, “Simular conversão” faz o caminho inteiro — clique, identificação e pagamento — pelos mesmos serviços da integração real, e também simula renovação e estorno."
     }
   },
   "status": {
@@ -874,7 +994,7 @@
         "commissions": "Comissões",
         "activeAffiliates": "Afiliados ativos",
         "customers": "Clientes conquistados",
-        "netRevenueAfter": "{amount} de receita líquida",
+        "netRevenueAfter": "{amount} de receita após comissões",
         "conversionOfClicks": "{rate} de {clicks, plural, one {# clique} other {# cliques}}",
         "comparisonInCurrency": "Em {currency}, vs. {days} dias anteriores",
         "ofApproved": "{count, plural, one {com clique ou venda no período · # aprovado} other {com clique ou venda no período · # aprovados}}"
@@ -936,6 +1056,20 @@
             "description": "Cole o código de rastreamento no seu site. Este passo é marcado sozinho quando chegar o primeiro clique em um link de indicação.",
             "action": "Ver código de rastreamento",
             "actionDone": "Ver integração"
+          },
+          "testConversion": {
+            "title": "Testar uma conversão",
+            "titleDone": "Conversão de teste registrada",
+            "description": "Simule um clique, um cadastro e um pagamento no programa de teste. A comissão passa pelo mesmo caminho de uma venda real, sem dinheiro de verdade.",
+            "action": "Simular conversão",
+            "actionDone": "Ver programa"
+          },
+          "liveMode": {
+            "title": "Ativar modo produção",
+            "titleDone": "Modo produção ativo",
+            "description": "Com o Launch ou o Growth, seus programas em produção registram vendas reais e comissões de verdade.",
+            "action": "Ver planos",
+            "actionDone": "Ver plano"
           }
         }
       },
@@ -996,7 +1130,14 @@
       },
       "otherCurrenciesExcluded": "+ comissões em outra moeda",
       "filtersLabel": "Filtrar afiliados",
-      "pendingCount": "{count, plural, one {# aguardando aprovação} other {# aguardando aprovação}}"
+      "pendingCount": "{count, plural, one {# aguardando aprovação} other {# aguardando aprovação}}",
+      "planLimit": {
+        "atTitle": "Seu plano inclui até {limit, plural, one {# afiliado ativo} other {# afiliados ativos}}, e esse limite foi atingido",
+        "overTitle": "{used} afiliados ativos, acima do limite de {limit} do seu plano",
+        "body": "Os afiliados atuais continuam ganhando. Para convidar ou aprovar novos, recuse ou suspenda afiliados, ou mude de plano.",
+        "bodyUpgrade": "Os afiliados atuais continuam ganhando. Para convidar ou aprovar novos, recuse ou suspenda afiliados, ou mude para o {plan, select, launch {Launch} growth {Growth} scale {Scale} other {Sandbox}} ({price}/mês).",
+        "action": "Ver planos"
+      }
     },
     "commissions": {
       "title": "Comissões",
@@ -1087,7 +1228,8 @@
       "availableOtherCurrencies": "+ {amounts}",
       "readyToPayByCurrency": "Um lote tem uma só moeda. Escolha a moeda e depois quem entra no lote; as outras moedas ficam para um lote próprio.",
       "currencyTabs": "Moedas a pagar",
-      "memberReadOnly": "Somente proprietários e administradores escolhem quem entra em um lote de pagamento. Aqui você acompanha os totais e o histórico."
+      "memberReadOnly": "Somente proprietários e administradores escolhem quem entra em um lote de pagamento. Aqui você acompanha os totais e o histórico.",
+      "testBatch": "Lote de teste"
     },
     "programs": {
       "title": "Programas",
@@ -1108,10 +1250,20 @@
         "action": "Criar seu primeiro programa"
       },
       "attributionDefinition": "Quem recebe o crédito pela venda (primeiro ou último clique) e por quantos dias depois do clique.",
-      "planLimit": {
-        "title": "Seu plano inclui {limit, plural, one {# programa} other {# programas}}",
-        "description": "Para criar outro programa, solicite a mudança de plano em Configurações.",
-        "action": "Ver plano"
+      "planNotice": {
+        "upgradeTitle": "Vários programas estão disponíveis no {plan, select, launch {Launch} growth {Growth} scale {Scale} other {Sandbox}}.",
+        "upgradePrice": "{price}/mês",
+        "upgradeAction": "Conhecer {plan, select, launch {Launch} growth {Growth} scale {Scale} other {Sandbox}}",
+        "restrictedTitle": "O pagamento da assinatura está atrasado",
+        "restrictedBody": "Seus programas continuam visíveis, mas nada novo pode ser criado até o pagamento ser regularizado.",
+        "restrictedAction": "Atualizar pagamento"
+      },
+      "usage": {
+        "live": "Produção: {used} de {limit}",
+        "liveUnlimited": "Produção: {used}",
+        "liveUnavailable": "Produção: a partir do Launch",
+        "test": "Teste: {used} de {limit}",
+        "testUnlimited": "Teste: {used}"
       }
     },
     "newProgram": {
@@ -1130,7 +1282,7 @@
     },
     "settings": {
       "title": "Configurações",
-      "description": "Detalhes do workspace e acesso do time.",
+      "description": "Detalhes do workspace, plano e cobrança, e acesso do time.",
       "team": {
         "title": "Time",
         "description": "Membros veem tudo neste workspace. Só donos e admins podem alterar programas, pagamentos e chaves.",
@@ -1161,7 +1313,12 @@
         "resendTitle": "Reenviar convite",
         "resendBody": "Vamos enviar o e-mail de convite de novo para {email}. Você também recebe um link para encaminhar.",
         "resendConfirm": "Reenviar e-mail",
-        "done": "Concluir"
+        "done": "Concluir",
+        "expiredRole": "Convite expirado · {role}",
+        "expiresOn": "Expira em {date}",
+        "expiredOn": "Expirou em {date}",
+        "renew": "Reenviar e renovar",
+        "renewBody": "O convite para {email} expirou. Vamos enviá-lo de novo, válido por mais 14 dias. Ele volta a contar no limite de pessoas do plano."
       },
       "readOnly": "Só donos e admins podem alterar o workspace. Seu papel aqui é {role}."
     },
@@ -1213,6 +1370,11 @@
         "menuLabel": "Ações para {name}",
         "viewAffiliate": "Ver afiliado",
         "viewCommissions": "Ver comissões"
+      },
+      "simulation": {
+        "title": "Programa de teste",
+        "description": "Simule um clique, um cadastro e um pagamento para ver a comissão nascer, sem Stripe e sem dinheiro real.",
+        "needsAffiliate": "Aprove um afiliado neste programa para simular uma conversão sem Stripe."
       }
     },
     "error": {
@@ -1422,7 +1584,13 @@
         "inBatchNote": "Já incluída em um pagamento que o dono do programa vai fazer."
       },
       "chartSummary": "{amount} em comissões nos últimos 30 dias, {days, plural, =0 {sem nenhum dia com comissão} one {com comissão em # dia} other {com comissão em # dias}}.",
-      "chartDaysTitle": "Dias mais recentes com comissão"
+      "chartDaysTitle": "Dias mais recentes com comissão",
+      "test": {
+        "title": "Programas de teste",
+        "description": "Comissões de programas de teste servem para ensaiar a integração. Não são dinheiro a receber e não entram nos seus saldos.",
+        "commission": "Comissões de teste",
+        "unpaid": "Em aberto (teste)"
+      }
     },
     "links": {
       "title": "Links",
@@ -1652,6 +1820,23 @@
         "statusBody": "Com o status “{status}”, os cliques nos links continuam registrados, mas nenhum visitante novo é atribuído a afiliados — vale para todos os afiliados do programa. Clientes já atribuídos continuam gerando comissões.",
         "currencyBody": "As comissões já registradas continuam em {from}. Depois de salvar, só pagamentos em {to} geram comissão neste programa; pagamentos em {from} deixam de gerar.",
         "action": "Salvar alterações"
+      },
+      "environment": {
+        "label": "Ambiente",
+        "test": "Teste",
+        "testAtLimit": "Teste (limite do plano atingido)",
+        "live": "Produção",
+        "liveUnavailable": "Produção (indisponível no plano atual)",
+        "hintTest": "Recebe só chaves de teste e eventos do modo de teste do Stripe. Nenhum dinheiro real. Não muda depois de criado.",
+        "hintLive": "Recebe chaves de produção e pagamentos reais do Stripe. Não muda depois de criado.",
+        "planTitle": "Programas em produção estão disponíveis a partir do Launch",
+        "planBody": "No Sandbox você testa a integração inteira com dados de teste. Para registrar vendas reais, ative um plano.",
+        "limitTitle": "Seu plano chegou ao limite de programas em produção",
+        "limitBody": "Arquive um programa em produção ou mude de plano para criar outro.",
+        "planAction": "Ver planos",
+        "copyFrom": "Copiar configurações de um programa de teste",
+        "copyFromHint": "Preenche comissão, atribuição, retenção e moeda. O nome continua sendo o que você digitar.",
+        "copyFromNone": "Não copiar"
       }
     },
     "workspace": {
@@ -1711,11 +1896,12 @@
       "createdTitle": "Convite criado",
       "createdDescription": "{name} já está no programa, com o código de indicação pronto.",
       "inviteAnother": "Convidar outro",
-      "done": "Concluir"
+      "done": "Concluir",
+      "customRateUpgrade": "Taxa especial por afiliado faz parte do Growth. <link>Ver planos</link>"
     },
     "apiKeys": {
       "title": "Chaves de API",
-      "description": "A chave pública vai no código de rastreamento do seu site. A chave secreta é só para chamadas do seu servidor a <code>/api/identify</code>.",
+      "description": "A chave pública vai no código de rastreamento do seu site. A chave secreta é só para chamadas do seu servidor a <code>/api/identify</code>. Chaves de teste alcançam só programas de teste; chaves de produção, só programas em produção.",
       "revealWarning": "Copie agora — ela não será exibida de novo.",
       "key": "Chave",
       "type": "Tipo",
@@ -1726,7 +1912,7 @@
       "typePublishable": "Pública",
       "neverUsed": "Nunca",
       "snippetHint": "Cole antes de <code>{head}</code> no site para onde seus afiliados apontam. Ele grava um cookie do próprio site e informa o código de indicação.",
-      "revealTitle": "{type, select, secret {Nova chave secreta gerada} other {Nova chave pública gerada}}",
+      "revealTitle": "{type, select, secret {Nova chave secreta} other {Nova chave pública}} {environment, select, live {de produção gerada} other {de teste gerada}}",
       "generate": "Gerar chave",
       "generatePublishable": "Gerar nova chave pública",
       "noKey": "Nenhuma chave ativa",
@@ -1734,7 +1920,7 @@
       "snippetLocked": "A chave pública completa só aparece na criação; o código já instalado continua funcionando. Gerar uma nova invalida a atual.",
       "snippetNoKey": "Gere uma chave pública para completar o código e instalar o rastreamento.",
       "snippetReady": "Este código já contém a nova chave. Cole no seu site no lugar do código anterior, se houver.",
-      "confirmTitle": "{type, select, secret {Gerar nova chave secreta?} other {Gerar nova chave pública?}}",
+      "confirmTitle": "{type, select, secret {Gerar nova chave secreta} other {Gerar nova chave pública}} {environment, select, live {de produção?} other {de teste?}}",
       "confirmPublishable": "A chave pública atual para de funcionar na hora. O código de rastreamento instalado no seu site deixa de registrar cliques até você trocá-lo pelo código com a nova chave.",
       "confirmSecret": "A chave secreta atual para de funcionar na hora. As chamadas do seu servidor a /api/identify falham até você atualizar a chave.",
       "confirmAction": "Gerar nova chave",
@@ -1746,7 +1932,22 @@
       "adminOnly": "Só administradores podem ver e gerar chaves de API.",
       "snippetFirstStep": "Gere a chave pública acima para completar este código.",
       "lastClick": "Último clique registrado {when}.",
-      "noClicks": "Nenhum clique registrado ainda. Depois de instalar o código, abra um link de indicação para testar."
+      "noClicks": "Nenhum clique registrado ainda. Depois de instalar o código, abra um link de indicação para testar.",
+      "environments": {
+        "test": {
+          "title": "Chaves de teste",
+          "description": "Para desenvolvimento e homologação. Registram cliques, clientes e comissões só nos programas de teste — nenhum valor real. Funcionam em todos os planos."
+        },
+        "live": {
+          "title": "Chaves de produção",
+          "description": "Para o seu site e o seu servidor em produção. Registram comissões reais nos programas em produção."
+        }
+      },
+      "liveLocked": {
+        "title": "Produção faz parte do Launch e do Growth",
+        "description": "No Sandbox, rastreamento, identificação e webhooks funcionam com dados de teste. Ative um plano para gerar chaves de produção.",
+        "action": "Ver plano"
+      }
     },
     "payable": {
       "selectAll": "Selecionar todos os afiliados",
@@ -1818,12 +2019,12 @@
         },
         "webhook": {
           "title": "Adicione o webhook no Stripe",
-          "description": "No painel do Stripe, em <strong>Desenvolvedores → Webhooks</strong>, adicione um endpoint com esta URL — ela é exclusiva deste workspace — e selecione os eventos abaixo.",
+          "description": "No painel do Stripe, em <strong>Desenvolvedores → Webhooks</strong>, adicione um endpoint com esta URL — ela é exclusiva deste workspace — e selecione os eventos abaixo. Faça isso com o modo de teste ligado e, quando for para produção, também no modo de produção: cada modo tem o próprio endpoint e o próprio segredo.",
           "events": "Eventos para selecionar"
         },
         "secret": {
           "title": "Cole o segredo de assinatura",
-          "description": "Na página do endpoint que você criou, revele o <strong>segredo de assinatura</strong> (Signing secret) e cole aqui. É com ele que confirmamos que cada evento veio mesmo do seu Stripe."
+          "description": "Na página de cada endpoint, revele o <strong>segredo de assinatura</strong> (Signing secret) e cole no campo do modo correspondente. Um basta para começar; o outro pode ser salvo depois."
         }
       },
       "health": {
@@ -1837,6 +2038,24 @@
         "rejectedBody": "Uma entrega chegou {when} com uma assinatura que não confere com o segredo salvo. Confira se você copiou o segredo deste endpoint e substitua abaixo.",
         "errorTitle": "A conexão com o Stripe está com erro",
         "errorBody": "Novas comissões podem não estar sendo registradas. Confira o endpoint no painel do Stripe e substitua o segredo de assinatura."
+      },
+      "secretEnvironments": {
+        "test": {
+          "label": "Segredo do endpoint de teste",
+          "hint": "Do endpoint criado com o modo de teste do Stripe ligado. Começa com whsec_; fica guardado criptografado e não é exibido de novo."
+        },
+        "live": {
+          "label": "Segredo do endpoint de produção",
+          "hint": "Do endpoint criado no modo de produção do Stripe. Começa com whsec_; fica guardado criptografado e não é exibido de novo."
+        }
+      },
+      "secretMissingEnvironment": "Não salvo — os eventos deste modo são recusados.",
+      "liveNeedsPlan": "Eventos de produção são confirmados ao Stripe, mas só geram comissões com o Launch ou o Growth ativo. Até lá, dá para reenviá-los pelo painel do Stripe depois de ativar o plano.",
+      "evidence": {
+        "lastEvent": "{environment, select, live {Último evento de produção} other {Último evento de teste}} {when}",
+        "lastRecorded": "{environment, select, live {Último pagamento de produção registrado} other {Último pagamento de teste registrado}} {when}",
+        "failed": "{environment, select, live {Último evento de produção falhou} other {Último evento de teste falhou}} {when}",
+        "none": "{environment, select, live {Nenhum evento de produção recebido ainda.} other {Nenhum evento de teste recebido ainda.}}"
       }
     },
     "affiliateActions": {
@@ -1866,7 +2085,11 @@
       "hintFixed": "Na moeda do programa, pago por venda.",
       "current": "Taxa especial atual: {rate}.",
       "save": "Salvar taxa",
-      "remove": "Remover taxa especial"
+      "remove": "Remover taxa especial",
+      "upgradeTitle": "Taxas especiais por afiliado fazem parte do Growth",
+      "upgradeBody": "No plano atual, todos os afiliados ganham a taxa do programa.",
+      "upgradeBodyExisting": "A taxa atual continua valendo. No plano atual você pode removê-la, mas não alterá-la.",
+      "upgradeAction": "Ver planos"
     },
     "inviteOutcome": {
       "sent": "Convite enviado para {email}.",
@@ -1881,6 +2104,33 @@
       "hintSent": "Envie este link se o e-mail não chegar.",
       "hintNotSent": "Pelo link, a pessoa cria a conta com {email} e, ao confirmar o e-mail, o convite é aceito.",
       "hintLogin": "A pessoa entra com a conta que já tem e o convite é aceito."
+    },
+    "sandbox": {
+      "trigger": "Simular conversão",
+      "title": "Simular uma conversão de teste",
+      "description": "Um visitante fictício clica no link do afiliado, cria conta e paga. Tudo passa pelos mesmos serviços de um clique, de uma identificação e de um pagamento reais, só com dados de teste.",
+      "affiliate": "Afiliado",
+      "amount": "Valor do pagamento ({currency})",
+      "amountHint": "Na moeda do programa, por exemplo 49,90.",
+      "amountPlaceholder": "49,90",
+      "externalId": "ID do cliente",
+      "externalIdHint": "Opcional. Sem ele, criamos um ID começando com sim_.",
+      "submit": "Simular",
+      "result": {
+        "title": "Conversão simulada",
+        "description": "O clique, o cliente, o pagamento e a comissão já aparecem nas telas de teste.",
+        "noCommission": "O pagamento foi registrado, mas não gerou comissão. Confira as regras do programa.",
+        "commission": "Comissão de {amount} registrada · {status} a partir de {date}.",
+        "reversal": "Estorno registrado: a comissão de {amount} foi revertida.",
+        "customer": "Cliente simulado:"
+      },
+      "renewalAmount": "Valor da renovação",
+      "renewalHint": "Um segundo pagamento do mesmo cliente. Gera comissão recorrente se o programa pagar renovações.",
+      "renew": "Simular renovação",
+      "refundHint": "Estorna o último pagamento deste cliente por inteiro. A comissão é revertida, nunca apagada.",
+      "refund": "Simular estorno",
+      "again": "Simular outra",
+      "done": "Concluir"
     }
   },
   "errors": {
@@ -1998,21 +2248,50 @@
     "linkNotFound": "Esse link não existe mais. Atualize a página.",
     "linkNotSaved": "Não foi possível renomear o link.",
     "linkNotDeleted": "Não foi possível excluir o link.",
-    "planLimit": {
-      "programs": "Você chegou ao limite de programas do seu plano. Veja o uso e peça o Growth em Configurações → Plano.",
-      "affiliates": "Você chegou ao limite de afiliados do seu plano. Veja o uso e peça o Growth em Configurações → Plano.",
-      "members": "Você chegou ao limite de pessoas no time do seu plano (convites pendentes contam). Veja o uso em Configurações → Plano."
-    },
-    "planFeature": {
-      "customRates": "Taxas personalizadas por afiliado fazem parte do Growth. Peça a mudança em Configurações → Plano.",
-      "teamInvites": "Convidar pessoas para o time faz parte do Growth. Peça a mudança em Configurações → Plano.",
-      "auditLog": "O registro de auditoria faz parte do Growth. Peça a mudança em Configurações → Plano."
-    },
     "planAlreadyIncluded": "Este workspace já está nesse plano ou em um superior.",
     "planUpgradeNotRequested": "Não foi possível enviar o pedido de mudança de plano. Tente de novo.",
     "stripeSecretInvalid": "Cole o segredo de assinatura do endpoint, que começa com whsec_.",
     "stripeSecretNotSaved": "Não foi possível salvar o segredo de assinatura.",
-    "stripeSetupMissing": "Informe a conta Stripe (passo 1) antes de salvar o segredo."
+    "stripeSetupMissing": "Informe a conta Stripe (passo 1) antes de salvar o segredo.",
+    "billing": {
+      "notConfigured": "A cobrança automática não está disponível no momento. Peça o plano pela solicitação manual.",
+      "alreadySubscribed": "Este workspace já tem uma assinatura. Para trocar de plano, atualizar o cartão ou cancelar, use o portal de cobrança.",
+      "planNotPurchasable": "Este plano não está à venda.",
+      "noBillingAccount": "Este workspace ainda não tem uma conta de cobrança. Assine um plano primeiro.",
+      "noActiveSubscription": "Não há uma assinatura ativa para alterar. Assine um plano primeiro.",
+      "planUnchanged": "A assinatura já está neste plano.",
+      "checkoutFailed": "Não foi possível abrir o pagamento. Tente de novo em instantes.",
+      "portalFailed": "Não foi possível abrir o portal de cobrança. Tente de novo em instantes.",
+      "useCheckout": "Os planos são ativados pelo pagamento em Configurações → Plano e cobrança."
+    },
+    "programArchived": "Este programa está arquivado e não recebe novos afiliados.",
+    "programEnvironmentImmutable": "O ambiente de um programa não muda. Para ir para produção, crie um programa em produção.",
+    "customRatesBlockCurrencyChange": "Há afiliados com taxa especial de valor fixo neste programa. Remova essas taxas antes de mudar a moeda.",
+    "participationInactive": "Sua participação neste programa está suspensa ou foi recusada, então não é possível criar links.",
+    "batchFullyReversed": "Todas as comissões deste lote foram estornadas. Cancele o lote em vez de marcá-lo como pago.",
+    "plan": {
+      "limit": {
+        "livePrograms": "Seu plano chegou ao limite de programas em produção. Vários programas estão disponíveis no Growth.",
+        "testPrograms": "Seu plano chegou ao limite de programas de teste. Arquive um programa de teste ou mude de plano.",
+        "affiliates": "Seu plano chegou ao limite de afiliados ativos. Recuse, suspenda afiliados ou mude de plano.",
+        "members": "Seu plano chegou ao limite de pessoas no time (convites pendentes contam)."
+      },
+      "feature": {
+        "customAffiliateRates": "Taxas personalizadas por afiliado estão disponíveis no Growth.",
+        "auditLog": "O registro de auditoria está disponível no Growth.",
+        "liveMode": "O modo produção está disponível a partir do Launch."
+      },
+      "liveModeRequired": "Dados em produção precisam de uma assinatura Launch ou Growth ativa.",
+      "subscriptionRequired": "O pagamento da assinatura está atrasado. Atualize a forma de pagamento em Configurações → Plano e cobrança para continuar criando e processando dados em produção."
+    },
+    "sandboxAmountInvalid": "Informe um valor maior que zero, por exemplo 49,90.",
+    "sandboxExternalIdInvalid": "Use só letras, números e os caracteres _ . : @ - no ID do cliente.",
+    "sandboxNotSimulated": "Não foi possível simular. Tente de novo.",
+    "sandboxLiveProgram": "Só programas de teste aceitam simulação. Em produção, as conversões vêm do seu site e do Stripe.",
+    "sandboxProgramNotActive": "Ative o programa para simular uma conversão.",
+    "sandboxAffiliateNotApproved": "Aprove o afiliado para simular uma conversão.",
+    "sandboxCustomerTaken": "Esse ID já pertence a um cliente de teste. Use outro ou deixe em branco.",
+    "sandboxCustomerNotFound": "Não encontramos esse cliente simulado. Simule uma conversão primeiro."
   },
   "success": {
     "programSaved": "Programa salvo.",
@@ -2042,7 +2321,10 @@
     "linkDeleted": "Link excluído. Os cliques e as comissões dele continuam valendo.",
     "planUpgradeRequested": "Pedido enviado. Nossa equipe entra em contato para combinar o pagamento.",
     "stripeAccountSaved": "Conta salva. Agora adicione a URL do webhook no Stripe.",
-    "stripeSecretSaved": "Segredo salvo. Envie um evento de teste pelo Stripe para confirmar que está tudo funcionando."
+    "stripeSecretSaved": "Segredo salvo. Envie um evento de teste pelo Stripe para confirmar que está tudo funcionando.",
+    "sandboxConversionSimulated": "Conversão simulada.",
+    "sandboxRenewalSimulated": "Renovação simulada.",
+    "sandboxRefundSimulated": "Estorno simulado."
   },
   "notFound": {
     "title": "Página não encontrada",
@@ -2052,58 +2334,84 @@
   },
   "plans": {
     "names": {
-      "starter": "Starter",
-      "growth": "Growth"
-    },
-    "lines": {
-      "limit": {
-        "programs": "{count, plural, one {# programa} other {Até # programas}}",
-        "affiliates": "Até {count, plural, one {# afiliado} other {# afiliados}}",
-        "members": "{count, plural, one {Só você no workspace} other {Até # pessoas no time}}"
-      },
-      "unlimited": {
-        "programs": "Programas ilimitados",
-        "affiliates": "Afiliados ilimitados",
-        "members": "Pessoas ilimitadas no time"
-      },
-      "feature": {
-        "customRates": "Taxas personalizadas por afiliado",
-        "teamInvites": "Convites para o time",
-        "auditLog": "Registro de auditoria"
-      },
-      "base": {
-        "stripe": "Integração com o Stripe",
-        "tracking": "Rastreamento de cliques e atribuição",
-        "ledger": "Registro de comissões com retenção e estornos",
-        "payouts": "Lotes de pagamento com exportação em CSV",
-        "portal": "Portal do afiliado"
-      },
-      "notIncluded": "não incluído"
+      "growth": "Growth",
+      "sandbox": "Sandbox",
+      "launch": "Launch",
+      "scale": "Scale"
     },
     "panel": {
-      "title": "Plano",
-      "description": "O que este workspace inclui e quanto dele já está em uso.",
+      "title": "Plano e cobrança",
+      "description": "O plano do workspace, a cobrança e quanto de cada limite já está em uso.",
       "current": "Plano atual",
       "summary": {
-        "starter": "Grátis. Para rodar um programa e provar que o canal funciona.",
-        "growth": "Para um programa que já gera receita: mais programas, afiliados e pessoas no time."
+        "growth": "Para quando o programa vira canal: escala, time e controle.",
+        "sandbox": "Grátis e só com dados de teste: monte o programa, simule conversões e prove a integração antes de pagar.",
+        "launch": "O essencial em produção, para um primeiro programa com vendas reais.",
+        "scale": "Os recursos do Growth, em condições combinadas com a nossa equipe."
       },
       "usageTitle": "Uso",
       "resources": {
-        "programs": "Programas",
         "affiliates": "Afiliados",
-        "members": "Pessoas no time"
+        "members": "Membros",
+        "livePrograms": "Programas em produção",
+        "testPrograms": "Programas de teste"
       },
-      "usageOf": "{used} de {limit}",
-      "usageUnlimited": "{used} · ilimitado",
+      "usageOf": "{used} / {limit}",
       "atLimit": "No limite",
       "membersHint": "Conta quem já está no workspace e os convites pendentes.",
-      "upgradeTitle": "O que o {plan} acrescenta",
-      "noBilling": "Não há cobrança automática nem cartão cadastrado. Ao pedir o {plan}, nossa equipe entra em contato para combinar o pagamento e libera o plano no seu workspace.",
       "request": "Pedir o {plan}",
       "requested": "Pedido do {plan} enviado em {date} — entraremos em contato.",
-      "readOnly": "Só donos e admins podem pedir a mudança de plano.",
-      "highest": "Este workspace já está no plano mais completo."
+      "readOnly": "Só donos e admins podem mudar o plano e a cobrança.",
+      "highest": "Este workspace já está no plano mais completo.",
+      "status": {
+        "sandbox": "Sandbox",
+        "active": "Ativo",
+        "trialing": "Em teste",
+        "trialingUntil": "Em teste até {date}",
+        "graceUntil": "Pagamento atrasado — até {date}",
+        "restricted": "Restrito",
+        "cancellingOn": "Cancela em {date}"
+      },
+      "free": "Grátis",
+      "perMonth": "{price}/mês",
+      "charge": {
+        "sandbox": "Sem cobrança",
+        "restricted": "Produção pausada e criação bloqueada até o pagamento ser regularizado",
+        "grace": "Atualize a forma de pagamento para não interromper a produção",
+        "endsOn": "Termina em {date} e não será renovado",
+        "nextOn": "Próxima cobrança em {date}",
+        "manual": "Ativado pela nossa equipe"
+      },
+      "manage": "Gerenciar cobrança",
+      "return": {
+        "success": "Pagamento confirmado pelo Stripe — o plano é ativado assim que recebermos a confirmação (alguns segundos).",
+        "cancelled": "Pagamento cancelado. Nada foi cobrado e o plano continua o mesmo."
+      },
+      "overLimit": {
+        "title": "Acima do limite do plano",
+        "body": "Nada foi apagado; não é possível criar novos até o uso caber no plano."
+      },
+      "usageUnavailable": "Não incluído no {plan}",
+      "over": "Acima do limite",
+      "affiliatesHint": "Contam afiliados não suspensos com participação pendente ou aprovada.",
+      "options": {
+        "activateTitle": "Ativar um plano",
+        "activateDescription": "O Sandbox processa só dados de teste. Para registrar vendas reais, ative um plano.",
+        "changeTitle": "Mudar de plano"
+      },
+      "recommended": "Recomendado",
+      "actions": {
+        "activate": "Ativar {name}",
+        "change": "Mudar para o {name}",
+        "request": "Pedir o {name}",
+        "contact": "Seu plano foi ativado pela nossa equipe. Para mudar para o {name}, fale com a gente."
+      },
+      "downgradeNote": "Nada é apagado ao mudar para o {name}. Se o uso passar dos limites dele, tudo continua visível, mas não é possível criar novos itens até o uso caber no plano.",
+      "manualRequest": {
+        "sent": "Pedido do {plan} enviado em {date}. Nossa equipe entra em contato.",
+        "note": "A cobrança automática ainda não está disponível. Ao pedir um plano, nossa equipe entra em contato para combinar o pagamento e ativa o plano no seu workspace."
+      },
+      "core": "Todos os planos incluem o essencial (no Sandbox, só com dados de teste): script de rastreamento e links de indicação, atribuição por primeiro ou último clique, API identify, integração com o Stripe, comissões com retenção e recorrência, estornos e disputas como reversões, portal do afiliado, lotes de pagamento com exportação em CSV e relatórios essenciais."
     },
     "audit": {
       "title": "Registro de auditoria",
@@ -2124,8 +2432,7 @@
         "description": "Mudanças em programas, taxas, pagamentos e integrações aparecem aqui, com quem fez e quando."
       },
       "locked": {
-        "title": "O registro de auditoria faz parte do {plan}",
-        "description": "Veja quem mudou taxas, pagamentos e integrações, e quando. Peça o {plan} na seção Plano, acima."
+        "summary": "Veja quem mudou taxas, pagamentos, integrações e o time, e quando. As alterações continuam sendo registradas em qualquer plano."
       },
       "actions": {
         "workspace": {
@@ -2170,9 +2477,52 @@
           "revoked": "Chave de API revogada"
         },
         "plan": {
-          "upgrade_requested": "Mudança de plano solicitada"
+          "upgrade_requested": "Mudança de plano solicitada",
+          "subscription_changed": "Assinatura do plano alterada"
         }
       }
+    },
+    "capabilities": {
+      "limit": {
+        "livePrograms": "{count, plural, =0 {Sem programas em produção} one {# programa em produção} other {Até # programas em produção}}",
+        "testPrograms": "{count, plural, =0 {Sem programas de teste} one {# programa de teste} other {Até # programas de teste}}",
+        "affiliates": "{count, plural, one {# afiliado ativo} other {Até # afiliados ativos}}",
+        "members": "{count, plural, one {Só você no workspace} other {Até # pessoas no time}}"
+      },
+      "unlimited": {
+        "livePrograms": "Programas em produção ilimitados",
+        "testPrograms": "Programas de teste ilimitados",
+        "affiliates": "Afiliados ilimitados",
+        "members": "Pessoas ilimitadas no time"
+      },
+      "feature": {
+        "customAffiliateRates": "Taxa personalizada por afiliado",
+        "auditLog": "Registro de auditoria"
+      },
+      "notIncluded": "não incluído"
+    },
+    "upgrade": {
+      "title": {
+        "livePrograms": "{plan, select, launch {Programas em produção estão disponíveis no {name}.} other {Vários programas estão disponíveis no {name}.}}",
+        "testPrograms": "Mais programas de teste estão disponíveis no {name}.",
+        "affiliates": "Mais afiliados estão disponíveis no {name}.",
+        "members": "Mais pessoas no time estão disponíveis no {name}.",
+        "customAffiliateRates": "Taxas personalizadas por afiliado estão disponíveis no {name}.",
+        "auditLog": "O registro de auditoria está disponível no {name}.",
+        "liveMode": "O modo produção está disponível a partir do {name}."
+      },
+      "price": "{price}/mês",
+      "action": "Conhecer o {name}"
+    }
+  },
+  "billing": {
+    "banner": {
+      "grace": "Pagamento pendente. Atualize até {date} para não interromper o modo produção.",
+      "restricted": "Pagamento atrasado: produção pausada e criação bloqueada. Seus dados continuam disponíveis.",
+      "ending": "Seu plano {plan} termina em {date}.",
+      "askOwner": "Peça a um dono ou admin do workspace para atualizar o pagamento.",
+      "actionPayment": "Atualizar pagamento",
+      "actionEnding": "Ver plano"
     }
   }
 }

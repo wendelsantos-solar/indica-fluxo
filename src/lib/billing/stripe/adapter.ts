@@ -88,6 +88,9 @@ export class StripeAdapter implements BillingProvider {
       rawType: event.type,
       occurredAt: new Date(event.created * 1000),
       providerAccountId: webhook.providerAccountId,
+      // Stripe's own flag decides the ledger. A per-integration endpoint has
+      // already checked it against the secret that verified the delivery.
+      environment: event.livemode === true ? ("live" as const) : ("test" as const),
     }
 
     switch (event.type) {
@@ -126,8 +129,10 @@ export class StripeAdapter implements BillingProvider {
       case "payment_intent.succeeded": {
         const intent = event.data.object as Stripe.PaymentIntent
         // Subscription revenue arrives as an invoice; this is the one-off path.
-        // `invoice` is only on the wire for API versions before basil; on later
-        // versions the service drops a PaymentIntent already linked to an invoice.
+        // `invoice` is only on the wire for API versions before basil. From
+        // basil on (dahlia included) neither the PaymentIntent nor its charge
+        // names an invoice, so the service reconciles the two through
+        // `invoice_payment.paid` (billing-events.ts, "one payment, one commission").
         const linkedInvoice = (intent as unknown as { invoice?: string | { id: string } }).invoice
         if (linkedInvoice) return null
         return {

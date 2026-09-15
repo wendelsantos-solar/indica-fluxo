@@ -15,6 +15,7 @@ import { withUser } from "@/server/db"
 import { effectiveCommissionStatus } from "@/server/domain/commission"
 import { listParticipationsForUser } from "@/server/repositories/affiliates"
 import { listPortalCommissions } from "@/server/repositories/portal"
+import { EnvironmentBadge } from "@/features/programs/environment-badge"
 
 import { CommissionFilters } from "../_components/commission-filters"
 import {
@@ -52,6 +53,7 @@ export default async function AffiliateCommissionsPage({
   const ta = await getTranslations("common.actions")
   const tp = await getTranslations("portal.shared")
   const tc = await getTranslations("common.table")
+  const te = await getTranslations("common.environment")
   const f = await getFormatters()
   const user = await requireUser()
   const params = await searchParams
@@ -155,7 +157,12 @@ export default async function AffiliateCommissionsPage({
                     <TD className="whitespace-nowrap text-muted-foreground">
                       {f.date(row.createdAt)}
                     </TD>
-                    <TD>{row.programName}</TD>
+                    <TD>
+                      {row.programName}
+                      {row.programEnvironment === "test" ? (
+                        <EnvironmentBadge environment="test" className="ml-2" />
+                      ) : null}
+                    </TD>
                     <TD mono>{row.customerRef}</TD>
                     <TD numeric>{f.money(row.baseAmountMinor, row.currency)}</TD>
                     <TD numeric>{row.rate}</TD>
@@ -198,6 +205,7 @@ export default async function AffiliateCommissionsPage({
                     <span className="block">
                       {joinDetails([
                         row.reversal ? t("reversal") : null,
+                        row.programEnvironment === "test" ? te("test") : null,
                         f.date(row.createdAt),
                         t("saleOf", { amount: f.money(row.baseAmountMinor, row.currency) }),
                         row.rate,

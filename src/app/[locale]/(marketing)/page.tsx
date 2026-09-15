@@ -20,7 +20,8 @@ import { Button } from "@/components/ui/button"
 import { localeAlternates, siteUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
-import { MARKETING_PLANS, PRICE_MINOR } from "./_lib/plans"
+import { formatPlanPrice, PAID_PLAN_DISPLAY, START_PLAN_DISPLAY } from "@/lib/plans-display"
+
 import {
   AffiliateVisual,
   AttributionVisual,
@@ -424,53 +425,59 @@ async function Principles() {
   )
 }
 
+/** The pricing page in miniature, from the same display config, so the two cannot disagree. */
 async function PricingPreview() {
-  const t = await getTranslations("marketing.home.pricing")
-  const tp = await getTranslations("pricing")
-  const locale = (await getLocale()) as Locale
-  const { money, currency } = await formatting()
+  const t = await getTranslations()
+  const locale = await getLocale()
 
   return (
     <Section>
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-xl">
-          <Eyebrow>{t("eyebrow")}</Eyebrow>
-          <Heading className="sm:text-heading-sm">{t("title")}</Heading>
+          <Eyebrow>{t("marketing.home.pricing.eyebrow")}</Eyebrow>
+          <Heading className="sm:text-heading-sm">{t("marketing.home.pricing.title")}</Heading>
         </div>
         <Button asChild variant="secondary" className="self-start sm:self-auto">
           <Link href="/pricing">
-            {t("cta")}
+            {t("marketing.home.pricing.cta")}
             <ArrowRight aria-hidden="true" />
           </Link>
         </Button>
       </div>
-      <ul className="mt-12 grid gap-px overflow-hidden rounded-panel border border-border bg-border md:grid-cols-2">
-        {MARKETING_PLANS.map((plan) => {
-          const price = PRICE_MINOR[locale][plan.key]
-          return (
-            <li key={plan.key} className="bg-surface-1 p-6">
-              <p className="flex items-center gap-2 text-ui font-medium text-foreground">
-                {tp(`plans.${plan.key}.name`)}
-                {plan.featured ? (
+
+      <div className="mt-12 overflow-hidden rounded-panel border border-border">
+        <div className="flex flex-col gap-1 border-b border-border bg-surface-2 px-6 py-4 sm:flex-row sm:items-baseline sm:gap-3">
+          <p className="flex items-baseline gap-2 text-ui font-medium text-foreground">
+            {t(START_PLAN_DISPLAY.nameKey)}
+            <span className="text-caption font-normal text-muted-foreground">{t("pricing.free")}</span>
+          </p>
+          <p className="text-pretty text-caption text-muted-foreground">{t("marketing.home.pricing.sandbox")}</p>
+        </div>
+        <ul className="grid gap-px bg-border md:grid-cols-2">
+          {PAID_PLAN_DISPLAY.map((plan) => (
+            <li key={plan.code} className="bg-surface-1 p-6">
+              <p className="flex h-5 items-center gap-2 text-ui font-medium text-foreground">
+                {t(plan.nameKey)}
+                {plan.recommended ? (
                   <span className="rounded-badge border border-primary/40 px-1.5 text-meta text-primary-text">
-                    {tp("onRequest")}
+                    {t("pricing.recommended")}
                   </span>
                 ) : null}
               </p>
               <p className="mt-4 flex items-baseline gap-1.5">
                 <span className="text-heading-sm tabular-nums text-foreground">
-                  {price === 0 ? t("free") : money(price, currency)}
+                  {formatPlanPrice(locale, plan.priceMonthlyMinor, plan.currency)}
                 </span>
-                {price === 0 ? null : (
-                  <span className="text-caption text-muted-foreground">{tp(`plans.${plan.key}.cadence`)}</span>
-                )}
+                <span className="text-caption text-muted-foreground">{t("pricing.perMonth")}</span>
               </p>
-              <p className="mt-3 text-pretty text-caption text-muted-foreground">{tp(`plans.${plan.key}.description`)}</p>
+              <p className="mt-3 text-pretty text-caption text-muted-foreground">{t(plan.descriptionKey)}</p>
             </li>
-          )
-        })}
-      </ul>
-      <p className="mt-4 max-w-2xl text-pretty text-caption text-muted-foreground">{t("note")}</p>
+          ))}
+        </ul>
+      </div>
+      <p className="mt-4 max-w-2xl text-pretty text-caption text-muted-foreground">
+        {t("pricing.startNote")} {t("pricing.currencyNote")}
+      </p>
     </Section>
   )
 }

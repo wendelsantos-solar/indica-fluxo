@@ -1,14 +1,18 @@
 import type { Metadata } from "next"
 import { getLocale, getTranslations } from "next-intl/server"
 
-import { InlineAlert } from "@/components/feedback/inline-alert"
 import { PageHeader } from "@/components/layout/page-header"
 import { Button } from "@/components/ui/button"
 import { Link } from "@/i18n/navigation"
 import { OnboardingStepper } from "@/features/onboarding/onboarding-stepper"
-import { ProgramForm, type ProgramFormValues } from "@/features/programs/program-form"
+import { programAvailability } from "@/features/programs/plan-availability"
+import { ProgramForm, type EnvironmentChoice, type ProgramFormValues } from "@/features/programs/program-form"
+import { ProgramPlanNotice } from "@/features/programs/program-plan-notice"
 import { currencyOptions } from "@/features/workspaces/options"
+import { minorToMajor } from "@/lib/money"
 import { requireUser } from "@/server/auth/session"
+import { withUser } from "@/server/db"
+import { listPrograms } from "@/server/repositories/programs"
 import { getPlanOverview } from "@/server/services/plans"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
@@ -37,6 +41,7 @@ export default async function NewProgramPage({
   const currencies = currencyOptions(locale)
 
   const defaultValues: ProgramFormValues = {
+    environment: "test",
     name: "",
     description: "",
     websiteUrl: "",
@@ -92,12 +97,57 @@ export default async function NewProgramPage({
     )
   }
 
-  // A form that cannot be saved is not offered: past the plan's program limit
-  // the page says why and where to change it. `createProgram` enforces the
-  // same limit, so a race still ends in the form's translated error.
-  const plan = await getPlanOverview(user.id, workspace.id)
-  const programLimit = plan.limits.programs
-  const atProgramLimit = programLimit !== null && plan.usage.programs >= programLimit
+  // A form that cannot be saved is not offered: when the plan leaves no room
+  // for a program in either environment, the page says why and where to change
+  // it. `createProgram` enforces the same limits, so a race still ends in the
+  // form's translated error.
+  const [plan, programs] = await Promise.all([
+    getPlanOverview(user.id, workspace.id),
+    withUser(user.id, (tx) => listPrograms(tx, workspace.id)),
+  ])
+  const availability = programAvailability(plan.entitlements, plan.usage)
+  const canCreate = availability.test || availability.live
+
+  const environmentChoice: EnvironmentChoice = {
+    test: availability.test,
+    live: availability.live,
+    liveBlockedBy: availability.liveBlockedBy,
+    // Going live is a new live program; it can start from a test program's
+    // settings (docs/PLANS.md §2).
+    templates: programs
+      .filter((program) => program.environment === "test")
+      .map((program) => ({
+        id: program.id,
+        name: program.name,
+        values: {
+          description: program.description ?? "",
+          websiteUrl: program.websiteUrl ?? "",
+          status: program.status === "archived" ? "active" : program.status,
+          commissionType: program.commissionType,
+          commissionAmount: String(
+            program.commissionType === "percentage"
+              ? program.commissionValue / 100
+              : minorToMajor(program.commissionValue, program.currency),
+          ),
+          recurrence:
+            program.commissionDurationMonths === null
+              ? "lifetime"
+              : program.commissionDurationMonths === 1
+                ? "first_only"
+                : "months",
+          durationMonths: String(program.commissionDurationMonths ?? 12),
+          attributionModel: program.attributionModel,
+          attributionWindowDays: String(program.attributionWindowDays),
+          commissionHoldDays: String(program.commissionHoldDays),
+          currency: program.currency.trim(),
+        },
+      })),
+  }
+  // Test first; live when test is the one that is full.
+  const createValues: ProgramFormValues = {
+    ...defaultValues,
+    environment: availability.test ? "test" : "live",
+  }
 
   return (
     <>
@@ -117,26 +167,19 @@ export default async function NewProgramPage({
           better narrower, left-aligned with the description above it. */}
       <div>
         <div className="max-w-detail">
-          {atProgramLimit && programLimit !== null ? (
-            <InlineAlert
-              title={tp("planLimit.title", { limit: programLimit })}
-              action={
-                <Button asChild variant="secondary" size="sm">
-                  <Link href={{ pathname: "/[workspaceSlug]/settings", params: { workspaceSlug } }}>
-                    {tp("planLimit.action")}
-                  </Link>
-                </Button>
-              }
-            >
-              {tp("planLimit.description")}
-            </InlineAlert>
+          {canCreate ? (
+            <div className="space-y-4">
+              <ProgramPlanNotice workspaceSlug={workspaceSlug} availability={availability} />
+              <ProgramForm
+                mode="create"
+                workspaceSlug={workspaceSlug}
+                defaultValues={createValues}
+                currencyOptions={currencies}
+                environmentChoice={environmentChoice}
+              />
+            </div>
           ) : (
-            <ProgramForm
-              mode="create"
-              workspaceSlug={workspaceSlug}
-              defaultValues={defaultValues}
-              currencyOptions={currencies}
-            />
+            <ProgramPlanNotice workspaceSlug={workspaceSlug} availability={availability} />
           )}
         </div>
       </div>

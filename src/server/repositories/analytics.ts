@@ -1,6 +1,6 @@
 import "server-only"
 
-import { sql } from "drizzle-orm"
+import { sql, type SQL } from "drizzle-orm"
 
 import {
   orderMoneyTotals,
@@ -10,12 +10,42 @@ import {
   type MoneyTotal,
 } from "@/lib/money-totals"
 import { localDayRange, resolveTimeZone, type LocalDayRange } from "@/lib/time-zone"
+import type { ViewEnvironment } from "@/lib/view-environment"
 import { type DbClient } from "@/server/db"
-import { effectiveCommissionStatusSql, type CommissionStatus } from "@/server/repositories/commissions"
+import {
+  commissionInEnvironment,
+  effectiveCommissionStatusSql,
+  payableCommissionFilter,
+  type CommissionStatus,
+} from "@/server/repositories/commissions"
 
 /**
  * Read models. These never hydrate entities: every figure is aggregated in
  * Postgres and only the columns a view renders come back. See ARCHITECTURE.md §6.
+ *
+ * Every workspace read takes a `ViewEnvironment`: the dashboard shows test or
+ * live data, never both summed (docs/PLANS.md §2). Clicks, attributions and
+ * commissions are filtered through their program's `environment`;
+ * transactions and customers through their own column.
+ *
+ * Definitions shared by the overview's figures and its chart:
+ *
+ * - **Revenue** (“Receita indicada”) is the money referred customers actually
+ *   paid: payments that earned a (not rejected) commission, minus the refunds
+ *   and chargebacks of those payments. Each row counts on its own
+ *   `occurred_at`, so a refund lowers the period it happened in. A payment
+ *   recorded twice (the PaymentIntent and the invoice event before their link,
+ *   see `billing-events.ts` “One payment, one commission”) is reversed by a
+ *   `dup_<id>` adjustment; the duplicate and its adjustment are both left out,
+ *   so the kept record counts once.
+ * - **Commissions in a period** sum the ledger rows (reversals included, so
+ *   they net) whose payment, refund or adjustment `occurred_at` falls in the
+ *   period — the same clock as revenue, so “revenue after commissions” never
+ *   subtracts one month's commissions from another month's revenue. The same
+ *   duplicate records are left out.
+ * - **Ready to pay** is what a payout batch can claim right now
+ *   (`payableCommissionFilter`): available, not held by a batch. Commissions
+ *   already in a batch awaiting payment are not “ready”.
  */
 
 /**
@@ -46,6 +76,87 @@ function instant(value: Date) {
   return sql`${value.toISOString()}::timestamptz`
 }
 
+/**
+ * The transaction aliased `alias` is one of the two records of a duplicated
+ * payment that `reverseDuplicatePayment` cancelled out: the `dup_` adjustment
+ * itself, or the payment it reversed.
+ */
+function duplicateRecordSql(alias: string): SQL {
+  const t = sql.identifier(alias)
+  return sql`(
+    (${t}.type = 'adjustment' and left(${t}.provider_transaction_id, 4) = 'dup_')
+    or (${t}.type = 'payment' and exists (
+      select 1 from transactions dup
+       where dup.workspace_id = ${t}.workspace_id
+         and dup.provider = ${t}.provider
+         and dup.type = 'adjustment'
+         and dup.provider_transaction_id = 'dup_' || ${t}.provider_transaction_id)))`
+}
+
+/** The payment aliased `alias` earned a commission that still stands in the ledger. */
+function commissionedPaymentSql(alias: string): SQL {
+  const t = sql.identifier(alias)
+  return sql`(${t}.type = 'payment' and exists (
+    select 1 from commissions earned
+     where earned.transaction_id = ${t}.id
+       and earned.reversal_of_commission_id is null
+       and earned.status <> 'rejected'))`
+}
+
+/**
+ * Referred money, one row per transaction: `currency`, `occurred_at`,
+ * `customer_id`, `type` and the signed `minor` amount (see “Revenue” above).
+ * `extra` narrows further (currency, lower bound).
+ */
+function referredMoneySql(workspaceId: string, environment: ViewEnvironment, extra: SQL = sql``): SQL {
+  return sql`
+    select t.currency, t.occurred_at, t.customer_id, t.type, t.gross_amount_minor as minor
+      from transactions t
+     where t.workspace_id = ${workspaceId}
+       and t.environment = ${environment}
+       and not ${duplicateRecordSql("t")}
+       and (
+         ${commissionedPaymentSql("t")}
+         or (t.type in ('refund', 'chargeback') and exists (
+           select 1 from transactions paid
+            where paid.workspace_id = t.workspace_id
+              and paid.provider = t.provider
+              and paid.provider_transaction_id = t.provider_parent_transaction_id
+              and ${commissionedPaymentSql("paid")}
+              and not ${duplicateRecordSql("paid")}))
+       )
+       ${extra}
+  `
+}
+
+/**
+ * Commission rows of `environment` with the `occurred_at` of the money
+ * movement behind them (see “Commissions in a period” above), aliased `c`/`t`.
+ */
+function commissionLedgerSql(workspaceId: string, environment: ViewEnvironment, extra: SQL = sql``): SQL {
+  return sql`
+    select c.currency, c.commission_amount_minor as minor, t.occurred_at
+      from commissions c
+      join transactions t on t.id = c.transaction_id
+      join programs p on p.id = c.program_id
+     where c.workspace_id = ${workspaceId}
+       and p.environment = ${environment}
+       and c.status <> 'rejected'
+       and not ${duplicateRecordSql("t")}
+       ${extra}
+  `
+}
+
+/** Whether the workspace holds any live program — `resolveViewEnvironment`'s input. */
+export async function workspaceHasLivePrograms(tx: DbClient, workspaceId: string): Promise<boolean> {
+  const [row] = await tx.execute<{ found: boolean }>(sql`
+    select exists (
+      select 1 from programs where workspace_id = ${workspaceId} and environment = 'live'
+    ) as found
+  `)
+  return Boolean(row?.found)
+}
+
 export interface DashboardOverview {
   /**
    * The currency the overview leads with: the workspace default when it has
@@ -70,115 +181,143 @@ export interface DashboardOverview {
   customersAcquired: number
   clicks: number
   conversionRate: number
+  /** On hold: effective `pending`, all time. */
   pendingCommission: MoneyTotal[]
+  /** Ready to pay: what a new payout batch could claim now, all time. */
   availableCommission: MoneyTotal[]
 }
 
 export async function getDashboardOverview(
   tx: DbClient,
   workspaceId: string,
+  environment: ViewEnvironment,
   period: AnalyticsWindow,
 ): Promise<DashboardOverview> {
   const window = resolveWindow(period)
+  const start = instant(window.start)
 
-  const [counts] = await tx.execute<{
-    default_currency: string | null
-    active_affiliates: number
-    approved_affiliates: number
-    has_commission: boolean
-    customers_acquired: number
-    clicks: number
-  }>(sql`
-    with bounds as (select ${instant(window.start)} as current_start)
-    select
-      (select default_currency from workspaces where id = ${workspaceId}) as default_currency,
-      (select count(distinct pa.id)
-         from program_affiliates pa
-         join programs p on p.id = pa.program_id
-        where p.workspace_id = ${workspaceId} and pa.status = 'approved')::int as approved_affiliates,
-      (select count(distinct pa.id)
-         from program_affiliates pa
-         join programs p on p.id = pa.program_id
-        where p.workspace_id = ${workspaceId}
-          and pa.status = 'approved'
-          and (
-            exists (select 1 from referral_clicks rc
-                     where rc.program_affiliate_id = pa.id
-                       and rc.occurred_at >= (select current_start from bounds))
-            or exists (select 1 from commissions c
-                        where c.program_affiliate_id = pa.id
-                          and c.status <> 'rejected'
-                          and c.created_at >= (select current_start from bounds))
-          ))::int as active_affiliates,
-      exists (select 1 from commissions c
-               where c.workspace_id = ${workspaceId} and c.status <> 'rejected') as has_commission,
-      (select count(distinct t.customer_id)
-         from transactions t
-         join commissions c on c.transaction_id = t.id
-        where t.workspace_id = ${workspaceId}
-          and t.type = 'payment'
-          and t.occurred_at >= (select current_start from bounds))::int as customers_acquired,
-      (select count(*)
-         from referral_clicks rc
-         join programs p on p.id = rc.program_id
-        where p.workspace_id = ${workspaceId}
-          and rc.occurred_at >= (select current_start from bounds))::int as clicks
-  `)
+  // Independent statements, sent together (pipelined on the transaction's connection).
+  const [[counts], money] = await Promise.all([
+    tx.execute<{
+      default_currency: string | null
+      active_affiliates: number
+      approved_affiliates: number
+      has_commission: boolean
+      customers_acquired: number
+      clicks: number
+    }>(sql`
+      select
+        (select default_currency from workspaces where id = ${workspaceId}) as default_currency,
+        (select count(distinct pa.id)
+           from program_affiliates pa
+           join programs p on p.id = pa.program_id
+          where p.workspace_id = ${workspaceId}
+            and p.environment = ${environment}
+            and pa.status = 'approved')::int as approved_affiliates,
+        (select count(distinct pa.id)
+           from program_affiliates pa
+           join programs p on p.id = pa.program_id
+          where p.workspace_id = ${workspaceId}
+            and p.environment = ${environment}
+            and pa.status = 'approved'
+            and (
+              exists (select 1 from referral_clicks rc
+                       where rc.program_affiliate_id = pa.id
+                         and rc.occurred_at >= ${start})
+              or exists (select 1 from commissions c
+                           join transactions t on t.id = c.transaction_id
+                          where c.program_affiliate_id = pa.id
+                            and c.status <> 'rejected'
+                            and t.occurred_at >= ${start})
+            ))::int as active_affiliates,
+        exists (select 1 from commissions c
+                  join programs p on p.id = c.program_id
+                 where c.workspace_id = ${workspaceId}
+                   and p.environment = ${environment}
+                   and c.status <> 'rejected') as has_commission,
+        (select count(distinct referred.customer_id)
+           from (${referredMoneySql(workspaceId, environment, sql`and t.occurred_at >= ${start}`)}) referred
+          where referred.type = 'payment')::int as customers_acquired,
+        (select count(*)
+           from referral_clicks rc
+           join programs p on p.id = rc.program_id
+          where p.workspace_id = ${workspaceId}
+            and p.environment = ${environment}
+            and rc.occurred_at >= ${start})::int as clicks
+    `),
 
-  // One row per currency. Sums are `bigint` (int4 overflows at 21 474 836,47)
-  // and come back from the driver as strings, hence the `Number` below.
-  const money = await tx.execute<{
-    currency: string
-    revenue_minor: string
-    revenue_previous_minor: string
-    commission_minor: string
-    pending_minor: string
-    available_minor: string
-  }>(sql`
-    with bounds as (
+    // One row per currency. Sums are `bigint` (int4 overflows at 21 474 836,47)
+    // and come back from the driver as strings, hence the `Number` below.
+    tx.execute<{
+      currency: string
+      revenue_minor: string
+      revenue_previous_minor: string
+      commission_minor: string
+      pending_minor: string
+      available_minor: string
+    }>(sql`
+      with bounds as (
+        select ${start} as current_start, ${instant(window.previousStart)} as previous_start
+      ),
+      revenue as (
+        select
+          currency,
+          coalesce(sum(minor) filter (where occurred_at >= (select current_start from bounds)), 0) as current_minor,
+          coalesce(sum(minor) filter (where occurred_at < (select current_start from bounds)), 0) as previous_minor
+        from (${referredMoneySql(workspaceId, environment, sql`and t.occurred_at >= ${instant(window.previousStart)}`)}) referred
+        group by currency
+      ),
+      commission as (
+        select currency, coalesce(sum(minor), 0) as current_minor
+          from (${commissionLedgerSql(workspaceId, environment, sql`and t.occurred_at >= ${start}`)}) ledger
+         group by currency
+      ),
+      hold as (
+        -- Effective status (see effectiveCommissionStatusSql): a matured pending
+        -- commission is already payable, promoted or not.
+        select c.currency, coalesce(sum(c.commission_amount_minor), 0) as minor
+          from commissions c
+          join programs p on p.id = c.program_id
+         where c.workspace_id = ${workspaceId}
+           and p.environment = ${environment}
+           and ${effectiveCommissionStatusSql("c")} = 'pending'
+         group by c.currency
+      ),
+      payable as (
+        -- The payouts page's own rule and grouping: a participation owed a
+        -- positive amount in a currency, not already held by a batch.
+        select currency, sum(owed) as minor
+          from (
+            select commissions.currency, sum(commissions.commission_amount_minor) as owed
+              from commissions
+             where commissions.workspace_id = ${workspaceId}
+               and ${commissionInEnvironment(environment)}
+               and ${payableCommissionFilter()}
+             group by commissions.program_affiliate_id, commissions.currency
+            having sum(commissions.commission_amount_minor) > 0
+          ) per_affiliate
+         group by currency
+      ),
+      currencies as (
+        select currency from revenue
+        union select currency from commission
+        union select currency from hold
+        union select currency from payable
+      )
       select
-        ${instant(window.start)} as current_start,
-        ${instant(window.previousStart)} as previous_start
-    ),
-    revenue as (
-      select
-        t.currency,
-        coalesce(sum(t.gross_amount_minor) filter (
-          where t.occurred_at >= (select current_start from bounds)), 0) as current_minor,
-        coalesce(sum(t.gross_amount_minor) filter (
-          where t.occurred_at < (select current_start from bounds)), 0) as previous_minor
-      from transactions t
-      join commissions c on c.transaction_id = t.id
-      where t.workspace_id = ${workspaceId}
-        and t.type = 'payment'
-        and t.occurred_at >= (select previous_start from bounds)
-      group by t.currency
-    ),
-    commission as (
-      -- pending/available use the effective status (see effectiveCommissionStatusSql):
-      -- a matured pending commission is already payable, promoted or not.
-      select
-        currency,
-        coalesce(sum(commission_amount_minor) filter (
-          where created_at >= (select current_start from bounds)), 0) as current_minor,
-        coalesce(sum(commission_amount_minor) filter (
-          where ${effectiveCommissionStatusSql()} = 'pending'), 0) as pending_minor,
-        coalesce(sum(commission_amount_minor) filter (
-          where ${effectiveCommissionStatusSql()} in ('available', 'approved')), 0) as available_minor
-      from commissions
-      where workspace_id = ${workspaceId} and status <> 'rejected'
-      group by currency
-    )
-    select
-      coalesce(r.currency, c.currency) as currency,
-      coalesce(r.current_minor, 0)::bigint as revenue_minor,
-      coalesce(r.previous_minor, 0)::bigint as revenue_previous_minor,
-      coalesce(c.current_minor, 0)::bigint as commission_minor,
-      coalesce(c.pending_minor, 0)::bigint as pending_minor,
-      coalesce(c.available_minor, 0)::bigint as available_minor
-    from revenue r
-    full outer join commission c on c.currency = r.currency
-  `)
+        k.currency,
+        coalesce(r.current_minor, 0)::bigint as revenue_minor,
+        coalesce(r.previous_minor, 0)::bigint as revenue_previous_minor,
+        coalesce(c.current_minor, 0)::bigint as commission_minor,
+        coalesce(h.minor, 0)::bigint as pending_minor,
+        coalesce(pay.minor, 0)::bigint as available_minor
+      from currencies k
+      left join revenue r on r.currency = k.currency
+      left join commission c on c.currency = k.currency
+      left join hold h on h.currency = k.currency
+      left join payable pay on pay.currency = k.currency
+    `),
+  ])
 
   const pick = (column: Exclude<keyof (typeof money)[number], "currency">) =>
     toMoneyTotals(money.map((row) => ({ currency: row.currency, amountMinor: row[column] })))
@@ -231,20 +370,23 @@ export interface RevenueSeries {
 }
 
 /**
- * Daily revenue and commission in ONE currency. A chart cannot draw BRL and
- * USD on the same axis without converting, so the caller picks the currency
- * (normally `DashboardOverview.currency`) and is told what else was left out.
- * Days are the workspace's local dates (`AnalyticsWindow`).
+ * Daily revenue and commission in ONE currency, with the overview's
+ * definitions. A chart cannot draw BRL and USD on the same axis without
+ * converting, so the caller picks the currency (normally
+ * `DashboardOverview.currency`) and is told what else was left out. Days are
+ * the workspace's local dates (`AnalyticsWindow`).
  */
 export async function getRevenueSeries(
   tx: DbClient,
   workspaceId: string,
+  environment: ViewEnvironment,
   currency: string,
   period: AnalyticsWindow,
 ): Promise<RevenueSeries> {
   const window = resolveWindow(period)
   const firstDay = window.keys[0]!
   const lastDay = window.keys[window.keys.length - 1]!
+  const start = instant(window.start)
 
   const rows = await tx.execute<{
     day: string
@@ -255,24 +397,13 @@ export async function getRevenueSeries(
       select generate_series(${firstDay}::date::timestamp, ${lastDay}::date::timestamp, interval '1 day')::date as day
     ),
     revenue as (
-      select (t.occurred_at at time zone ${window.timeZone}::text)::date as day,
-             sum(t.gross_amount_minor) as minor
-        from transactions t
-        join commissions c on c.transaction_id = t.id
-       where t.workspace_id = ${workspaceId}
-         and t.type = 'payment'
-         and t.currency = ${currency}
-         and t.occurred_at >= ${instant(window.start)}
+      select (occurred_at at time zone ${window.timeZone}::text)::date as day, sum(minor) as minor
+        from (${referredMoneySql(workspaceId, environment, sql`and t.currency = ${currency} and t.occurred_at >= ${start}`)}) referred
        group by 1
     ),
     commission as (
-      select (c.created_at at time zone ${window.timeZone}::text)::date as day,
-             sum(c.commission_amount_minor) as minor
-        from commissions c
-       where c.workspace_id = ${workspaceId}
-         and c.status <> 'rejected'
-         and c.currency = ${currency}
-         and c.created_at >= ${instant(window.start)}
+      select (occurred_at at time zone ${window.timeZone}::text)::date as day, sum(minor) as minor
+        from (${commissionLedgerSql(workspaceId, environment, sql`and c.currency = ${currency} and t.occurred_at >= ${start}`)}) ledger
        group by 1
     )
     select
@@ -286,20 +417,10 @@ export async function getRevenueSeries(
   `)
 
   const others = await tx.execute<{ currency: string }>(sql`
-    with bounds as (select ${instant(window.start)} as start_at)
     select distinct currency from (
-      select t.currency
-        from transactions t
-        join commissions c on c.transaction_id = t.id
-       where t.workspace_id = ${workspaceId}
-         and t.type = 'payment'
-         and t.occurred_at >= (select start_at from bounds)
+      select currency from (${referredMoneySql(workspaceId, environment, sql`and t.occurred_at >= ${start}`)}) referred
       union
-      select c.currency
-        from commissions c
-       where c.workspace_id = ${workspaceId}
-         and c.status <> 'rejected'
-         and c.created_at >= (select start_at from bounds)
+      select currency from (${commissionLedgerSql(workspaceId, environment, sql`and t.occurred_at >= ${start}`)}) ledger
     ) present
     where currency <> ${currency}
     order by currency
@@ -322,36 +443,59 @@ export interface FunnelStep {
   value: number
 }
 
+/**
+ * - clicks: referral clicks in the period.
+ * - signups: attributions bound to a customer id by identify in the period.
+ * - trials: subscriptions started in the period by a *referred* customer — one
+ *   attached to a program (it earned a commission) or matching an attribution
+ *   of this environment. A founder's other subscribers are not the program's.
+ * - customers: distinct referred customers who paid in the period — the
+ *   overview's `customersAcquired`.
+ */
 export async function getConversionFunnel(
   tx: DbClient,
   workspaceId: string,
+  environment: ViewEnvironment,
   period: AnalyticsWindow,
 ): Promise<FunnelStep[]> {
   const window = resolveWindow(period)
+  const start = instant(window.start)
   const [row] = await tx.execute<{
     clicks: number
     identified: number
     trials: number
     customers: number
   }>(sql`
-    with bounds as (select ${instant(window.start)} as start_at)
     select
       (select count(*) from referral_clicks rc
          join programs p on p.id = rc.program_id
         where p.workspace_id = ${workspaceId}
-          and rc.occurred_at >= (select start_at from bounds))::int as clicks,
+          and p.environment = ${environment}
+          and rc.occurred_at >= ${start})::int as clicks,
       (select count(*) from attributions a
          join programs p on p.id = a.program_id
         where p.workspace_id = ${workspaceId}
+          and p.environment = ${environment}
           and a.customer_external_id is not null
-          and a.attributed_at >= (select start_at from bounds))::int as identified,
+          and a.attributed_at >= ${start})::int as identified,
       (select count(distinct s.id) from subscriptions s
+         join customers cu on cu.id = s.customer_id
         where s.workspace_id = ${workspaceId}
-          and s.started_at >= (select start_at from bounds))::int as trials,
-      (select count(distinct c.customer_id) from commissions c
-        where c.workspace_id = ${workspaceId}
-          and c.commission_amount_minor > 0
-          and c.created_at >= (select start_at from bounds))::int as customers
+          and cu.environment = ${environment}
+          and s.started_at >= ${start}
+          and (
+            cu.program_id is not null
+            or exists (
+              select 1 from attributions a
+                join programs p on p.id = a.program_id
+               where p.workspace_id = ${workspaceId}
+                 and p.environment = ${environment}
+                 and ((cu.external_id is not null and a.customer_external_id = cu.external_id)
+                   or (cu.provider_customer_id is not null and a.provider_customer_id = cu.provider_customer_id)))
+          ))::int as trials,
+      (select count(distinct referred.customer_id)
+         from (${referredMoneySql(workspaceId, environment, sql`and t.occurred_at >= ${start}`)}) referred
+        where referred.type = 'payment')::int as customers
   `)
 
   return [
@@ -373,9 +517,11 @@ export interface TopAffiliate {
   currency: string
 }
 
+/** All-time, by commission. Reversal rows net out (their base and commission are negative). */
 export async function getTopAffiliates(
   tx: DbClient,
   workspaceId: string,
+  environment: ViewEnvironment,
   limit = 5,
 ): Promise<TopAffiliate[]> {
   const rows = await tx.execute<{
@@ -396,11 +542,14 @@ export async function getTopAffiliates(
       c.currency,
       sum(c.base_amount_minor)::bigint as revenue_minor,
       sum(c.commission_amount_minor)::bigint as commission_minor,
-      count(distinct c.customer_id)::int as customers
+      (count(distinct c.customer_id) filter (where c.commission_amount_minor > 0))::int as customers
     from commissions c
     join program_affiliates pa on pa.id = c.program_affiliate_id
     join affiliates a on a.id = pa.affiliate_id
-    where c.workspace_id = ${workspaceId} and c.status <> 'rejected'
+    join programs p on p.id = c.program_id
+    where c.workspace_id = ${workspaceId}
+      and p.environment = ${environment}
+      and c.status <> 'rejected'
     group by c.program_affiliate_id, a.id, a.name, pa.code, c.currency
     order by sum(c.commission_amount_minor) desc
     limit ${limit}
@@ -435,6 +584,8 @@ export type ConversionSortField = "date" | "amount"
 
 export interface ConversionFilters {
   workspaceId: string
+  /** Only conversions of programs in this environment. */
+  environment: ViewEnvironment
   affiliateId?: string
   programId?: string
   /**
@@ -448,9 +599,10 @@ export interface ConversionFilters {
 export async function getRecentConversions(
   tx: DbClient,
   workspaceId: string,
+  environment: ViewEnvironment,
   limit = 6,
 ): Promise<RecentConversion[]> {
-  return selectConversions(tx, { workspaceId }, { field: "date", dir: "desc" }, limit, 0)
+  return selectConversions(tx, { workspaceId, environment }, { field: "date", dir: "desc" }, limit, 0)
 }
 
 export interface ConversionPage {
@@ -491,6 +643,7 @@ function conversionsFrom(filters: ConversionFilters) {
     join affiliates a on a.id = pa.affiliate_id
     join programs p on p.id = c.program_id
     where c.workspace_id = ${filters.workspaceId}
+      and p.environment = ${filters.environment}
       ${filters.affiliateId ? sql`and pa.affiliate_id = ${filters.affiliateId}` : sql``}
       ${filters.programId ? sql`and c.program_id = ${filters.programId}` : sql``}
       ${filters.from ? sql`and t.occurred_at >= ${filters.from.toISOString()}` : sql``}
@@ -563,7 +716,9 @@ export interface AffiliateSeriesPoint {
 /**
  * The affiliate portal's daily series. Days are UTC dates on purpose: one
  * affiliate may earn in several workspaces, each in its own zone, and the
- * portal has no single workspace clock to follow.
+ * portal has no single workspace clock to follow. UTC is spelled out in SQL
+ * (`at time zone 'UTC'`) rather than left to the session's `TimeZone`, which
+ * `date_trunc` on a `timestamptz` would silently follow.
  */
 export async function getAffiliateSeries(
   tx: DbClient,
@@ -576,24 +731,37 @@ export async function getAffiliateSeries(
   // renders it as a row constructor — `($1, $2)` — which is not an array, and
   // for a single participation `($1)::uuid[]` fails outright with 22P02.
   const rows = await tx.execute<{ day: string; clicks: number; commission_minor: string }>(sql`
-    with series as (
+    with today as (select (now() at time zone 'UTC')::date as day),
+    series as (
       select generate_series(
-        date_trunc('day', now() - make_interval(days => ${days - 1})),
-        date_trunc('day', now()),
+        ((select day from today) - ${days - 1}::int)::timestamp,
+        (select day from today)::timestamp,
         interval '1 day'
       )::date as day
     ),
-    ids as (select unnest(${sql.param(participationIds)}::uuid[]) as id)
+    ids as (select unnest(${sql.param(participationIds)}::uuid[]) as id),
+    clicks as (
+      select (rc.occurred_at at time zone 'UTC')::date as day, count(*)::int as clicks
+        from referral_clicks rc
+       where rc.program_affiliate_id in (select id from ids)
+         and rc.occurred_at >= ((select day from today) - ${days - 1}::int)::timestamp at time zone 'UTC'
+       group by 1
+    ),
+    earned as (
+      select (c.created_at at time zone 'UTC')::date as day, sum(c.commission_amount_minor) as minor
+        from commissions c
+       where c.program_affiliate_id in (select id from ids)
+         and c.status <> 'rejected'
+         and c.created_at >= ((select day from today) - ${days - 1}::int)::timestamp at time zone 'UTC'
+       group by 1
+    )
     select
       s.day::text as day,
-      coalesce((select count(*) from referral_clicks rc
-         where rc.program_affiliate_id in (select id from ids)
-           and date_trunc('day', rc.occurred_at)::date = s.day), 0)::int as clicks,
-      coalesce((select sum(c.commission_amount_minor) from commissions c
-         where c.program_affiliate_id in (select id from ids)
-           and c.status <> 'rejected'
-           and date_trunc('day', c.created_at)::date = s.day), 0)::bigint as commission_minor
+      coalesce(clicks.clicks, 0)::int as clicks,
+      coalesce(earned.minor, 0)::bigint as commission_minor
     from series s
+    left join clicks on clicks.day = s.day
+    left join earned on earned.day = s.day
     order by s.day
   `)
 

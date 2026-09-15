@@ -9,6 +9,7 @@ import { buildReferralUrl } from "@/lib/tracking/visitor"
 import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
 import { listPortalLinks, listPortalParticipations } from "@/server/repositories/portal"
+import { EnvironmentBadge } from "@/features/programs/environment-badge"
 
 import { DefaultReferralLink } from "../_components/default-link"
 import { LinkActions } from "../_components/link-actions"
@@ -76,8 +77,11 @@ export default async function AffiliateLinksPage() {
               title={participation.programName}
               description={participation.programDescription || undefined}
               action={
-                participation.status === "approved" ? undefined : (
-                  <ParticipationBadge status={participation.status} className="mt-1.5" />
+                participation.status === "approved" && participation.programEnvironment === "live" ? undefined : (
+                  <span className="mt-1.5 flex items-center gap-1.5">
+                    {participation.programEnvironment === "test" ? <EnvironmentBadge environment="test" /> : null}
+                    {participation.status === "approved" ? null : <ParticipationBadge status={participation.status} />}
+                  </span>
                 )
               }
               className="mb-0"
@@ -138,7 +142,11 @@ export default async function AffiliateLinksPage() {
               )}
             </div>
 
-            <CreateLinkForm participationId={participation.participationId} />
+            {/* A suspended or rejected participation earns nothing and gets no
+                new links (`createReferralLink` refuses them too). */}
+            {participation.status === "suspended" || participation.status === "rejected" ? null : (
+              <CreateLinkForm participationId={participation.participationId} />
+            )}
           </section>
         ))}
       </div>

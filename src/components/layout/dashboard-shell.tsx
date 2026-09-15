@@ -21,6 +21,7 @@ import { usePathname, useRouter } from "@/i18n/navigation"
 import { AccountMenu } from "@/components/layout/account-menu"
 import { AppShell, type NavItem, type NavSection } from "@/components/layout/app-shell"
 import type { Command, PaletteSearch } from "@/components/layout/command-palette"
+import { EnvironmentControl, EnvironmentStrip, type ShellEnvironment } from "@/components/layout/environment-switch"
 import { useShellCommands } from "@/components/layout/shell-commands"
 import { WorkspaceSwitcher, type WorkspaceOption } from "@/components/layout/workspace-switcher"
 import { formatBatchLabel } from "@/features/payouts/batch-label"
@@ -57,12 +58,18 @@ export function DashboardShell({
   email,
   name,
   isAffiliate = false,
+  environment,
+  notice,
   children,
 }: {
   workspaces: WorkspaceOption[]
   current: WorkspaceOption
   email: string
   name?: string | null
+  /** Which data the dashboard shows — docs/PLANS.md §2. Resolved on the server. */
+  environment: ShellEnvironment
+  /** Workspace-wide notice above every page (the billing banner), rendered on the server. */
+  notice?: React.ReactNode
   /** Whether this person also participates in a program, so the portal link is real. */
   isAffiliate?: boolean
   children: React.ReactNode
@@ -70,6 +77,7 @@ export function DashboardShell({
   const t = useTranslations("nav")
   const tp = useTranslations("palette")
   const tb = useTranslations("dashboard.payouts.batchStatus")
+  const te = useTranslations("common.environment")
   const locale = useLocale()
   const router = useRouter()
   const slug = current.slug
@@ -176,6 +184,8 @@ export function DashboardShell({
           id: `program-${program.id}`,
           group: "programs",
           label: program.name,
+          // Search finds both environments; a test record says so.
+          detail: program.environment === "test" ? te("test") : undefined,
           icon: Layers,
           run: () =>
             router.push({
@@ -200,7 +210,12 @@ export function DashboardShell({
           // The stored reference is English ledger data; the reader sees the month in their language.
           label: formatBatchLabel(locale, new Date(batch.periodEnd), batch.reference),
           keywords: batch.reference,
-          detail: (BATCH_STATUSES as readonly string[]).includes(batch.status) ? tb(batch.status) : undefined,
+          detail: [
+            batch.environment === "test" ? te("test") : null,
+            (BATCH_STATUSES as readonly string[]).includes(batch.status) ? tb(batch.status) : null,
+          ]
+            .filter(Boolean)
+            .join(" · ") || undefined,
           icon: CreditCard,
           run: () =>
             router.push({
@@ -210,7 +225,7 @@ export function DashboardShell({
         })),
       ]
     },
-    [slug, router, tb, locale],
+    [slug, router, tb, te, locale],
   )
 
   return (
@@ -219,6 +234,13 @@ export function DashboardShell({
       sections={sections}
       footer={footer}
       account={<AccountMenu email={email} name={name} portal={isAffiliate ? "affiliate" : null} />}
+      environment={<EnvironmentControl workspaceSlug={slug} {...environment} />}
+      banner={
+        <>
+          <EnvironmentStrip workspaceSlug={slug} {...environment} />
+          {notice}
+        </>
+      }
       commands={commands}
       search={search}
       focus={focus}

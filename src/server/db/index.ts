@@ -61,9 +61,14 @@ export type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0]
 export type DbClient = Database | Transaction
 
 /**
- * Runs `fn` inside a transaction impersonating the Supabase `authenticated`
- * role with `auth.uid()` bound to `userId`, so every statement is filtered by
- * the same RLS policies that protect the PostgREST surface.
+ * Runs `fn` inside a transaction as the application role `indica_app` with
+ * `auth.uid()` bound to `userId`, so every statement is filtered by the RLS
+ * policies (written `TO authenticated`; `indica_app` is a member of it).
+ *
+ * Not `authenticated` itself: that role is what the Supabase Data API uses, and
+ * it holds no table privileges (migration 0009). The rules the services enforce
+ * — plan limits, roles, the append-only ledger — would otherwise be bypassable
+ * with a user's session and the publishable key.
  */
 export async function withUser<T>(
   userId: string,
@@ -71,17 +76,12 @@ export async function withUser<T>(
 ): Promise<T> {
   return db.transaction(async (tx) => {
     const claims = JSON.stringify({ sub: userId, role: "authenticated" })
-    await tx.execute(sql`select set_config('request.jwt.claims', ${claims}, true)`)
-    await tx.execute(sql`select set_config('role', 'authenticated', true)`)
-    return fn(tx)
-  })
-}
-
-/** Anonymous (unauthenticated) RLS context — used by public tracking reads. */
-export async function withAnon<T>(fn: (tx: Transaction) => Promise<T>): Promise<T> {
-  return db.transaction(async (tx) => {
-    await tx.execute(sql`select set_config('request.jwt.claims', '{"role":"anon"}', true)`)
-    await tx.execute(sql`select set_config('role', 'anon', true)`)
+    // One statement, one round trip: both settings are transaction-local and
+    // take effect before `fn` issues its first query. If either fails, the
+    // statement fails and the transaction aborts before anything runs.
+    await tx.execute(
+      sql`select set_config('request.jwt.claims', ${claims}, true), set_config('role', 'indica_app', true)`,
+    )
     return fn(tx)
   })
 }

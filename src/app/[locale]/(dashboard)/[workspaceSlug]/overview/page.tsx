@@ -40,6 +40,7 @@ import {
 import { listAffiliates } from "@/server/repositories/affiliates"
 import { listPrograms } from "@/server/repositories/programs"
 import { getIntegrationHealth } from "@/server/services/integration-health"
+import { getViewEnvironment } from "@/server/services/view-environment"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
 import { OverviewSkeleton } from "./overview-skeleton"
@@ -91,6 +92,8 @@ async function OverviewContent({ slug, welcome }: { slug: string; welcome: boole
   const user = await requireUser()
   const workspace = await getWorkspaceForUser(user.id, slug)
   const f = await getFormatters(workspace.timezone)
+  // Every figure below is one environment's — the shell's Live / Test switch.
+  const { environment, liveModeAvailable } = await getViewEnvironment(user.id, workspace.id)
   // One clock for every query: the window starts at local midnight in the
   // workspace's zone and the chart's days are its local dates.
   const period = { days: PERIOD_DAYS, timeZone: f.timeZone, now: new Date() }
@@ -100,14 +103,15 @@ async function OverviewContent({ slug, welcome }: { slug: string; welcome: boole
     withUser(user.id, async (tx) => {
       // The overview decides the lead currency; the chart then draws that one
       // currency only. Statements in one transaction run serially anyway.
-      const overview = await getDashboardOverview(tx, workspace.id, period)
+      const overview = await getDashboardOverview(tx, workspace.id, environment, period)
       const [series, funnel, topAffiliates, recent, programs, affiliates] = await Promise.all([
-        getRevenueSeries(tx, workspace.id, overview.currency, period),
-        getConversionFunnel(tx, workspace.id, period),
-        getTopAffiliates(tx, workspace.id),
-        getRecentConversions(tx, workspace.id),
+        getRevenueSeries(tx, workspace.id, environment, overview.currency, period),
+        getConversionFunnel(tx, workspace.id, environment, period),
+        getTopAffiliates(tx, workspace.id, environment),
+        getRecentConversions(tx, workspace.id, environment),
         // Activation checklist: see features/onboarding/activation.ts for how
-        // each step is derived.
+        // each step is derived. Setup is workspace-wide, not per environment:
+        // a first test program is progress whichever view is open.
         listPrograms(tx, workspace.id),
         listAffiliates(tx, { workspaceId: workspace.id, limit: 1 }),
       ])
@@ -117,7 +121,7 @@ async function OverviewContent({ slug, welcome }: { slug: string; welcome: boole
   const { overview, series, funnel, topAffiliates, recent, programs, affiliates } = data
 
   const activation = getActivation(
-    activationSignals({ programs, health, affiliateTotal: affiliates.total }),
+    activationSignals({ programs, health, affiliateTotal: affiliates.total, liveMode: liveModeAvailable }),
   )
 
   const hasOutstandingMoney =
@@ -231,7 +235,7 @@ async function OverviewContent({ slug, welcome }: { slug: string; welcome: boole
       <div className="space-y-10">
         {/* 1 — What the program earned, and what is owed right now. */}
         <div className="space-y-6">
-          <ActivationReminder workspaceSlug={slug} activation={activation} />
+          <ActivationReminder workspaceSlug={slug} activation={activation} programs={programs} />
           <MetricGrid className="sm:grid-cols-2 lg:grid-cols-4">
             {/* The headline figure takes the full row on phones: at half width a
                 large amount with a currency symbol would run into its neighbour. */}

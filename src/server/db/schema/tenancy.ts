@@ -9,7 +9,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core"
 
-import { workspacePlanEnum, workspaceRoleEnum } from "./enums"
+import { planCodeEnum, workspaceRoleEnum } from "./enums"
 
 /** `id` references `auth.users(id)`; the FK is added in migration 0001. */
 export const profiles = pgTable("profiles", {
@@ -31,12 +31,6 @@ export const workspaces = pgTable(
     logoUrl: text("logo_url"),
     defaultCurrency: char("default_currency", { length: 3 }).notNull().default("USD"),
     timezone: text("timezone").notNull().default("UTC"),
-    /**
-     * Not writable by `authenticated`: migration 0006 narrows the UPDATE grant
-     * on this table to the editable columns, so a workspace admin cannot
-     * upgrade themselves through the Supabase API. Changed by the operator.
-     */
-    plan: workspacePlanEnum("plan").notNull().default("starter"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -72,6 +66,10 @@ export const workspaceInvites = pgTable(
     role: workspaceRoleEnum("role").notNull().default("member"),
     invitedBy: uuid("invited_by"),
     acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    /** An unaccepted invitation stops being claimable, and stops counting toward the members limit, after this. */
+    expiresAt: timestamp("expires_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now() + interval '14 days'`),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -96,7 +94,7 @@ export const planUpgradeRequests = pgTable(
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
-    requestedPlan: workspacePlanEnum("requested_plan").notNull(),
+    requestedPlan: planCodeEnum("requested_plan").notNull(),
     requestedBy: uuid("requested_by").notNull(),
     handledAt: timestamp("handled_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

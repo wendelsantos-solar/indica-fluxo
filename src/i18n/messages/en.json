@@ -33,7 +33,21 @@
     "navigation": "Navigation",
     "home": "Home",
     "commands": "Commands",
-    "commandsLabel": "Open commands"
+    "commandsLabel": "Open commands",
+    "environment": {
+      "switchLabel": "Test data",
+      "testOn": "Test data on",
+      "testOff": "Showing live data",
+      "sandboxBadge": "Sandbox · test data",
+      "sandboxLabel": "Sandbox: test data only. See plans",
+      "strip": {
+        "test": "You are viewing test data. Nothing here is real money.",
+        "sandbox": "Sandbox: all data is test data and no real money moves.",
+        "liveReadOnly": "Live data stays visible, but your plan does not process new live events.",
+        "showLive": "View live data",
+        "viewPlans": "See plans"
+      }
+    }
   },
   "palette": {
     "dialog": "Command menu",
@@ -77,7 +91,7 @@
       "ctaPrimary": "Start free",
       "ctaSecondary": "See how it works",
       "trust": {
-        "noCard": "No credit card",
+        "noCard": "Start without a credit card",
         "noFee": "No cut of your revenue",
         "stripe": "Works with Stripe"
       },
@@ -122,11 +136,11 @@
         "subtitle": "No migration, no contract, no change to your checkout.",
         "connect": {
           "title": "Connect billing",
-          "body": "Enter your Stripe account, add the webhook endpoint we generate for your workspace and paste its signing secret. We read payment events — we never ask for your API secret key."
+          "body": "Enter your Stripe account, add the webhook endpoint we generate for your workspace and paste its signing secret — first in Stripe's test mode, then in live mode. We read payment events; we never ask for your API secret key."
         },
         "commission": {
           "title": "Set the commission",
-          "body": "Percentage or fixed, first payment only, for a few months or for life. Your best partner can have a custom rate."
+          "body": "Percentage or fixed, first payment only, for a few months or for life. On Growth, your best partner can have their own rate."
         },
         "invite": {
           "title": "Invite affiliates",
@@ -217,10 +231,9 @@
       },
       "pricing": {
         "eyebrow": "Pricing",
-        "title": "Start free. Grow when the channel proves itself.",
-        "cta": "See all plans",
-        "free": "Free",
-        "note": "Every workspace starts on Starter. Growth is enabled on request, with no automatic billing."
+        "title": "Start free in Sandbox. Pay when you go live.",
+        "cta": "See plans and billing",
+        "sandbox": "Test your integration before your program goes live: Stripe test mode and simulated conversions, with test data."
       },
       "closing": {
         "title": "Ready to turn referrals into revenue?",
@@ -422,6 +435,10 @@
         "partial": "{cause}, partial: {refunded} of {base} returned",
         "final": "{cause}, final: {refunded} of {base} returned"
       }
+    },
+    "environment": {
+      "test": "Test",
+      "live": "Live"
     }
   },
   "auth": {
@@ -518,35 +535,92 @@
     "title": "Priced like a tool, not a tax.",
     "subtitle": "We do not take a percentage of your affiliate revenue, because we never touch the money. You pay for the infrastructure and keep the upside.",
     "plans": {
-      "starter": {
-        "name": "Starter",
-        "cadence": "while you validate",
-        "description": "Everything you need to run one program and prove the channel works.",
-        "cta": "Start free"
-      },
       "growth": {
         "name": "Growth",
-        "cadence": "per month, arranged with our team",
-        "description": "For a program that already earns revenue: no cap on programs or affiliates, plus a team and an audit log.",
-        "cta": "Sign up and request Growth"
+        "description": "For teams that have already turned affiliates into an acquisition channel."
+      },
+      "sandbox": {
+        "name": "Sandbox",
+        "description": "Test your integration before your program goes live."
+      },
+      "launch": {
+        "name": "Launch",
+        "description": "For founders putting their first affiliate program into production."
       }
     },
-    "onRequest": "On request",
-    "startsOnStarter": "Every workspace starts on Starter. Request Growth in Settings → Plan; there is no automatic billing — we arrange payment with you.",
-    "next": {
-      "title": "What happens next",
-      "signup": {
-        "title": "You create an account",
-        "body": "Your workspace starts on Starter, free and without a card. You can connect Stripe and invite affiliates the same day."
+    "metaDescription": "Start free in Sandbox with test data. Launch at {launchPrice}/month and Growth at {growthPrice}/month, billed through Stripe. No cut of your revenue.",
+    "free": "Free",
+    "perMonth": "per month",
+    "recommended": "Recommended",
+    "currencyNote": "Prices in Brazilian reais (BRL).",
+    "startNote": "You start in Sandbox, with no card. Activate Launch or Growth when you go live — billed monthly through Stripe, cancel anytime.",
+    "cta": {
+      "startFree": "Start free",
+      "createFreeAccount": "Create a free account"
+    },
+    "lines": {
+      "limit": {
+        "livePrograms": "{count, plural, one {# live program} other {# live programs}}",
+        "testPrograms": "{count, plural, one {# test program} other {# test programs}}",
+        "affiliates": "Up to {count, plural, one {# affiliate} other {# affiliates}}",
+        "members": "{count, plural, one {# person in the workspace} other {Up to # people on the team}}"
       },
-      "request": {
-        "title": "You request Growth when you need it",
-        "body": "Settings → Plan shows usage against each limit and sends the request in one click."
+      "unlimited": {
+        "livePrograms": "Unlimited live programs",
+        "testPrograms": "Unlimited test programs",
+        "affiliates": "Unlimited affiliates",
+        "members": "Unlimited people on the team",
+        "programs": "Unlimited programs, live and test"
       },
-      "contact": {
-        "title": "We get in touch",
-        "body": "We arrange payment with you and switch the plan on. Nothing is charged automatically."
+      "feature": {
+        "liveMode": "Live mode: commissions on real payments",
+        "customAffiliateRates": "Custom rate per affiliate",
+        "auditLog": "Audit log"
+      },
+      "core": {
+        "tracking": "Tracking script and referral links",
+        "attribution": "First- or last-click attribution, with a window",
+        "identify": "Customer identify API",
+        "stripe": "Stripe integration, with test and live endpoints",
+        "ledger": "Percentage, fixed and recurring commissions, with a hold period",
+        "reversals": "Refunds and disputes become reversals",
+        "portal": "Affiliate portal",
+        "payouts": "Payout batches with CSV export",
+        "analytics": "Revenue, commissions, clicks, customers and conversion rate"
+      },
+      "mode": {
+        "test": "Test data only (Stripe test mode and simulated conversions)",
+        "live": "Live mode: commissions on real payments"
       }
+    },
+    "billing": {
+      "title": "How billing works",
+      "sandbox": {
+        "question": "Is there a trial?",
+        "answer": "There is no paid trial. Sandbox is free with no end date: integrate, test and simulate conversions with test data for as long as you need."
+      },
+      "activate": {
+        "question": "How do I activate a plan?",
+        "answer": "In Settings → Plan & billing, choose Launch or Growth and pay through Stripe Checkout. Billing is monthly."
+      },
+      "change": {
+        "question": "How do I change plans or cancel?",
+        "answer": "Switching between Launch and Growth, your card, invoices and cancellation all live in Stripe's billing portal, opened from Settings."
+      },
+      "cancel": {
+        "question": "What happens when I cancel?",
+        "answer": "Your plan stays active until the end of the period you already paid for. Then the workspace returns to Sandbox without deleting programs, affiliates or commissions."
+      },
+      "pastDue": {
+        "question": "What if a payment fails?",
+        "answer": "You have {days, plural, one {# day} other {# days}} to update your payment while the plan keeps working. After that, live processing and creating new items pause until the subscription is settled; your data stays accessible."
+      }
+    },
+    "testOnlyBadge": "Test only",
+    "noExpiry": "no time limit",
+    "core": {
+      "title": "Included in every plan",
+      "subtitle": "The whole product is in every plan: with test data on Sandbox, live on Launch and Growth."
     }
   },
   "docs": {
@@ -583,7 +657,8 @@
         "apiKeys": "API keys",
         "identifyApi": "Identify API",
         "webhookEvents": "Stripe events",
-        "errors": "Errors"
+        "errors": "Errors",
+        "environments": "Test and live"
       },
       "subsections": {
         "trackerDetails": "What the tracker does",
@@ -653,7 +728,7 @@
       "items": {
         "program": "An <strong>active program</strong> with its product website filled in (Programs → New program).",
         "affiliate": "At least <strong>one approved affiliate</strong> — only approved participations earn commissions.",
-        "keys": "The <strong>publishable key</strong> and the <strong>secret key</strong>, generated under Integrations.",
+        "keys": "The test <strong>public key</strong> and <strong>secret key</strong>, generated in Integrations. Live keys come later, with an active plan.",
         "stripe": "Your <strong>Stripe account</strong> entered under Integrations.",
         "access": "Access to your site's HTML and your backend code."
       },
@@ -662,7 +737,7 @@
     },
     "installTracker": {
       "title": "Install the tracker on your site",
-      "lead": "Paste the tag before <code>{head}</code> on every page your affiliates link to. Use the publishable key.",
+      "lead": "Paste the tag before <code>{head}</code> on every page your affiliates link to. Use the test public key while you validate; in production, swap in the live public key.",
       "filename": "index.html",
       "detailsTitle": "What the tracker does",
       "details": {
@@ -704,16 +779,18 @@
       "lead": "The Stripe webhook is how IndicaFluxo learns that a customer paid. Each workspace has its own webhook URL and its own signing secret. Under Integrations:",
       "steps": {
         "account": "Enter your <strong>Stripe account ID</strong> (<code>acct_…</code>) and continue.",
-        "webhook": "Copy the <strong>webhook URL</strong> shown — it ends in your integration's ID. In your Stripe dashboard, under Developers → Webhooks, add an endpoint with that URL and select the events listed in <a>Stripe events</a>.",
-        "secret": "On the endpoint's page, reveal the <strong>Signing secret</strong> (<code>whsec_…</code>) and paste it into Integrations. It is stored encrypted and never shown again."
+        "webhook": "Copy the <strong>webhook URL</strong> shown — it ends with your integration's ID. In your Stripe dashboard, under Developers → Webhooks, add an endpoint with that URL and select the events listed in <a>Stripe events</a>. Do it in test mode and, later, in live mode.",
+        "secret": "On each endpoint's page, reveal the <strong>signing secret</strong> (<code>whsec_…</code>) and paste it into Integrations, in the field for that mode — test or live. Each secret is stored encrypted and never shown again."
       },
       "urlLabel": "Webhook URL",
       "idempotentTitle": "Redeliveries never duplicate a commission",
-      "idempotentBody": "Every event is verified by its signature and recorded exactly once. If Stripe sends it again, it is acknowledged and ignored.",
+      "idempotentBody": "Every event is verified by its signature and recorded exactly once. If Stripe resends an event already recorded, it is recognised and ignored; if recording it had failed, the retry processes it again.",
       "currencyTitle": "Same currency as the program",
       "currencyBody": "A payment only earns a commission in the program's currency. A BRL program ignores USD payments.",
       "urlPlaceholder": "INTEGRATION_ID",
-      "verify": "To confirm, send a test event from Stripe. Integrations shows <strong>Receiving events</strong> with the time of the last event; if the signature does not match, it shows <strong>invalid signature</strong> — almost always a secret from a different endpoint."
+      "verify": "To confirm, send a test event from Stripe. Integrations shows <strong>Receiving events</strong> with the time of the last event; if the signature does not match, it shows <strong>invalid signature</strong> — almost always a secret from a different endpoint.",
+      "modesTitle": "One endpoint per Stripe mode",
+      "modesBody": "The same URL receives events from both endpoints. Each event's <code>livemode</code> field decides where it goes: test events only reach test programs, live events only live programs. An event signed with the other mode's secret is rejected. See <a>Test and live</a>."
     },
     "commission": {
       "title": "How the commission is calculated",
@@ -767,7 +844,7 @@
     },
     "apiKeys": {
       "title": "API keys",
-      "lead": "Each workspace has two kinds of key, generated under Integrations.",
+      "lead": "Each workspace has two kinds of key, each in test and live mode, generated in Integrations. A test key never reaches a live program, and vice versa.",
       "publishable": {
         "title": "Publishable key",
         "where": "Safe in the browser",
@@ -792,7 +869,7 @@
       "method": "Method",
       "endpoint": "Endpoint",
       "auth": "Authentication",
-      "authValue": "<code>Authorization: Bearer sk_live_…</code> (secret key)",
+      "authValue": "<code>Authorization: Bearer sk_test_…</code> or <code>sk_live_…</code> (secret key)",
       "body": "Body",
       "bodyValue": "JSON — see <a>Fields</a>",
       "rateLimit": "Rate limit",
@@ -827,11 +904,54 @@
         "invalid_payload": "The body is not valid JSON for the contract.",
         "invalid_visitor": "<code>visitorId</code> does not follow the <code>v_…</code> format.",
         "validation_error": "A required field is empty.",
-        "unknown_key": "Tracker: the publishable key belongs to no workspace.",
+        "unknown_key": "Tracker: the public key does not exist or was replaced by a new one.",
         "invalid_ref": "Tracker: the referral code has an invalid format.",
         "rate_limited": "Limit exceeded. Honour the <code>Retry-After</code> header.",
-        "internal_error": "Unexpected failure on our side. Try again."
+        "internal_error": "Unexpected failure on our side. Try again.",
+        "LIVE_MODE_REQUIRED": "A live key on a workspace without a plan with live mode (Launch or Growth).",
+        "SUBSCRIPTION_REQUIRED": "A live key while the subscription is overdue past the grace period."
       }
+    },
+    "environments": {
+      "title": "Test and live",
+      "lead": "Every program is created in <strong>test</strong> or <strong>live</strong> mode and never changes. Both live in the same workspace but never mix: test clicks, customers, payments and commissions never enter the live ledger.",
+      "head": {
+        "what": "Item",
+        "test": "Test",
+        "live": "Live"
+      },
+      "rows": {
+        "keys": {
+          "label": "Keys",
+          "test": "<code>pk_test_…</code> and <code>sk_test_…</code>",
+          "live": "<code>pk_live_…</code> and <code>sk_live_…</code>"
+        },
+        "programs": {
+          "label": "Reach",
+          "test": "Test programs only",
+          "live": "Live programs only"
+        },
+        "stripe": {
+          "label": "Stripe",
+          "test": "Test-mode endpoint, events with <code>livemode: false</code>",
+          "live": "Live-mode endpoint, events with <code>livemode: true</code>"
+        },
+        "plan": {
+          "label": "Plan",
+          "test": "All, Sandbox included",
+          "live": "Active Launch or Growth"
+        }
+      },
+      "withoutLiveTitle": "Without a plan with live mode",
+      "withoutLive": {
+        "track": "<code>/api/track</code> with a live key answers <code>204</code> and records nothing.",
+        "identify": "<code>/api/identify</code> with a live key answers <code>402</code> with <code>LIVE_MODE_REQUIRED</code>.",
+        "webhook": "Live Stripe events are acknowledged but neither processed nor recorded — resend them from the Stripe dashboard after activating the plan."
+      },
+      "planTitle": "Live mode needs Launch or Growth",
+      "planBody": "Live mode is part of the <pricing>Launch and Growth</pricing> plans. With a payment overdue past the grace period, live processing stops until the subscription is settled (<code>SUBSCRIPTION_REQUIRED</code>).",
+      "simulateTitle": "Test without Stripe",
+      "simulateBody": "On a test program's page, “Simulate conversion” runs the whole path — click, identify and payment — through the same services as the real integration, and can also simulate a renewal and a refund."
     }
   },
   "status": {
@@ -874,7 +994,7 @@
         "commissions": "Commissions",
         "activeAffiliates": "Active affiliates",
         "customers": "Customers acquired",
-        "netRevenueAfter": "{amount} net revenue",
+        "netRevenueAfter": "{amount} revenue after commissions",
         "conversionOfClicks": "{rate} of {clicks, plural, one {# click} other {# clicks}}",
         "comparisonInCurrency": "In {currency}, vs. previous {days} days",
         "ofApproved": "{count, plural, one {with a click or sale in the period · # approved} other {with a click or sale in the period · # approved}}"
@@ -936,6 +1056,20 @@
             "description": "Paste the tracking code on your site. This step checks itself off when the first referral click arrives.",
             "action": "View tracking code",
             "actionDone": "View integration"
+          },
+          "testConversion": {
+            "title": "Test a conversion",
+            "titleDone": "Test conversion recorded",
+            "description": "Simulate a click, a sign-up and a payment on the test program. The commission takes the same path as a real sale, with no real money.",
+            "action": "Simulate a conversion",
+            "actionDone": "View program"
+          },
+          "liveMode": {
+            "title": "Activate live mode",
+            "titleDone": "Live mode active",
+            "description": "With Launch or Growth, your live programs record real sales and real commissions.",
+            "action": "View plans",
+            "actionDone": "View plan"
           }
         }
       },
@@ -996,7 +1130,14 @@
       },
       "otherCurrenciesExcluded": "+ commissions in another currency",
       "filtersLabel": "Filter affiliates",
-      "pendingCount": "{count, plural, one {# awaiting approval} other {# awaiting approval}}"
+      "pendingCount": "{count, plural, one {# awaiting approval} other {# awaiting approval}}",
+      "planLimit": {
+        "atTitle": "Your plan includes up to {limit, plural, one {# active affiliate} other {# active affiliates}}, and that limit has been reached",
+        "overTitle": "{used} active affiliates, above your plan's limit of {limit}",
+        "body": "Current affiliates keep earning. To invite or approve new ones, reject or suspend affiliates, or change plans.",
+        "bodyUpgrade": "Current affiliates keep earning. To invite or approve new ones, reject or suspend affiliates, or move to {plan, select, launch {Launch} growth {Growth} scale {Scale} other {Sandbox}} ({price}/month).",
+        "action": "See plans"
+      }
     },
     "commissions": {
       "title": "Commissions",
@@ -1087,7 +1228,8 @@
       "availableOtherCurrencies": "+ {amounts}",
       "readyToPayByCurrency": "A batch holds one currency. Choose the currency, then who goes into the batch; other currencies get a batch of their own.",
       "currencyTabs": "Currencies to pay",
-      "memberReadOnly": "Only owners and admins choose who goes into a payout batch. Here you can follow the totals and the history."
+      "memberReadOnly": "Only owners and admins choose who goes into a payout batch. Here you can follow the totals and the history.",
+      "testBatch": "Test batch"
     },
     "programs": {
       "title": "Programs",
@@ -1108,10 +1250,20 @@
         "action": "Create your first program"
       },
       "attributionDefinition": "Who gets credit for a sale (first or last click) and for how many days after the click.",
-      "planLimit": {
-        "title": "Your plan includes {limit, plural, one {# program} other {# programs}}",
-        "description": "To create another program, request a plan change in Settings.",
-        "action": "View plan"
+      "planNotice": {
+        "upgradeTitle": "Multiple programs are available on {plan, select, launch {Launch} growth {Growth} scale {Scale} other {Sandbox}}.",
+        "upgradePrice": "{price}/month",
+        "upgradeAction": "Explore {plan, select, launch {Launch} growth {Growth} scale {Scale} other {Sandbox}}",
+        "restrictedTitle": "Your subscription payment is overdue",
+        "restrictedBody": "Your programs stay visible, but nothing new can be created until the payment is settled.",
+        "restrictedAction": "Update payment"
+      },
+      "usage": {
+        "live": "Live: {used} of {limit}",
+        "liveUnlimited": "Live: {used}",
+        "liveUnavailable": "Live: from Launch",
+        "test": "Test: {used} of {limit}",
+        "testUnlimited": "Test: {used}"
       }
     },
     "newProgram": {
@@ -1130,7 +1282,7 @@
     },
     "settings": {
       "title": "Settings",
-      "description": "Workspace details and team access.",
+      "description": "Workspace details, plan and billing, and team access.",
       "team": {
         "title": "Team",
         "description": "Members see everything in this workspace. Only owners and admins can change programs, payouts and keys.",
@@ -1161,7 +1313,12 @@
         "resendTitle": "Resend invitation",
         "resendBody": "We'll send the invitation e-mail to {email} again. You also get a link to forward.",
         "resendConfirm": "Resend e-mail",
-        "done": "Done"
+        "done": "Done",
+        "expiredRole": "Invitation expired · {role}",
+        "expiresOn": "Expires {date}",
+        "expiredOn": "Expired {date}",
+        "renew": "Resend and renew",
+        "renewBody": "The invitation for {email} expired. We'll send it again, valid for another 14 days. It counts toward your plan's member limit again."
       },
       "readOnly": "Only owners and admins can change the workspace. Your role here is {role}."
     },
@@ -1213,6 +1370,11 @@
         "menuLabel": "Actions for {name}",
         "viewAffiliate": "View affiliate",
         "viewCommissions": "View commissions"
+      },
+      "simulation": {
+        "title": "Test program",
+        "description": "Simulate a click, a sign-up and a payment to watch a commission appear, without Stripe or real money.",
+        "needsAffiliate": "Approve an affiliate in this program to simulate a conversion without Stripe."
       }
     },
     "error": {
@@ -1422,7 +1584,13 @@
         "inBatchNote": "Already included in a payout the program owner is going to send."
       },
       "chartSummary": "{amount} in commissions over the last 30 days, {days, plural, =0 {with no day of commission} one {earned on # day} other {earned on # days}}.",
-      "chartDaysTitle": "Most recent days with commission"
+      "chartDaysTitle": "Most recent days with commission",
+      "test": {
+        "title": "Test programs",
+        "description": "Commissions from test programs are for rehearsing the integration. They are not money owed to you and are left out of your balances.",
+        "commission": "Test commissions",
+        "unpaid": "Unpaid (test)"
+      }
     },
     "links": {
       "title": "Links",
@@ -1652,6 +1820,23 @@
         "statusBody": "With the status “{status}”, clicks on links are still recorded, but no new visitor is attributed to an affiliate — for every affiliate in the program. Customers already attributed keep generating commissions.",
         "currencyBody": "Commissions already recorded stay in {from}. After saving, only payments in {to} earn commission in this program; payments in {from} stop earning.",
         "action": "Save changes"
+      },
+      "environment": {
+        "label": "Environment",
+        "test": "Test",
+        "testAtLimit": "Test (plan limit reached)",
+        "live": "Live",
+        "liveUnavailable": "Live (not in your current plan)",
+        "hintTest": "Receives only test keys and Stripe test-mode events. No real money. Cannot change after creation.",
+        "hintLive": "Receives live keys and real Stripe payments. Cannot change after creation.",
+        "planTitle": "Live programs are available from Launch",
+        "planBody": "On Sandbox you test the whole integration with test data. To record real sales, activate a plan.",
+        "limitTitle": "Your plan has reached its live program limit",
+        "limitBody": "Archive a live program or change plans to create another.",
+        "planAction": "See plans",
+        "copyFrom": "Copy settings from a test program",
+        "copyFromHint": "Fills in commission, attribution, hold and currency. The name stays what you type.",
+        "copyFromNone": "Don't copy"
       }
     },
     "workspace": {
@@ -1711,11 +1896,12 @@
       "createdTitle": "Invitation created",
       "createdDescription": "{name} is in the program, with their referral code ready.",
       "inviteAnother": "Invite another",
-      "done": "Done"
+      "done": "Done",
+      "customRateUpgrade": "Custom affiliate rates are part of Growth. <link>See plans</link>"
     },
     "apiKeys": {
       "title": "API keys",
-      "description": "The public key goes in your site's tracking code. The secret key is only for calls from your server to <code>/api/identify</code>.",
+      "description": "The public key goes in your site's tracking code. The secret key is only for calls from your server to <code>/api/identify</code>. Test keys reach test programs only; live keys, live programs only.",
       "revealWarning": "Copy it now — it won't be shown again.",
       "key": "Key",
       "type": "Type",
@@ -1726,7 +1912,7 @@
       "typePublishable": "Public",
       "neverUsed": "Never",
       "snippetHint": "Paste it before <code>{head}</code> on the site your affiliates link to. It sets a first-party cookie and reports the referral code.",
-      "revealTitle": "{type, select, secret {New secret key generated} other {New public key generated}}",
+      "revealTitle": "{type, select, secret {New secret} other {New public}} {environment, select, live {live key generated} other {test key generated}}",
       "generate": "Generate key",
       "generatePublishable": "Generate new public key",
       "noKey": "No active key",
@@ -1734,7 +1920,7 @@
       "snippetLocked": "The full public key is only shown when it is created; the code you already installed keeps working. Generating a new one invalidates the current key.",
       "snippetNoKey": "Generate a public key to complete the code and install tracking.",
       "snippetReady": "This code already contains the new key. Paste it on your site in place of any previous code.",
-      "confirmTitle": "{type, select, secret {Generate a new secret key?} other {Generate a new public key?}}",
+      "confirmTitle": "{type, select, secret {Generate a new secret} other {Generate a new public}} {environment, select, live {live key?} other {test key?}}",
       "confirmPublishable": "The current public key stops working immediately. The tracking code installed on your site stops recording clicks until you replace it with the code containing the new key.",
       "confirmSecret": "The current secret key stops working immediately. Calls from your server to /api/identify fail until you update the key.",
       "confirmAction": "Generate new key",
@@ -1746,7 +1932,22 @@
       "adminOnly": "Only admins can view and generate API keys.",
       "snippetFirstStep": "Generate the public key above to complete this code.",
       "lastClick": "Last click recorded {when}.",
-      "noClicks": "No clicks recorded yet. After installing the code, open a referral link to test it."
+      "noClicks": "No clicks recorded yet. After installing the code, open a referral link to test it.",
+      "environments": {
+        "test": {
+          "title": "Test keys",
+          "description": "For development and staging. They record clicks, customers and commissions in test programs only — no real money. Available on every plan."
+        },
+        "live": {
+          "title": "Live keys",
+          "description": "For your production site and server. They record real commissions in live programs."
+        }
+      },
+      "liveLocked": {
+        "title": "Live mode is part of Launch and Growth",
+        "description": "On Sandbox, tracking, identify and webhooks work with test data. Activate a plan to generate live keys.",
+        "action": "View plan"
+      }
     },
     "payable": {
       "selectAll": "Select all affiliates",
@@ -1818,12 +2019,12 @@
         },
         "webhook": {
           "title": "Add the webhook in Stripe",
-          "description": "In your Stripe dashboard, under <strong>Developers → Webhooks</strong>, add an endpoint with this URL — it is unique to this workspace — and select the events below.",
+          "description": "In your Stripe dashboard, under <strong>Developers → Webhooks</strong>, add an endpoint with this URL — it is unique to this workspace — and select the events below. Do it with test mode on and, when you go live, in live mode too: each mode has its own endpoint and its own secret.",
           "events": "Events to select"
         },
         "secret": {
           "title": "Paste the signing secret",
-          "description": "On the endpoint you created, reveal the <strong>Signing secret</strong> and paste it here. It is how we confirm each event really came from your Stripe account."
+          "description": "On each endpoint's page, reveal the <strong>Signing secret</strong> and paste it into the field for that mode. One is enough to start; the other can be saved later."
         }
       },
       "health": {
@@ -1837,6 +2038,24 @@
         "rejectedBody": "A delivery arrived {when} with a signature that does not match the saved secret. Check that you copied this endpoint's secret and replace it below.",
         "errorTitle": "The Stripe connection has an error",
         "errorBody": "New commissions may not be recorded. Check the endpoint in your Stripe dashboard and replace the signing secret."
+      },
+      "secretEnvironments": {
+        "test": {
+          "label": "Test endpoint secret",
+          "hint": "From the endpoint created with Stripe's test mode on. Starts with whsec_; stored encrypted and never shown again."
+        },
+        "live": {
+          "label": "Live endpoint secret",
+          "hint": "From the endpoint created in Stripe's live mode. Starts with whsec_; stored encrypted and never shown again."
+        }
+      },
+      "secretMissingEnvironment": "Not saved — events from this mode are rejected.",
+      "liveNeedsPlan": "Live events are acknowledged to Stripe but only create commissions with Launch or Growth active. Until then, you can resend them from the Stripe dashboard after activating the plan.",
+      "evidence": {
+        "lastEvent": "{environment, select, live {Last live event} other {Last test event}} {when}",
+        "lastRecorded": "{environment, select, live {Last live payment recorded} other {Last test payment recorded}} {when}",
+        "failed": "{environment, select, live {Last live event failed} other {Last test event failed}} {when}",
+        "none": "{environment, select, live {No live events received yet.} other {No test events received yet.}}"
       }
     },
     "affiliateActions": {
@@ -1866,7 +2085,11 @@
       "hintFixed": "In the program's currency, paid per sale.",
       "current": "Current special rate: {rate}.",
       "save": "Save rate",
-      "remove": "Remove special rate"
+      "remove": "Remove special rate",
+      "upgradeTitle": "Custom affiliate rates are part of Growth",
+      "upgradeBody": "On your current plan, every affiliate earns the program's rate.",
+      "upgradeBodyExisting": "The current rate keeps applying. On your current plan you can remove it, but not change it.",
+      "upgradeAction": "See plans"
     },
     "inviteOutcome": {
       "sent": "Invitation sent to {email}.",
@@ -1881,6 +2104,33 @@
       "hintSent": "Send this link if the e-mail doesn't arrive.",
       "hintNotSent": "With this link they create an account with {email}, and the invitation is accepted once they confirm the e-mail.",
       "hintLogin": "They sign in with their existing account and the invitation is accepted."
+    },
+    "sandbox": {
+      "trigger": "Simulate conversion",
+      "title": "Simulate a test conversion",
+      "description": "A fictitious visitor clicks the affiliate's link, signs up and pays. Everything goes through the same services as a real click, identify call and payment, with test data only.",
+      "affiliate": "Affiliate",
+      "amount": "Payment amount ({currency})",
+      "amountHint": "In the program's currency, for example 49.90.",
+      "amountPlaceholder": "49.90",
+      "externalId": "Customer ID",
+      "externalIdHint": "Optional. Without it, we create an ID starting with sim_.",
+      "submit": "Simulate",
+      "result": {
+        "title": "Conversion simulated",
+        "description": "The click, customer, payment and commission already show up in the test views.",
+        "noCommission": "The payment was recorded but created no commission. Check the program's rules.",
+        "commission": "{amount} commission recorded · {status} from {date}.",
+        "reversal": "Refund recorded: the {amount} commission was reversed.",
+        "customer": "Simulated customer:"
+      },
+      "renewalAmount": "Renewal amount",
+      "renewalHint": "A second payment by the same customer. Creates a recurring commission if the program pays renewals.",
+      "renew": "Simulate renewal",
+      "refundHint": "Refunds this customer's latest payment in full. The commission is reversed, never deleted.",
+      "refund": "Simulate refund",
+      "again": "Simulate another",
+      "done": "Done"
     }
   },
   "errors": {
@@ -1998,21 +2248,50 @@
     "linkNotFound": "That link no longer exists. Refresh the page.",
     "linkNotSaved": "Could not rename the link.",
     "linkNotDeleted": "Could not delete the link.",
-    "planLimit": {
-      "programs": "You have reached your plan's program limit. See usage and request Growth in Settings → Plan.",
-      "affiliates": "You have reached your plan's affiliate limit. See usage and request Growth in Settings → Plan.",
-      "members": "You have reached your plan's team member limit (pending invitations count). See usage in Settings → Plan."
-    },
-    "planFeature": {
-      "customRates": "Custom rates per affiliate are part of Growth. Request the change in Settings → Plan.",
-      "teamInvites": "Inviting team members is part of Growth. Request the change in Settings → Plan.",
-      "auditLog": "The audit log is part of Growth. Request the change in Settings → Plan."
-    },
     "planAlreadyIncluded": "This workspace is already on that plan or a higher one.",
     "planUpgradeNotRequested": "The plan change request could not be sent. Please try again.",
     "stripeSecretInvalid": "Paste the endpoint's signing secret, which starts with whsec_.",
     "stripeSecretNotSaved": "Could not save the signing secret.",
-    "stripeSetupMissing": "Enter the Stripe account (step 1) before saving the secret."
+    "stripeSetupMissing": "Enter the Stripe account (step 1) before saving the secret.",
+    "billing": {
+      "notConfigured": "Automatic billing is not available right now. Request the plan manually instead.",
+      "alreadySubscribed": "This workspace already has a subscription. To change plan, update the card or cancel, use the billing portal.",
+      "planNotPurchasable": "This plan is not for sale.",
+      "noBillingAccount": "This workspace has no billing account yet. Subscribe to a plan first.",
+      "noActiveSubscription": "There is no active subscription to change. Subscribe to a plan first.",
+      "planUnchanged": "The subscription is already on this plan.",
+      "checkoutFailed": "Checkout could not be opened. Please try again in a moment.",
+      "portalFailed": "The billing portal could not be opened. Please try again in a moment.",
+      "useCheckout": "Plans are activated by checking out in Settings → Plan & billing."
+    },
+    "programArchived": "This program is archived and takes no new affiliates.",
+    "programEnvironmentImmutable": "A program's environment cannot change. To go live, create a live program.",
+    "customRatesBlockCurrencyChange": "Some affiliates in this program have a fixed custom rate. Remove those rates before changing the currency.",
+    "participationInactive": "Your participation in this program is suspended or was rejected, so links cannot be created.",
+    "batchFullyReversed": "Every commission in this batch was reversed. Cancel the batch instead of marking it paid.",
+    "plan": {
+      "limit": {
+        "livePrograms": "Your plan has reached its limit of live programs. Multiple programs are available on Growth.",
+        "testPrograms": "Your plan has reached its limit of test programs. Archive a test program or change plans.",
+        "affiliates": "Your plan has reached its limit of active affiliates. Reject or suspend affiliates, or change plans.",
+        "members": "Your plan has reached its team limit (pending invitations count)."
+      },
+      "feature": {
+        "customAffiliateRates": "Custom rates per affiliate are available on Growth.",
+        "auditLog": "The audit log is available on Growth.",
+        "liveMode": "Live mode is available from Launch."
+      },
+      "liveModeRequired": "Live data needs an active Launch or Growth subscription.",
+      "subscriptionRequired": "The subscription payment is past due. Update the payment method in Settings → Plan & billing to keep creating and processing live data."
+    },
+    "sandboxAmountInvalid": "Enter an amount greater than zero, for example 49.90.",
+    "sandboxExternalIdInvalid": "Use only letters, numbers and _ . : @ - in the customer ID.",
+    "sandboxNotSimulated": "Could not run the simulation. Try again.",
+    "sandboxLiveProgram": "Only test programs can be simulated. In live mode, conversions come from your site and Stripe.",
+    "sandboxProgramNotActive": "Activate the program to simulate a conversion.",
+    "sandboxAffiliateNotApproved": "Approve the affiliate to simulate a conversion.",
+    "sandboxCustomerTaken": "That ID already belongs to a test customer. Use another or leave it blank.",
+    "sandboxCustomerNotFound": "We could not find that simulated customer. Simulate a conversion first."
   },
   "success": {
     "programSaved": "Program saved.",
@@ -2042,7 +2321,10 @@
     "linkDeleted": "Link deleted. Its clicks and commissions still count.",
     "planUpgradeRequested": "Request sent. Our team will get in touch to arrange payment.",
     "stripeAccountSaved": "Account saved. Now add the webhook URL in Stripe.",
-    "stripeSecretSaved": "Secret saved. Send a test event from Stripe to confirm everything works."
+    "stripeSecretSaved": "Secret saved. Send a test event from Stripe to confirm everything works.",
+    "sandboxConversionSimulated": "Conversion simulated.",
+    "sandboxRenewalSimulated": "Renewal simulated.",
+    "sandboxRefundSimulated": "Refund simulated."
   },
   "notFound": {
     "title": "Page not found",
@@ -2052,58 +2334,84 @@
   },
   "plans": {
     "names": {
-      "starter": "Starter",
-      "growth": "Growth"
-    },
-    "lines": {
-      "limit": {
-        "programs": "{count, plural, one {# program} other {Up to # programs}}",
-        "affiliates": "Up to {count, plural, one {# affiliate} other {# affiliates}}",
-        "members": "{count, plural, one {Just you in the workspace} other {Up to # team members}}"
-      },
-      "unlimited": {
-        "programs": "Unlimited programs",
-        "affiliates": "Unlimited affiliates",
-        "members": "Unlimited team members"
-      },
-      "feature": {
-        "customRates": "Custom rates per affiliate",
-        "teamInvites": "Team invitations",
-        "auditLog": "Audit log"
-      },
-      "base": {
-        "stripe": "Stripe integration",
-        "tracking": "Click tracking and attribution",
-        "ledger": "Commission ledger with hold periods and reversals",
-        "payouts": "Payout batches with CSV export",
-        "portal": "Affiliate portal"
-      },
-      "notIncluded": "not included"
+      "growth": "Growth",
+      "sandbox": "Sandbox",
+      "launch": "Launch",
+      "scale": "Scale"
     },
     "panel": {
-      "title": "Plan",
-      "description": "What this workspace includes and how much of it is in use.",
+      "title": "Plan & billing",
+      "description": "The workspace's plan, its billing, and how much of each limit is in use.",
       "current": "Current plan",
       "summary": {
-        "starter": "Free. For running one program and proving the channel works.",
-        "growth": "For a program that already earns revenue: more programs, affiliates and team members."
+        "growth": "For when the program becomes a channel: scale, team and control.",
+        "sandbox": "Free, with test data only: build the program, simulate conversions and prove the integration before paying.",
+        "launch": "The essentials in production, for a first program with real sales.",
+        "scale": "Everything in Growth, on terms agreed with our team."
       },
       "usageTitle": "Usage",
       "resources": {
-        "programs": "Programs",
         "affiliates": "Affiliates",
-        "members": "Team members"
+        "members": "Members",
+        "livePrograms": "Live programs",
+        "testPrograms": "Test programs"
       },
-      "usageOf": "{used} of {limit}",
-      "usageUnlimited": "{used} · unlimited",
+      "usageOf": "{used} / {limit}",
       "atLimit": "At limit",
       "membersHint": "Counts people already in the workspace and pending invitations.",
-      "upgradeTitle": "What {plan} adds",
-      "noBilling": "There is no automatic billing and no card on file. When you request {plan}, our team gets in touch to arrange payment and switches your workspace over.",
       "request": "Request {plan}",
       "requested": "{plan} requested on {date} — we will be in touch.",
-      "readOnly": "Only owners and admins can request a plan change.",
-      "highest": "This workspace is already on the most complete plan."
+      "readOnly": "Only owners and admins can change the plan and billing.",
+      "highest": "This workspace is already on the most complete plan.",
+      "status": {
+        "sandbox": "Sandbox",
+        "active": "Active",
+        "trialing": "Trial",
+        "trialingUntil": "Trial until {date}",
+        "graceUntil": "Payment past due — until {date}",
+        "restricted": "Restricted",
+        "cancellingOn": "Cancels on {date}"
+      },
+      "free": "Free",
+      "perMonth": "{price}/month",
+      "charge": {
+        "sandbox": "No charge",
+        "restricted": "Live mode paused and creation blocked until the payment is settled",
+        "grace": "Update the payment method to keep live mode running",
+        "endsOn": "Ends on {date} and will not renew",
+        "nextOn": "Next charge on {date}",
+        "manual": "Activated by our team"
+      },
+      "manage": "Manage billing",
+      "return": {
+        "success": "Payment confirmed by Stripe — the plan is activated as soon as we receive the confirmation (a few seconds).",
+        "cancelled": "Payment cancelled. Nothing was charged and the plan is unchanged."
+      },
+      "overLimit": {
+        "title": "Over the plan's limit",
+        "body": "Nothing was deleted; new items cannot be created until usage fits the plan."
+      },
+      "usageUnavailable": "Not included in {plan}",
+      "over": "Over limit",
+      "affiliatesHint": "Counts affiliates who are not suspended and have a pending or approved participation.",
+      "options": {
+        "activateTitle": "Activate a plan",
+        "activateDescription": "Sandbox processes test data only. To record real sales, activate a plan.",
+        "changeTitle": "Change plan"
+      },
+      "recommended": "Recommended",
+      "actions": {
+        "activate": "Activate {name}",
+        "change": "Switch to {name}",
+        "request": "Request {name}",
+        "contact": "Your plan was activated by our team. To switch to {name}, get in touch with us."
+      },
+      "downgradeNote": "Nothing is deleted when you switch to {name}. If usage exceeds its limits, everything stays visible, but new items cannot be created until usage fits the plan.",
+      "manualRequest": {
+        "sent": "{plan} requested on {date}. Our team will be in touch.",
+        "note": "Automatic billing is not available yet. When you request a plan, our team gets in touch to arrange payment and activates the plan on your workspace."
+      },
+      "core": "Every plan includes the essentials (on Sandbox, with test data only): tracking script and referral links, first- or last-click attribution, identify API, Stripe integration, commissions with hold and recurrence, refunds and disputes as reversals, affiliate portal, payout batches with CSV export and essential reports."
     },
     "audit": {
       "title": "Audit log",
@@ -2124,8 +2432,7 @@
         "description": "Changes to programs, rates, payouts and integrations show up here, with who made them and when."
       },
       "locked": {
-        "title": "The audit log is part of {plan}",
-        "description": "See who changed rates, payouts and integrations, and when. Request {plan} in the Plan section above."
+        "summary": "See who changed rates, payouts, integrations and the team, and when. Changes keep being recorded on every plan."
       },
       "actions": {
         "workspace": {
@@ -2170,9 +2477,52 @@
           "revoked": "API key revoked"
         },
         "plan": {
-          "upgrade_requested": "Plan change requested"
+          "upgrade_requested": "Plan change requested",
+          "subscription_changed": "Plan subscription changed"
         }
       }
+    },
+    "capabilities": {
+      "limit": {
+        "livePrograms": "{count, plural, =0 {No live programs} one {# live program} other {Up to # live programs}}",
+        "testPrograms": "{count, plural, =0 {No test programs} one {# test program} other {Up to # test programs}}",
+        "affiliates": "{count, plural, one {# active affiliate} other {Up to # active affiliates}}",
+        "members": "{count, plural, one {Just you in the workspace} other {Up to # team members}}"
+      },
+      "unlimited": {
+        "livePrograms": "Unlimited live programs",
+        "testPrograms": "Unlimited test programs",
+        "affiliates": "Unlimited affiliates",
+        "members": "Unlimited team members"
+      },
+      "feature": {
+        "customAffiliateRates": "Custom rate per affiliate",
+        "auditLog": "Audit log"
+      },
+      "notIncluded": "not included"
+    },
+    "upgrade": {
+      "title": {
+        "livePrograms": "{plan, select, launch {Live programs are available on {name}.} other {Multiple programs are available on {name}.}}",
+        "testPrograms": "More test programs are available on {name}.",
+        "affiliates": "More affiliates are available on {name}.",
+        "members": "More team members are available on {name}.",
+        "customAffiliateRates": "Custom rates per affiliate are available on {name}.",
+        "auditLog": "The audit log is available on {name}.",
+        "liveMode": "Live mode is available from {name}."
+      },
+      "price": "{price}/month",
+      "action": "Explore {name}"
+    }
+  },
+  "billing": {
+    "banner": {
+      "grace": "Payment pending. Update it by {date} to keep live mode running.",
+      "restricted": "Payment past due: live mode paused and creation blocked. Your data is still available.",
+      "ending": "Your {plan} plan ends on {date}.",
+      "askOwner": "Ask a workspace owner or admin to update the payment.",
+      "actionPayment": "Update payment",
+      "actionEnding": "View plan"
     }
   }
 }

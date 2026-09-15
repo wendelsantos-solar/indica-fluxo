@@ -6,7 +6,8 @@ import { type DbClient } from "@/server/db"
 import { affiliates, payoutBatches, programs } from "@/server/db/schema"
 
 export interface WorkspaceSearchRows {
-  programs: { id: string; name: string; slug: string }[]
+  /** Both environments are found; the palette labels test records. */
+  programs: { id: string; name: string; slug: string; environment: "test" | "live" }[]
   affiliates: { id: string; name: string }[]
   batches: {
     id: string
@@ -14,6 +15,7 @@ export interface WorkspaceSearchRows {
     /** The batch month, for `formatBatchLabel`: the stored reference is English ledger data. */
     periodEnd: Date
     status: "draft" | "approved" | "paid" | "cancelled"
+    environment: "test" | "live"
   }[]
 }
 
@@ -29,7 +31,7 @@ export async function searchWorkspaceRecords(
   limit: number,
 ): Promise<WorkspaceSearchRows> {
   const programRows = await tx
-    .select({ id: programs.id, name: programs.name, slug: programs.slug })
+    .select({ id: programs.id, name: programs.name, slug: programs.slug, environment: programs.environment })
     .from(programs)
     .where(and(eq(programs.workspaceId, workspaceId), ilike(programs.name, pattern)))
     .orderBy(asc(programs.name))
@@ -48,6 +50,7 @@ export async function searchWorkspaceRecords(
       reference: payoutBatches.reference,
       periodEnd: payoutBatches.periodEnd,
       status: payoutBatches.status,
+      environment: payoutBatches.environment,
     })
     .from(payoutBatches)
     .where(and(eq(payoutBatches.workspaceId, workspaceId), ilike(payoutBatches.reference, pattern)))

@@ -5,7 +5,7 @@ import { auditLogs } from "@/server/db/schema"
 import { requireMembership } from "@/server/policies/workspace"
 import { listRecentAuditLogs } from "@/server/repositories/audit"
 
-import { assertPlanFeature } from "./plans"
+import { assertFeature, getWorkspaceEntitlements } from "./entitlements"
 
 /** Every action this module can record, for callers that label them. */
 export const AUDIT_ACTIONS = [
@@ -33,6 +33,7 @@ export const AUDIT_ACTIONS = [
   "api_key.created",
   "api_key.revoked",
   "plan.upgrade_requested",
+  "plan.subscription_changed",
 ] as const
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
@@ -82,7 +83,7 @@ export interface AuditLogEntry {
 export async function listAuditLog(userId: string, workspaceId: string): Promise<AuditLogEntry[]> {
   return withUser(userId, async (tx) => {
     await requireMembership(tx, workspaceId, userId, "admin")
-    await assertPlanFeature(tx, workspaceId, "auditLog")
+    assertFeature(await getWorkspaceEntitlements(tx, workspaceId), "auditLog")
     return listRecentAuditLogs(tx, workspaceId, AUDIT_LOG_PAGE_SIZE)
   })
 }

@@ -1,6 +1,7 @@
 import "server-only"
 
 import { and, eq, sql } from "drizzle-orm"
+import { cache } from "react"
 
 import type { Locale } from "@/i18n/routing"
 import { logger } from "@/lib/logger"
@@ -19,11 +20,12 @@ import {
   listPendingInvites,
   listWorkspacesForUser,
   lockOwners,
+  renewInvite,
 } from "@/server/repositories/workspaces"
 
 import { recordAudit } from "./audit"
+import { assertCanCreate, assertWithinLimit, getWorkspaceEntitlements } from "./entitlements"
 import { sendInviteEmail, type InviteDelivery } from "./invite-mail"
-import { assertPlanFeature, assertWithinPlan } from "./plans"
 
 export interface CreateWorkspaceInput {
   name: string
@@ -99,15 +101,20 @@ async function uniqueSlug(
   return `${base}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-export async function getWorkspaceForUser(userId: string, slug: string) {
+/**
+ * `cache()` makes these one lookup per request: the workspace layout and its
+ * page (rendered concurrently) and `generateMetadata` all ask for the same
+ * workspace. Outside a React render (server actions) it is a plain call.
+ */
+export const getWorkspaceForUser = cache(async (userId: string, slug: string) => {
   const workspace = await withUser(userId, (tx) => findWorkspaceBySlug(tx, slug, userId))
   if (!workspace) throw new NotFoundError("Workspace not found, or you do not have access to it.", "workspaceNotFound")
   return workspace
-}
+})
 
-export async function listUserWorkspaces(userId: string) {
+export const listUserWorkspaces = cache(async (userId: string) => {
   return withUser(userId, (tx) => listWorkspacesForUser(tx, userId))
-}
+})
 
 export async function updateWorkspace(
   userId: string,
@@ -156,10 +163,11 @@ export async function inviteMember(
 
   const workspaceName = await withUser(userId, async (tx) => {
     await requireMembership(tx, workspaceId, userId, "admin")
-    await assertPlanFeature(tx, workspaceId, "teamInvites")
+    const entitlements = await getWorkspaceEntitlements(tx, workspaceId)
+    assertCanCreate(entitlements)
 
     const [existing] = await tx
-      .select({ id: workspaceInvites.id })
+      .select({ id: workspaceInvites.id, expired: sql<boolean>`${workspaceInvites.expiresAt} <= now()` })
       .from(workspaceInvites)
       .where(
         and(
@@ -169,29 +177,42 @@ export async function inviteMember(
         ),
       )
       .limit(1)
+      .for("update")
 
-    if (existing) throw new ConflictError("That person already has a pending invitation.", "invitePending")
+    if (existing && !existing.expired) {
+      throw new ConflictError("That person already has a pending invitation.", "invitePending")
+    }
 
-    // Members counts people in the workspace plus pending invites.
-    await assertWithinPlan(tx, workspaceId, "members")
+    // Members counts people in the workspace plus invitations still valid; an
+    // expired one no longer counts, so inviting that address again takes a slot.
+    await assertWithinLimit(tx, workspaceId, entitlements, "members")
 
-    const [invite] = await tx
-      .insert(workspaceInvites)
-      .values({
-        workspaceId,
-        email,
-        role: input.role,
-        invitedBy: userId,
-      })
-      .returning({ id: workspaceInvites.id })
+    let inviteId: string | null
+    if (existing) {
+      // One unaccepted invitation per address (`workspace_invites_pending_key`):
+      // the expired row is renewed with the new role rather than duplicated.
+      await renewInvite(tx, existing.id, { role: input.role, invitedBy: userId })
+      inviteId = existing.id
+    } else {
+      const [invite] = await tx
+        .insert(workspaceInvites)
+        .values({
+          workspaceId,
+          email,
+          role: input.role,
+          invitedBy: userId,
+        })
+        .returning({ id: workspaceInvites.id })
+      inviteId = invite?.id ?? null
+    }
 
     await recordAudit(tx, {
       workspaceId,
       actorUserId: userId,
       entityType: "workspace_invite",
-      entityId: invite?.id ?? null,
+      entityId: inviteId,
       action: "member.invited",
-      metadata: { role: input.role },
+      metadata: { role: input.role, renewed: Boolean(existing) },
     })
 
     return (await findWorkspaceName(tx, workspaceId)) ?? ""
@@ -222,6 +243,9 @@ export interface PendingInvite {
   email: string
   role: WorkspaceRole
   invitedAt: Date
+  expiresAt: Date
+  /** No longer claimable and not counted toward the members limit; resend renews it. */
+  expired: boolean
 }
 
 export interface Team {
@@ -264,6 +288,8 @@ export async function getTeam(
         email: invite.email,
         role: invite.role,
         invitedAt: invite.createdAt,
+        expiresAt: invite.expiresAt,
+        expired: invite.expired,
       })),
     }
   })
@@ -276,31 +302,51 @@ async function applyMemberChange(
   change: MemberChange,
 ): Promise<{ self: boolean }> {
   return withUser(userId, async (tx) => {
-    const actorRole = await requireMembership(tx, workspaceId, userId, "admin")
+    // Any member may reach this far: leaving is open to every role, and
+    // `checkMemberChange` refuses a plain member everything else.
+    const actorRole = await requireMembership(tx, workspaceId, userId)
 
     const target = await findMember(tx, workspaceId, memberId)
     if (!target) throw new NotFoundError("Member not found.", "memberNotFound")
+    const self = target.userId === userId
 
     const ownerCount = target.role === "owner" ? await lockOwners(tx, workspaceId) : 0
-    const verdict = checkMemberChange({ actorRole, targetRole: target.role, ownerCount, change })
+    const verdict = checkMemberChange({ actorRole, targetRole: target.role, ownerCount, change, self })
     if (!verdict.ok) {
       throw verdict.reason === "lastOwner"
         ? new ConflictError("A workspace needs at least one owner.", "lastOwner")
         : new ForbiddenError("Only an owner can change another owner.", verdict.reason)
     }
 
-    // Audited before the write: someone leaving the workspace can no longer
-    // insert into its audit log once their membership row is gone.
     if (change.kind === "remove") {
-      await recordAudit(tx, {
-        workspaceId,
-        actorUserId: userId,
-        entityType: "workspace_member",
-        entityId: target.id,
-        action: "member.removed",
-        metadata: { role: target.role },
-      })
-      await tx.delete(workspaceMembers).where(eq(workspaceMembers.id, target.id))
+      // Audited before the write: someone leaving the workspace can no longer
+      // insert into its audit log once their membership row is gone. A plain
+      // member leaving is refused by the `audit_logs` insert policy (owners and
+      // admins only); in a savepoint, so that refusal is logged, not fatal.
+      await tx
+        .transaction((savepoint) =>
+          recordAudit(savepoint, {
+            workspaceId,
+            actorUserId: userId,
+            entityType: "workspace_member",
+            entityId: target.id,
+            action: "member.removed",
+            metadata: { role: target.role, self },
+          }),
+        )
+        .catch((error: unknown) => {
+          if (!self || actorRole !== "member") throw error
+          logger.warn("member.removed audit not recorded", {
+            workspaceId,
+            error: error instanceof Error ? error.message : "unknown",
+          })
+        })
+      const deleted = await tx
+        .delete(workspaceMembers)
+        .where(eq(workspaceMembers.id, target.id))
+        .returning({ id: workspaceMembers.id })
+      // RLS matched nothing: the delete policy does not cover this reader.
+      if (deleted.length === 0) throw new ForbiddenError("You cannot remove this member.", "memberChangeForbidden")
     } else if (change.to !== target.role) {
       await recordAudit(tx, {
         workspaceId,
@@ -313,7 +359,7 @@ async function applyMemberChange(
       await tx.update(workspaceMembers).set({ role: change.to }).where(eq(workspaceMembers.id, target.id))
     }
 
-    return { self: target.userId === userId }
+    return { self }
   })
 }
 
@@ -328,8 +374,9 @@ export async function changeMemberRole(
 }
 
 /**
- * Owner or admin; the last owner cannot be removed, not even by themselves.
- * `self` means the reader just left the workspace and has no access to it.
+ * Owner or admin removes someone; anyone may remove themselves (leave). The
+ * last owner cannot be removed, not even by themselves. `self` means the reader
+ * just left the workspace and has no access to it.
  */
 export async function removeMember(
   userId: string,
@@ -360,7 +407,12 @@ export async function revokeInvite(userId: string, workspaceId: string, inviteId
   })
 }
 
-/** Sends the invitation e-mail for a pending invitation again. */
+/**
+ * Sends the invitation e-mail for a pending invitation again and gives it a
+ * fresh 14 days. An expired invitation stopped counting toward the members
+ * limit, so renewing it takes a slot again and is checked; a valid one already
+ * holds its slot.
+ */
 export async function resendMemberInvite(
   userId: string,
   workspaceId: string,
@@ -369,10 +421,15 @@ export async function resendMemberInvite(
 ): Promise<InviteDelivery & { email: string }> {
   const { invite, workspaceName } = await withUser(userId, async (tx) => {
     await requireMembership(tx, workspaceId, userId, "admin")
-    await assertPlanFeature(tx, workspaceId, "teamInvites")
+    const entitlements = await getWorkspaceEntitlements(tx, workspaceId)
+    assertCanCreate(entitlements)
 
     const found = await findPendingInvite(tx, workspaceId, inviteId)
     if (!found) throw new NotFoundError("Invitation not found.", "inviteNotFound")
+
+    if (found.expired) await assertWithinLimit(tx, workspaceId, entitlements, "members")
+    await renewInvite(tx, found.id)
+
     return { invite: found, workspaceName: (await findWorkspaceName(tx, workspaceId)) ?? "" }
   })
 

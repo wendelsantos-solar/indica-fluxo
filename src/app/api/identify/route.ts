@@ -51,8 +51,10 @@ export async function POST(request: NextRequest) {
   try {
     const key = await authenticateApiKey(presented, "secret")
 
+    // Live keys need live mode: the service answers LIVE_MODE_REQUIRED (402).
     const result = await identifyCustomer({
       workspaceId: key.workspaceId,
+      environment: key.environment,
       visitorId: parsed.visitorId,
       externalId: parsed.externalId,
       providerCustomerId: parsed.providerCustomerId ?? null,

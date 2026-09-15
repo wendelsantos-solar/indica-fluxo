@@ -17,6 +17,7 @@ import {
   AffiliateRowActions,
 } from "@/features/affiliates/affiliate-row-actions"
 import { describeRuleApplied } from "@/features/conversions/rule-applied"
+import { EnvironmentBadge } from "@/features/programs/environment-badge"
 import { getFormatters } from "@/i18n/format"
 import { parseUuidParam } from "@/lib/list-params"
 import {
@@ -36,6 +37,8 @@ import {
   listCommissions,
   type CommissionStatus,
 } from "@/server/repositories/commissions"
+import { getPlanOverview } from "@/server/services/plans"
+import { getViewEnvironment } from "@/server/services/view-environment"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
 export const dynamic = "force-dynamic"
@@ -74,18 +77,31 @@ export default async function AffiliateDetailPage({ params }: AffiliateDetailPag
   const workspace = await getWorkspaceForUser(user.id, workspaceSlug)
   const f = await getFormatters(workspace.timezone)
   const trule = await getTranslations("common.rule")
+  // Figures, conversions and commissions are the shell's environment only; the
+  // programs and links lists show every participation, test ones labelled.
+  const { environment } = await getViewEnvironment(user.id, workspace.id)
 
   // RLS hides another workspace's affiliate, and the query scopes to this
   // workspace as well, so an unknown and a foreign id both read as not found.
   const data = await withUser(user.id, async (tx) => {
-    const affiliate = await getAffiliateDetail(tx, workspace.id, affiliateId)
+    const affiliate = await getAffiliateDetail(tx, workspace.id, affiliateId, environment)
     if (!affiliate) return null
     return {
       affiliate,
-      byStatus: await commissionTotalsByStatus(tx, { workspaceId: workspace.id, affiliateId }),
+      byStatus: await commissionTotalsByStatus(tx, { workspaceId: workspace.id, affiliateId, environment }),
       links: await listLinksForAffiliate(tx, workspace.id, affiliateId),
-      conversions: await listConversions(tx, { workspaceId: workspace.id, affiliateId, limit: RECENT_LIMIT }),
-      commissions: await listCommissions(tx, { workspaceId: workspace.id, affiliateId, limit: RECENT_LIMIT }),
+      conversions: await listConversions(tx, {
+        workspaceId: workspace.id,
+        environment,
+        affiliateId,
+        limit: RECENT_LIMIT,
+      }),
+      commissions: await listCommissions(tx, {
+        workspaceId: workspace.id,
+        environment,
+        affiliateId,
+        limit: RECENT_LIMIT,
+      }),
     }
   })
   if (!data) notFound()
@@ -97,12 +113,17 @@ export default async function AffiliateDetailPage({ params }: AffiliateDetailPag
   const others = (formatted: { others: string | null }) =>
     formatted.others ? tm("otherCurrencies", { amounts: formatted.others }) : null
 
-  const clicks = affiliate.participations.reduce((sum, row) => sum + row.clicks, 0)
-  const customers = affiliate.participations.reduce((sum, row) => sum + row.customers, 0)
+  const inView = affiliate.participations.filter((row) => row.programEnvironment === environment)
+  const clicks = inView.reduce((sum, row) => sum + row.clicks, 0)
+  const customers = inView.reduce((sum, row) => sum + row.customers, 0)
   const revenue = money(affiliate.revenue)
   const earnedFormatted = money(earned)
 
   const canManage = workspace.role !== "member"
+  // Custom rates are a plan feature: the rate dialog offers setting one only when included.
+  const customRatesAvailable = canManage
+    ? (await getPlanOverview(user.id, workspace.id)).entitlements.capabilities.features.customAffiliateRates
+    : false
   const listHref = { pathname: "/[workspaceSlug]/affiliates", params: { workspaceSlug } } as const
   const conversionsHref = {
     pathname: "/[workspaceSlug]/conversions",
@@ -249,6 +270,9 @@ export default async function AffiliateDetailPage({ params }: AffiliateDetailPag
                             >
                               {row.programName}
                             </Link>
+                            {row.programEnvironment === "test" ? (
+                              <EnvironmentBadge environment="test" className="ml-2" />
+                            ) : null}
                           </TD>
                           <TD>
                             <StatusBadge status={row.status} label={tl(`status.${row.status}`)} />
@@ -285,6 +309,7 @@ export default async function AffiliateDetailPage({ params }: AffiliateDetailPag
                                   currency={row.currency}
                                   programRate={programRate}
                                   customRate={custom}
+                                  customRatesAvailable={customRatesAvailable}
                                 />
                               </div>
                             </TD>
@@ -326,7 +351,12 @@ export default async function AffiliateDetailPage({ params }: AffiliateDetailPag
                           <span className="block text-foreground">{link.name ?? link.code}</span>
                           <span className="block font-mono text-meta text-muted-foreground">{link.code}</span>
                         </TD>
-                        <TD className="whitespace-nowrap">{link.programName}</TD>
+                        <TD className="whitespace-nowrap">
+                          {link.programName}
+                          {link.programEnvironment === "test" ? (
+                            <EnvironmentBadge environment="test" className="ml-2" />
+                          ) : null}
+                        </TD>
                         <TD mono className="max-w-64 truncate" title={link.destinationUrl ?? undefined}>
                           {link.destinationUrl ?? "—"}
                         </TD>

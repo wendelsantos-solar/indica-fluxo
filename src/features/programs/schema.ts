@@ -39,6 +39,8 @@ export const programFormSchema = z
     /** `undefined`: the field was not on the form, keep what is stored. `null`: clear it. */
     websiteUrl: websiteUrl.nullable().optional(),
     status: z.enum(["draft", "active", "paused", "archived"]),
+    /** Creation only; absent on the edit form, where it cannot change. */
+    environment: z.enum(["test", "live"]).optional(),
     commissionType: z.enum(["percentage", "fixed"]),
     commissionAmount: z.coerce.number().positive("commissionPositive"),
     recurrence: z.enum(["lifetime", "first_only", "months"]),
@@ -78,6 +80,7 @@ export function parseProgramForm(formData: FormData) {
     description: text(formData, "description"),
     websiteUrl: typeof website === "string" ? website.trim() || null : undefined,
     status: formData.get("status"),
+    environment: text(formData, "environment"),
     commissionType: formData.get("commissionType"),
     commissionAmount: formData.get("commissionAmount"),
     recurrence: formData.get("recurrence"),
@@ -97,6 +100,7 @@ export function toProgramInput(input: ProgramFormInput) {
     description: input.description ?? null,
     websiteUrl: input.websiteUrl,
     status: input.status,
+    environment: input.environment,
     commissionType: input.commissionType,
     // Percent → basis points (× 100); a fixed amount → minor units of the
     // program's currency (× 100 for cents, × 1 for JPY and other zero-decimal

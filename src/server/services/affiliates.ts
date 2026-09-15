@@ -3,18 +3,25 @@ import "server-only"
 import { and, eq, sql } from "drizzle-orm"
 
 import type { Locale } from "@/i18n/routing"
+import { logger } from "@/lib/logger"
 import { slugify } from "@/lib/utils"
-import { withUser } from "@/server/db"
+import { type Transaction, withUser } from "@/server/db"
 import { affiliates, programAffiliates, programs, referralLinks } from "@/server/db/schema"
 import { canTransitionParticipation, type ParticipationTarget } from "@/server/domain/participation"
 import { ConflictError, NotFoundError, ValidationError } from "@/server/policies/errors"
 import { requireMembership } from "@/server/policies/workspace"
-import { findParticipationInWorkspace } from "@/server/repositories/affiliates"
+import {
+  findOwnParticipation,
+  findParticipationInWorkspace,
+  isAffiliateCountedTowardPlan,
+  lockReferralCodes,
+  referralCodeTaken,
+} from "@/server/repositories/affiliates"
 import { findWorkspaceName } from "@/server/repositories/workspaces"
 
 import { recordAudit } from "./audit"
+import { assertCanCreate, assertFeature, assertWithinLimit, getWorkspaceEntitlements } from "./entitlements"
 import { inviteLinksFor, sendInviteEmail, type InviteDelivery } from "./invite-mail"
-import { assertPlanFeature, assertWithinPlan } from "./plans"
 
 export interface InviteAffiliateInput {
   programId: string
@@ -58,12 +65,30 @@ export async function inviteAffiliate(
     await requireMembership(tx, workspaceId, userId, "admin")
 
     const [program] = await tx
-      .select({ id: programs.id })
+      .select({ id: programs.id, status: programs.status })
       .from(programs)
       .where(and(eq(programs.id, input.programId), eq(programs.workspaceId, workspaceId)))
       .limit(1)
 
     if (!program) throw new NotFoundError("Program not found.", "programNotFound")
+    // A draft program is being prepared and may enrol its first affiliates; an
+    // archived one is closed.
+    if (program.status === "archived") {
+      throw new ConflictError("An archived program does not take new affiliates.", "programArchived")
+    }
+
+    if (
+      (input.customCommissionType === null) !== (input.customCommissionValue === null) &&
+      (input.customCommissionType !== undefined || input.customCommissionValue !== undefined)
+    ) {
+      throw new ValidationError("A custom rate needs both a type and a value.", {}, "customRateIncomplete")
+    }
+
+    const entitlements = await getWorkspaceEntitlements(tx, workspaceId)
+    // Past due beyond grace: no enrolment at all, even of an affiliate who
+    // already counts (and so skips the limit check below).
+    assertCanCreate(entitlements)
+    if (input.customCommissionType != null) assertFeature(entitlements, "customAffiliateRates")
 
     const email = input.email.trim().toLowerCase()
 
@@ -75,9 +100,13 @@ export async function inviteAffiliate(
       )
       .limit(1)
 
-    // Plan usage counts affiliate records, so only a new record takes a seat;
-    // enrolling an existing affiliate in another program does not.
-    if (!existing) await assertWithinPlan(tx, workspaceId, "affiliates")
+    // The new participation is pending or approved, so the affiliate counts
+    // toward the plan afterwards. Only one who does not count yet takes a slot:
+    // a new record, or an existing one whose every participation was rejected or
+    // suspended. Enrolling a counted affiliate in another program is free.
+    if (!existing || !(await isAffiliateCountedTowardPlan(tx, workspaceId, existing.id))) {
+      await assertWithinLimit(tx, workspaceId, entitlements, "affiliates")
+    }
 
     const affiliateId =
       existing?.id ??
@@ -95,8 +124,6 @@ export async function inviteAffiliate(
           .returning({ id: affiliates.id })
       )[0]!.id
 
-    const code = await uniqueCode(tx, input.programId, input.code || input.name)
-
     const [duplicate] = await tx
       .select({ id: programAffiliates.id })
       .from(programAffiliates)
@@ -110,14 +137,7 @@ export async function inviteAffiliate(
 
     if (duplicate) throw new ConflictError("That affiliate is already in this program.", "affiliateAlreadyInProgram")
 
-    if (
-      (input.customCommissionType === null) !== (input.customCommissionValue === null) &&
-      (input.customCommissionType !== undefined || input.customCommissionValue !== undefined)
-    ) {
-      throw new ValidationError("A custom rate needs both a type and a value.", {}, "customRateIncomplete")
-    }
-
-    if (input.customCommissionType != null) await assertPlanFeature(tx, workspaceId, "customRates")
+    const code = await uniqueCode(tx, workspaceId, input.code || input.name)
 
     const approve = input.autoApprove ?? true
 
@@ -203,23 +223,19 @@ export async function resendAffiliateInvite(
   return { ...delivery, email: affiliate.email, name: affiliate.name }
 }
 
-async function uniqueCode(
-  tx: Parameters<Parameters<typeof withUser>[1]>[0],
-  programId: string,
-  desired: string,
-): Promise<string> {
+/**
+ * A referral code free in the whole workspace, not only in the program: the
+ * tracker resolves `ref` across every program of the workspace, so a code
+ * shared by two programs would be ambiguous. Held under a per-workspace lock
+ * until the insert commits.
+ */
+async function uniqueCode(tx: Transaction, workspaceId: string, desired: string): Promise<string> {
   const base = slugify(desired) || "partner"
+  await lockReferralCodes(tx, workspaceId)
 
   for (let attempt = 0; attempt < 25; attempt += 1) {
     const candidate = attempt === 0 ? base : `${base}-${attempt + 1}`
-    const [taken] = await tx
-      .select({ id: programAffiliates.id })
-      .from(programAffiliates)
-      .where(
-        and(eq(programAffiliates.programId, programId), eq(programAffiliates.code, candidate)),
-      )
-      .limit(1)
-    if (!taken) return candidate
+    if (!(await referralCodeTaken(tx, workspaceId, candidate))) return candidate
   }
 
   return `${base}-${Math.random().toString(36).slice(2, 6)}`
@@ -250,6 +266,16 @@ export async function setParticipationStatus(
         `A ${participation.status} participation cannot become ${status}.`,
         "participationTransitionInvalid",
       )
+    }
+
+    if (status === "approved") {
+      // Approving makes the affiliate count toward the plan again if nothing
+      // else did (rejected, suspended). One who already counts (a pending
+      // application) adds nothing, but is still not approved while the
+      // workspace is over its limit — after a downgrade, say (docs/PLANS.md §6).
+      const entitlements = await getWorkspaceEntitlements(tx, workspaceId)
+      const counted = await isAffiliateCountedTowardPlan(tx, workspaceId, participation.affiliateId)
+      await assertWithinLimit(tx, workspaceId, entitlements, "affiliates", counted ? 0 : 1)
     }
 
     await tx
@@ -305,7 +331,7 @@ export async function setCustomRate(
     await requireMembership(tx, workspaceId, userId, "admin")
     // Clearing stays allowed on any plan, so a downgraded workspace can undo
     // the rates it no longer pays for.
-    if (rate) await assertPlanFeature(tx, workspaceId, "customRates")
+    if (rate) assertFeature(await getWorkspaceEntitlements(tx, workspaceId), "customAffiliateRates")
 
     const participation = await findParticipationInWorkspace(tx, workspaceId, participationId)
     if (!participation) {
@@ -342,13 +368,24 @@ export async function setCustomRate(
   })
 }
 
+/**
+ * The signed-in affiliate names a link on one of their own participations.
+ * Being an admin of the workspace does not make someone else's participation
+ * theirs. A suspended or rejected participation earns nothing, so it gets no
+ * new links.
+ */
 export async function createReferralLink(
   userId: string,
   participationId: string,
   input: { name: string; destinationUrl: string; campaign?: string | null },
 ): Promise<{ id: string; code: string }> {
   return withUser(userId, async (tx) => {
-    // RLS restricts this insert to the owning affiliate or a workspace admin.
+    const participation = await findOwnParticipation(tx, userId, participationId)
+    if (!participation) throw new NotFoundError("Affiliate participation not found.", "participationNotFound")
+    if (participation.status === "suspended" || participation.status === "rejected") {
+      throw new ConflictError("This participation cannot create links.", "participationInactive")
+    }
+
     const code = slugify(input.name) || `link-${Math.random().toString(36).slice(2, 6)}`
 
     const [row] = await tx
@@ -363,6 +400,42 @@ export async function createReferralLink(
       .returning({ id: referralLinks.id, code: referralLinks.code })
 
     if (!row) throw new ConflictError("Could not create the link.", "linkNotCreated")
+
+    await recordLinkCreated(tx, {
+      workspaceId: participation.workspaceId,
+      actorUserId: userId,
+      linkId: row.id,
+      participationId,
+    })
     return row
   })
+}
+
+/**
+ * `link.created`, in a savepoint: an affiliate is not a workspace member and
+ * the `audit_logs` insert policy admits owners and admins only, so the row can
+ * be refused. A refused audit row must not undo the link it describes; it is
+ * logged instead.
+ */
+async function recordLinkCreated(
+  tx: Transaction,
+  params: { workspaceId: string; actorUserId: string; linkId: string; participationId: string },
+): Promise<void> {
+  try {
+    await tx.transaction((savepoint) =>
+      recordAudit(savepoint, {
+        workspaceId: params.workspaceId,
+        actorUserId: params.actorUserId,
+        entityType: "referral_link",
+        entityId: params.linkId,
+        action: "link.created",
+        metadata: { participationId: params.participationId },
+      }),
+    )
+  } catch (error) {
+    logger.warn("link.created audit not recorded", {
+      workspaceId: params.workspaceId,
+      error: error instanceof Error ? error.message : "unknown",
+    })
+  }
 }

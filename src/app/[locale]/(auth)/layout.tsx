@@ -1,5 +1,7 @@
+import { NextIntlClientProvider } from "next-intl"
 import { getTranslations, setRequestLocale } from "next-intl/server"
 
+import { clientMessages } from "@/i18n/client-messages"
 import { Link } from "@/i18n/navigation"
 
 import { LocaleSwitcher } from "@/components/layout/locale-switcher"
@@ -29,50 +31,52 @@ export default async function AuthLayout({ children, params }: LayoutProps<"/[lo
   const t = await getTranslations("auth.layout")
 
   return (
-    <div className="min-h-dvh bg-background lg:grid lg:grid-cols-2">
-      <aside className="hidden min-h-dvh px-12 lg:flex">
-        <div className="mx-auto flex w-full max-w-lg flex-col">
-          <div className="flex h-14 items-center">
-            <Link href="/" aria-label={chrome("home")} className="rounded-control">
+    <NextIntlClientProvider messages={await clientMessages("auth")}>
+      <div className="min-h-dvh bg-background lg:grid lg:grid-cols-2">
+        <aside className="hidden min-h-dvh px-12 lg:flex">
+          <div className="mx-auto flex w-full max-w-lg flex-col">
+            <div className="flex h-14 items-center">
+              <Link href="/" aria-label={chrome("home")} className="rounded-control">
+                <Logo />
+              </Link>
+            </div>
+
+            <div className="flex flex-1 flex-col justify-center py-12">
+              <div className="space-y-3">
+                <p className="text-balance text-heading-sm text-foreground">{t("statement")}</p>
+                <p className="text-pretty text-body-sm text-muted-foreground">{t("line")}</p>
+              </div>
+              <AuthProof className="mt-10 w-full" />
+            </div>
+
+            <p className="py-6 text-meta text-faint-foreground">{chrome("tagline")}</p>
+          </div>
+        </aside>
+
+        <div className="flex min-h-dvh flex-col lg:border-l lg:border-border lg:bg-surface-1">
+          <header className="flex h-14 items-center gap-4 px-4 sm:px-6">
+            <Link href="/" aria-label={chrome("home")} className="rounded-control lg:hidden">
               <Logo />
             </Link>
-          </div>
-
-          <div className="flex flex-1 flex-col justify-center py-12">
-            <div className="space-y-3">
-              <p className="text-balance text-heading-sm text-foreground">{t("statement")}</p>
-              <p className="text-pretty text-body-sm text-muted-foreground">{t("line")}</p>
+            <div className="ml-auto flex items-center gap-1">
+              <LocaleSwitcher />
+              <ThemeToggle />
             </div>
-            <AuthProof className="mt-10 w-full" />
-          </div>
+          </header>
 
-          <p className="py-6 text-meta text-faint-foreground">{chrome("tagline")}</p>
+          {/* Top-aligned on phones, where centring pushes the form under the
+              on-screen keyboard; centred once there is room. */}
+          <main className="flex flex-1 items-start justify-center px-4 py-8 sm:items-center sm:px-6 sm:py-12">
+            <div className="w-full max-w-sm">{children}</div>
+          </main>
+
+          {/* Kept in the flow (invisible) from 1024px so both halves have the
+              same header and footer heights and centre on one baseline. */}
+          <footer className="px-4 py-6 text-center text-meta text-faint-foreground sm:px-6 lg:invisible">
+            {chrome("tagline")}
+          </footer>
         </div>
-      </aside>
-
-      <div className="flex min-h-dvh flex-col lg:border-l lg:border-border lg:bg-surface-1">
-        <header className="flex h-14 items-center gap-4 px-4 sm:px-6">
-          <Link href="/" aria-label={chrome("home")} className="rounded-control lg:hidden">
-            <Logo />
-          </Link>
-          <div className="ml-auto flex items-center gap-1">
-            <LocaleSwitcher />
-            <ThemeToggle />
-          </div>
-        </header>
-
-        {/* Top-aligned on phones, where centring pushes the form under the
-            on-screen keyboard; centred once there is room. */}
-        <main className="flex flex-1 items-start justify-center px-4 py-8 sm:items-center sm:px-6 sm:py-12">
-          <div className="w-full max-w-sm">{children}</div>
-        </main>
-
-        {/* Kept in the flow (invisible) from 1024px so both halves have the
-            same header and footer heights and centre on one baseline. */}
-        <footer className="px-4 py-6 text-center text-meta text-faint-foreground sm:px-6 lg:invisible">
-          {chrome("tagline")}
-        </footer>
       </div>
-    </div>
+    </NextIntlClientProvider>
   )
 }

@@ -62,6 +62,46 @@ export class RateLimitError extends AppError {
   }
 }
 
+/**
+ * Plan errors. Typed codes so an API client, a server action and the UI can
+ * each tell "upgrade" apart from "forbidden". Status 402 for all of them: the
+ * request is valid and authorised, and a different plan would make it succeed.
+ * Message keys resolve under `errors.plan.*`.
+ */
+export class PlanLimitReachedError extends AppError {
+  constructor(
+    readonly limit: string,
+    readonly max: number,
+    /** The cheapest plan where it fits, when one exists. */
+    readonly upgradeTo: string | null,
+  ) {
+    super(`The ${limit} limit of this plan (${max}) has been reached.`, "PLAN_LIMIT_REACHED", 402, `plan.limit.${limit}`)
+  }
+}
+
+export class FeatureNotAvailableError extends AppError {
+  constructor(
+    readonly feature: string,
+    readonly upgradeTo: string | null,
+  ) {
+    super(`This plan does not include ${feature}.`, "FEATURE_NOT_AVAILABLE", 402, `plan.feature.${feature}`)
+  }
+}
+
+/** Live data needs a plan with live mode in good standing. */
+export class LiveModeRequiredError extends AppError {
+  constructor() {
+    super("Live mode requires an active Launch or Growth subscription.", "LIVE_MODE_REQUIRED", 402, "plan.liveModeRequired")
+  }
+}
+
+/** Payment failed and the grace period ended: reads only until it is fixed. */
+export class SubscriptionRequiredError extends AppError {
+  constructor() {
+    super("The subscription is past due; update the payment method to continue.", "SUBSCRIPTION_REQUIRED", 402, "plan.subscriptionRequired")
+  }
+}
+
 export function isAppError(error: unknown): error is AppError {
   return error instanceof AppError
 }

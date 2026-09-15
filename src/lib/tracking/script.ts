@@ -1,4 +1,4 @@
-import { REF_QUERY_PARAMS, VISITOR_COOKIE, VISITOR_COOKIE_MAX_AGE_DAYS } from "./constants"
+import { REF_QUERY_PARAMS, TRACK_API_PATH, VISITOR_COOKIE, VISITOR_COOKIE_MAX_AGE_DAYS } from "./constants"
 
 /**
  * The browser tracker, served as a static asset from `/t.js`.
@@ -7,7 +7,7 @@ import { REF_QUERY_PARAMS, VISITOR_COOKIE, VISITOR_COOKIE_MAX_AGE_DAYS } from ".
  * must not depend on React, the Next.js runtime or any build step, so that the
  * same file can later be served by an edge worker unchanged.
  *
- *   <script defer src="https://app.example.com/t.js" data-key="pk_live_..."></script>
+ *   <script defer src="https://app.example.com/t.js" data-key="pk_test_..."></script>
  */
 export function trackerSource(endpoint: string): string {
   return `(function () {
@@ -15,13 +15,18 @@ export function trackerSource(endpoint: string): string {
   var COOKIE = ${JSON.stringify(VISITOR_COOKIE)};
   var PARAMS = ${JSON.stringify(REF_QUERY_PARAMS)};
   var MAX_AGE = ${VISITOR_COOKIE_MAX_AGE_DAYS * 24 * 60 * 60};
-  var ENDPOINT = ${JSON.stringify(endpoint)};
-
   var script =
     document.currentScript ||
     document.querySelector("script[data-key]");
   var publicKey = script && script.getAttribute("data-key");
   if (!publicKey) return;
+
+  // The endpoint lives on the host that served this script, whatever URL the
+  // build baked in (a build without NEXT_PUBLIC_APP_URL would bake localhost).
+  var ENDPOINT = ${JSON.stringify(endpoint)};
+  try {
+    if (script.src) ENDPOINT = new URL(${JSON.stringify(TRACK_API_PATH)}, script.src).href;
+  } catch (e) {}
 
   function readCookie(name) {
     var match = document.cookie.match(

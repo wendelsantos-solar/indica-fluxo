@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
 import { CancelBatchButton, MarkPaidDialog } from "@/features/payouts/batch-actions"
 import { formatBatchLabel } from "@/features/payouts/batch-label"
+import { EnvironmentBadge } from "@/features/programs/environment-badge"
 import { buildPayoutTsv, csvFormatForLocale } from "@/features/payouts/csv"
 import { getFormatters } from "@/i18n/format"
 import { formatDate } from "@/lib/money"
@@ -111,12 +112,20 @@ export default async function PayoutBatchPage({
     <>
       <PageHeader
         breadcrumb={[
-          <Link key="payouts" href={{ pathname: "/[workspaceSlug]/payouts", params: { workspaceSlug } }}>
+          <Link
+            key="payouts"
+            href={{ pathname: "/[workspaceSlug]/payouts", params: { workspaceSlug } }}
+          >
             {tp("title")}
           </Link>,
         ]}
         title={label}
-        meta={<StatusBadge status={batch.status} label={statusLabel} />}
+        meta={
+          <span className="flex items-center gap-1.5">
+            {batch.environment === "test" ? <EnvironmentBadge environment="test" label={tp("testBatch")} /> : null}
+            <StatusBadge status={batch.status} label={statusLabel} />
+          </span>
+        }
         description={t("description")}
         actions={
           canManage && awaitingPayment ? (
@@ -140,6 +149,8 @@ export default async function PayoutBatchPage({
           wrapper narrows to the detail width, like every other detail page. */}
       <div>
         <div className="max-w-detail space-y-10">
+          {batch.environment === "test" ? <InlineAlert>{tp("environment.testBatchNotice")}</InlineAlert> : null}
+
           {created === "1" && awaitingPayment ? (
             <InlineAlert tone="success" title={t("created.title")}>
               {t("created.description")}

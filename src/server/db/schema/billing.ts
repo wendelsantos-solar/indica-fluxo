@@ -12,6 +12,7 @@ import {
 
 import {
   billingProviderEnum,
+  environmentEnum,
   subscriptionIntervalEnum,
   subscriptionStatusEnum,
   transactionStatusEnum,
@@ -31,6 +32,12 @@ export const customers = pgTable(
     programId: uuid("program_id").references(() => programs.id, { onDelete: "set null" }),
 
     externalId: text("external_id"),
+    /**
+     * A founder's staging and production apps usually share user ids; test and
+     * live customers are separate rows so a test identify never attaches a
+     * Stripe test customer id to a live customer.
+     */
+    environment: environmentEnum("environment").notNull().default("test"),
     provider: billingProviderEnum("provider").notNull(),
     providerCustomerId: text("provider_customer_id"),
 
@@ -41,12 +48,17 @@ export const customers = pgTable(
   },
   (t) => [
     uniqueIndex("customers_workspace_provider_customer_key")
-      .on(t.workspaceId, t.provider, t.providerCustomerId)
+      .on(t.workspaceId, t.environment, t.provider, t.providerCustomerId)
       .where(sql`provider_customer_id is not null`),
     uniqueIndex("customers_workspace_external_key")
-      .on(t.workspaceId, t.externalId)
+      .on(t.workspaceId, t.environment, t.externalId)
       .where(sql`external_id is not null`),
     index("customers_workspace_idx").on(t.workspaceId, t.createdAt.desc()),
+    // Payment → customer fallback by identified e-mail hash (billing-events
+    // `identifiedCustomerByEmail`); otherwise a scan of every tenant's customers.
+    index("customers_email_hash_idx")
+      .on(t.workspaceId, t.environment, t.emailHash)
+      .where(sql`email_hash is not null`),
   ],
 )
 
@@ -110,6 +122,8 @@ export const transactions = pgTable(
 
     type: transactionTypeEnum("type").notNull(),
     status: transactionStatusEnum("status").notNull().default("succeeded"),
+    /** From the provider event (Stripe `livemode`). */
+    environment: environmentEnum("environment").notNull().default("test"),
 
     currency: char("currency", { length: 3 }).notNull(),
     grossAmountMinor: bigint("gross_amount_minor", { mode: "number" }).notNull(),

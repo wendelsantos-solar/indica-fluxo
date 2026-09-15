@@ -1,0 +1,3 @@
+CREATE INDEX "customers_email_hash_idx" ON "customers" USING btree ("workspace_id","environment","email_hash") WHERE email_hash is not null;--> statement-breakpoint
+CREATE INDEX "commissions_workspace_created_idx" ON "commissions" USING btree ("workspace_id","created_at" DESC NULLS LAST,"id");--> statement-breakpoint
+CREATE INDEX "commissions_reversal_of_idx" ON "commissions" USING btree ("reversal_of_commission_id") WHERE reversal_of_commission_id is not null;

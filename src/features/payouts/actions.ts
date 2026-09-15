@@ -32,6 +32,7 @@ export interface PayoutFormState {
 
 const createSchema = z.object({
   workspaceSlug: z.string().min(1),
+  environment: z.enum(["test", "live"]),
   currency: z.string().length(3),
   participationIds: z.array(z.string().uuid()).min(1, "selectAffiliate"),
 })
@@ -44,6 +45,7 @@ export async function createPayoutBatchAction(
 
   const parsed = createSchema.safeParse({
     workspaceSlug: formData.get("workspaceSlug"),
+    environment: formData.get("environment"),
     currency: formData.get("currency"),
     participationIds: formData.getAll("participationIds").map(String),
   })
@@ -64,6 +66,7 @@ export async function createPayoutBatchAction(
     // rendering them, and the reference built from them, in UTC.
     const { periodStart, periodEnd } = localMonthPeriod(new Date(), resolveTimeZone(workspace.timezone))
     const batch = await createPayoutBatch(user.id, workspace.id, {
+      environment: parsed.data.environment,
       currency: parsed.data.currency,
       participationIds: parsed.data.participationIds,
       periodStart,

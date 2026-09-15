@@ -32,7 +32,10 @@ export async function createProgramAction(
   let slug: string
   try {
     const workspace = await getWorkspaceForUser(user.id, parsed.data.workspaceSlug)
-    const program = await createProgram(user.id, workspace.id, toProgramInput(parsed.data))
+    // A form without the choice (onboarding) creates a test program: a new
+    // workspace is on Sandbox, which has no live mode.
+    const input = toProgramInput(parsed.data)
+    const program = await createProgram(user.id, workspace.id, { ...input, environment: input.environment ?? "test" })
     slug = program.slug
   } catch (error) {
     return { error: await actionError(error, "programNotCreated") }
