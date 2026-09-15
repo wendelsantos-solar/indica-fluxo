@@ -15,7 +15,11 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx --conditions=react-server src/server/db/seed/index.ts",
-    "db:reset": "tsx --conditions=react-server src/server/db/seed/reset.ts"
+    "db:reset": "tsx --conditions=react-server src/server/db/seed/reset.ts",
+    "perf:dashboard": "tsx --conditions=react-server scripts/perf/bench-dashboard.ts",
+    "perf:explain": "tsx --conditions=react-server scripts/perf/explain-at-scale.ts",
+    "perf:load": "node scripts/perf/load.mjs",
+    "perf:vitals": "node scripts/perf/lab-vitals.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",
