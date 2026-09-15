@@ -14,23 +14,28 @@ export const DialogClose = DialogPrimitive.Close
 export function DialogContent({
   className,
   children,
+  size = "default",
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content>) {
+}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  /** `form` widens to 560px for dialogs holding a multi-field form. */
+  size?: "default" | "form"
+}) {
   const t = useTranslations("common.actions")
 
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay
         className={cn(
-          "fixed inset-0 z-50 bg-[var(--scrim)]",
+          "fixed inset-0 z-50 bg-scrim",
           "data-[state=open]:animate-[overlay-in_140ms_ease-out]",
         )}
       />
       <DialogPrimitive.Content
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-[480px]",
+          "fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-1rem)] flex-col outline-none",
+          size === "form" ? "max-w-xl" : "max-w-md",
           "-translate-x-1/2 -translate-y-1/2",
-          "rounded-panel border border-border bg-surface-3 shadow-[var(--shadow-overlay)]",
+          "rounded-panel bg-surface-3 shadow-overlay",
           "data-[state=open]:animate-[dialog-in_180ms_var(--ease-out-quint)]",
           className,
         )}
@@ -38,7 +43,7 @@ export function DialogContent({
       >
         {children}
         <DialogPrimitive.Close
-          className="absolute right-3 top-3 rounded-badge p-1 text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+          className="absolute right-2.5 top-2.5 inline-flex size-7 items-center justify-center rounded-control text-faint-foreground transition-colors hover:bg-hover hover:text-foreground touch:size-10"
           aria-label={t("closeDialog")}
         >
           <X className="size-4" aria-hidden="true" />
@@ -49,7 +54,7 @@ export function DialogContent({
 }
 
 export function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("space-y-1.5 px-5 pb-4 pt-5", className)} {...props} />
+  return <div className={cn("space-y-0.5 border-b border-border px-4 py-3", className)} {...props} />
 }
 
 export function DialogTitle({
@@ -58,7 +63,7 @@ export function DialogTitle({
 }: React.ComponentProps<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
-      className={cn("pr-8 text-body-sm font-medium tracking-tight", className)}
+      className={cn("pr-8 text-ui font-medium text-foreground", className)}
       {...props}
     />
   )
@@ -70,21 +75,21 @@ export function DialogDescription({
 }: React.ComponentProps<typeof DialogPrimitive.Description>) {
   return (
     <DialogPrimitive.Description
-      className={cn("text-caption leading-relaxed text-muted-foreground", className)}
+      className={cn("text-caption text-muted-foreground", className)}
       {...props}
     />
   )
 }
 
 export function DialogBody({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("space-y-4 px-5 pb-5", className)} {...props} />
+  return <div className={cn("min-h-0 flex-1 space-y-4 overflow-y-auto p-4", className)} {...props} />
 }
 
 export function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
-        "flex flex-col-reverse gap-2 border-t border-border px-5 py-4 sm:flex-row sm:justify-end",
+        "flex flex-col-reverse gap-2 border-t border-border px-4 py-3 sm:flex-row sm:justify-end",
         className,
       )}
       {...props}

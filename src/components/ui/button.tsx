@@ -6,37 +6,39 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 /**
- * DESIGN.md §9. `primary` is the lime action — one per view. Everything else
- * is neutral by default; colour here is a signal, not decoration.
+ * DESIGN.md §9. `primary` is the amber action — one per view, the thing the
+ * screen exists for. Everything else is neutral: `secondary` is a hairline,
+ * `ghost` is text until hovered. Colour here is a signal, not decoration.
  */
 const buttonVariants = cva(
   [
-    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-control",
-    "text-caption font-medium leading-none select-none",
-    "transition-colors duration-[120ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
-    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-    "disabled:pointer-events-none disabled:opacity-50",
-    "[&_svg]:size-4 [&_svg]:shrink-0",
+    "relative inline-flex shrink-0 select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-control",
+    "text-caption font-medium leading-none",
+    "transition-[background-color,color,border-color,opacity] duration-[120ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
+    "disabled:pointer-events-none disabled:opacity-40 aria-disabled:pointer-events-none aria-disabled:opacity-40",
+    "touch:min-h-9 [&_svg]:size-4 [&_svg]:shrink-0",
   ].join(" "),
   {
     variants: {
       variant: {
         primary:
-          "bg-primary text-primary-foreground hover:bg-primary-hover active:brightness-95",
+          "bg-primary text-primary-foreground shadow-control hover:bg-primary-hover active:brightness-95",
         secondary:
-          "bg-surface-2 text-foreground border border-border hover:border-border-strong hover:bg-surface-3",
-        ghost: "text-foreground-secondary hover:bg-surface-2 hover:text-foreground",
+          "border border-border text-foreground-secondary hover:border-border-strong hover:bg-hover hover:text-foreground",
+        ghost: "text-muted-foreground hover:bg-hover hover:text-foreground",
         danger:
-          "bg-danger-subtle text-danger-foreground border border-transparent hover:bg-danger hover:text-white",
-        destructive: "bg-danger text-white hover:brightness-110",
-        link: "text-foreground underline-offset-4 hover:underline px-0",
+          "border border-border text-danger-foreground hover:border-danger/50 hover:bg-danger-subtle",
+        /* Solid, and only inside the confirmation that states the consequence. */
+        destructive: "bg-danger text-on-danger hover:brightness-110",
+        link: "h-auto px-0 text-foreground underline-offset-4 hover:underline",
       },
       size: {
-        sm: "h-7 px-2.5 gap-1.5 text-meta",
+        xs: "h-6 px-2 text-meta [&_svg]:size-3.5",
+        sm: "h-7 px-2.5 [&_svg]:size-3.5",
         md: "h-8 px-3",
-        lg: "h-10 px-4 text-sm",
+        lg: "h-9 px-3.5",
         icon: "size-8 p-0",
-        "icon-sm": "size-7 p-0",
+        "icon-sm": "size-7 p-0 [&_svg]:size-3.5",
       },
     },
     defaultVariants: { variant: "secondary", size: "md" },
@@ -69,10 +71,14 @@ export function Button({
       aria-busy={loading || undefined}
       {...props}
     >
-      {loading ? (
+      {loading && !asChild ? (
+        // The label stays in the layout (invisible) so the button keeps its
+        // width; the spinner sits on top of it. DESIGN.md §9.
         <>
-          <Loader2 className="animate-spin" aria-hidden="true" />
-          {children}
+          <span className="invisible inline-flex items-center gap-1.5">{children}</span>
+          <span className="absolute inset-0 flex items-center justify-center">
+            <Loader2 className="animate-spin" aria-hidden="true" />
+          </span>
         </>
       ) : (
         children

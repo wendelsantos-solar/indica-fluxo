@@ -28,25 +28,39 @@ import { cn } from "@/lib/utils"
 type AppRouter = ReturnType<typeof useRouter>
 type ReplaceHref = Parameters<AppRouter["replace"]>[0]
 
-export function LocaleSwitcher({ className }: { className?: string }) {
-  const t = useTranslations("common.locale")
+/**
+ * Replaces the current route under another locale, keeping dynamic params, so
+ * the reader stays on the same page. Shared by the switcher, the account menu
+ * and the command palette.
+ */
+export function useSwitchLocale() {
   const locale = useLocale() as Locale
   const pathname = usePathname()
   const router = useRouter()
   // Carries `workspaceSlug` / `programSlug` on dynamic routes; `{}` elsewhere.
   const params = useParams()
-  const hydrated = useHydrated()
   const [pending, startTransition] = React.useTransition()
 
-  function select(next: Locale) {
-    if (next === locale) return
-    startTransition(() => {
-      // The canonical pathname is only known at runtime, so its params cannot
-      // be narrowed to one route's shape; widen to what `replace` accepts
-      // rather than to `any`, which would drop the locale check too.
-      router.replace({ pathname, params } as ReplaceHref, { locale: next })
-    })
-  }
+  const select = React.useCallback(
+    (next: Locale) => {
+      if (next === locale) return
+      startTransition(() => {
+        // The canonical pathname is only known at runtime, so its params cannot
+        // be narrowed to one route's shape; widen to what `replace` accepts
+        // rather than to `any`, which would drop the locale check too.
+        router.replace({ pathname, params } as ReplaceHref, { locale: next })
+      })
+    },
+    [locale, pathname, params, router],
+  )
+
+  return { locale, select, pending }
+}
+
+export function LocaleSwitcher({ className }: { className?: string }) {
+  const t = useTranslations("common.locale")
+  const hydrated = useHydrated()
+  const { locale, select, pending } = useSwitchLocale()
 
   return (
     <Dropdown>
@@ -55,7 +69,7 @@ export function LocaleSwitcher({ className }: { className?: string }) {
         disabled={!hydrated || pending}
         className={cn(
           "inline-flex size-8 items-center justify-center rounded-control text-muted-foreground",
-          "transition-colors duration-[120ms] hover:bg-surface-2 hover:text-foreground",
+          "transition-colors duration-[120ms] hover:bg-hover hover:text-foreground",
           "disabled:opacity-60",
           className,
         )}

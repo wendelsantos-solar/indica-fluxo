@@ -27,7 +27,7 @@ export function Field({
     <div className={cn("space-y-1.5", className)}>
       <label
         htmlFor={htmlFor}
-        className="flex items-center gap-1 text-caption font-medium text-foreground-secondary"
+        className="flex items-center gap-1 text-meta font-medium text-muted-foreground"
       >
         {label}
         {required ? (
@@ -42,7 +42,7 @@ export function Field({
           {error}
         </p>
       ) : hint ? (
-        <p id={`${htmlFor}-hint`} className="text-meta text-muted-foreground">
+        <p id={`${htmlFor}-hint`} className="text-meta text-faint-foreground">
           {hint}
         </p>
       ) : null}

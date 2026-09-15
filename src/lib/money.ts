@@ -16,6 +16,20 @@ export function minorUnitExponent(currency: Currency): number {
   return ZERO_DECIMAL.has(currency.toUpperCase()) ? 0 : 2
 }
 
+/**
+ * A typed major amount ("14.70", "1500") to integer minor units for its
+ * currency: × 100 for cents, × 1 for zero-decimal currencies like JPY. Input
+ * boundary only — the ledger never holds a major amount.
+ */
+export function majorToMinor(amount: number, currency: Currency): number {
+  return Math.round(amount * 10 ** minorUnitExponent(currency))
+}
+
+/** The inverse, for pre-filling a form field with a stored amount. */
+export function minorToMajor(amountMinor: number, currency: Currency): number {
+  return amountMinor / 10 ** minorUnitExponent(currency)
+}
+
 /** Half-up rounding on integers. The single rounding rule in the product. */
 export function roundHalfUp(value: number): number {
   return value < 0 ? -Math.round(-value) : Math.round(value)

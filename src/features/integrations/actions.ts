@@ -11,6 +11,7 @@ import {
 } from "@/server/services/integrations"
 import { rotateApiKey } from "@/server/services/api-keys"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
+import { DASHBOARD_LAYOUT } from "@/lib/revalidate"
 
 export interface IntegrationFormState {
   error?: string
@@ -23,7 +24,7 @@ const connectSchema = z.object({
   workspaceSlug: z.string().min(1),
   providerAccountId: z
     .string()
-    .regex(/^acct_[A-Za-z0-9]{8,}$/, "Enter a Stripe account id, e.g. acct_1A2b3C4d5E."),
+    .regex(/^acct_[A-Za-z0-9]{8,}$/, "stripeAccountInvalid"),
 })
 
 /**
@@ -42,7 +43,8 @@ export async function connectStripeAction(
   })
 
   if (!parsed.success) {
-    return { error: z.flattenError(parsed.error).fieldErrors.providerAccountId?.[0] }
+    const accountInvalid = Boolean(z.flattenError(parsed.error).fieldErrors.providerAccountId)
+    return { error: await actionError(null, accountInvalid ? "stripeAccountInvalid" : "invalidRequest") }
   }
 
   try {
@@ -54,16 +56,20 @@ export async function connectStripeAction(
     return { error: await actionError(error, "stripeNotConnected") }
   }
 
-  revalidatePath(`/${parsed.data.workspaceSlug}/integrations`)
+  revalidatePath(DASHBOARD_LAYOUT, "layout")
   return { success: await successMessage("stripeConnected") }
 }
+
+const disconnectSchema = z.object({ workspaceSlug: z.string().min(1) })
 
 export async function disconnectStripeAction(
   _prev: IntegrationFormState,
   formData: FormData,
 ): Promise<IntegrationFormState> {
   const user = await requireUser()
-  const workspaceSlug = String(formData.get("workspaceSlug"))
+  const parsed = disconnectSchema.safeParse({ workspaceSlug: formData.get("workspaceSlug") })
+  if (!parsed.success) return { error: await actionError(null, "invalidRequest") }
+  const { workspaceSlug } = parsed.data
 
   try {
     const workspace = await getWorkspaceForUser(user.id, workspaceSlug)
@@ -72,7 +78,7 @@ export async function disconnectStripeAction(
     return { error: await actionError(error, "stripeNotDisconnected") }
   }
 
-  revalidatePath(`/${workspaceSlug}/integrations`)
+  revalidatePath(DASHBOARD_LAYOUT, "layout")
   return { success: await successMessage("stripeDisconnected") }
 }
 
@@ -97,7 +103,7 @@ export async function rotateKeyAction(
     const workspace = await getWorkspaceForUser(user.id, parsed.data.workspaceSlug)
     const key = await rotateApiKey(user.id, workspace.id, parsed.data.type)
 
-    revalidatePath(`/${parsed.data.workspaceSlug}/integrations`)
+    revalidatePath(DASHBOARD_LAYOUT, "layout")
     return {
       success: await successMessage("keyRotated"),
       revealedKey: key.plaintext,

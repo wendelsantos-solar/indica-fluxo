@@ -8,7 +8,12 @@ import { useFormatters } from "@/i18n/use-formatters"
 /**
  * Hand-rolled SVG rather than a charting library: the series is already
  * aggregated in SQL (ARCHITECTURE.md §6), so there is nothing for a library to
- * do except ship 100kB. DESIGN.md §10 governs the visual rules.
+ * do except ship 100kB. DESIGN.md §10 governs the visual rules: hairline
+ * horizontal grid only, muted 12px axis labels, no chart junk.
+ *
+ * The SVG stretches to its container (`preserveAspectRatio="none"`) with
+ * non-scaling strokes, so a hairline stays a hairline at every width. Anything
+ * that must stay round — the hover dots — is drawn in HTML on top.
  */
 
 export interface Series {
@@ -18,140 +23,185 @@ export interface Series {
   values: number[]
 }
 
+const WIDTH = 800
+const PADDING = { top: 8, right: 0, bottom: 0, left: 0 }
+const GRID = [0, 1 / 3, 2 / 3, 1]
+
 export function AreaChart({
   labels,
   series,
   currency,
+  summary,
   height = 220,
   className,
 }: {
+  /** Already localised x-axis labels, one per value (e.g. "14 set."). */
   labels: string[]
   series: Series[]
   currency: string
+  /**
+   * The chart in one or two sentences, for screen readers — DESIGN.md §10:
+   * every chart has a text fallback. The drawing itself is then hidden.
+   */
+  summary?: string
   height?: number
   className?: string
 }) {
   const f = useFormatters()
+  const id = React.useId()
   const [hover, setHover] = React.useState<number | null>(null)
-  const width = 800
-  const padding = { top: 12, right: 8, bottom: 24, left: 8 }
-  const innerW = width - padding.left - padding.right
-  const innerH = height - padding.top - padding.bottom
+  const innerW = WIDTH - PADDING.left - PADDING.right
+  const innerH = height - PADDING.top - PADDING.bottom
 
   const max = Math.max(1, ...series.flatMap((s) => s.values))
   const count = labels.length
 
-  const x = (i: number) => padding.left + (count <= 1 ? innerW / 2 : (i / (count - 1)) * innerW)
-  const y = (v: number) => padding.top + innerH - (v / max) * innerH
+  const x = (i: number) => PADDING.left + (count <= 1 ? innerW / 2 : (i / (count - 1)) * innerW)
+  const y = (v: number) => PADDING.top + innerH - (v / max) * innerH
+  const pctX = (i: number) => (x(i) / WIDTH) * 100
+  const pctY = (v: number) => (y(v) / height) * 100
 
-  const gridLines = [0, 0.25, 0.5, 0.75, 1]
+  // Five evenly spaced ticks at most; a date under every point is noise.
+  const tickCount = Math.min(count, 5)
+  const ticks =
+    tickCount <= 1
+      ? [0]
+      : Array.from({ length: tickCount }, (_, n) => Math.round((n / (tickCount - 1)) * (count - 1)))
+
+  const hoverLeft = hover !== null ? pctX(hover) : 0
 
   return (
-    <div className={cn("relative", className)}>
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="w-full"
-        style={{ height }}
-        role="img"
-        aria-label={`${series.map((s) => s.label).join(" and ")} over ${count} days`}
-        onMouseLeave={() => setHover(null)}
-      >
-        {gridLines.map((g) => (
-          <line
-            key={g}
-            x1={padding.left}
-            x2={width - padding.right}
-            y1={padding.top + innerH * g}
-            y2={padding.top + innerH * g}
-            stroke="var(--border)"
-            strokeWidth={1}
-          />
-        ))}
+    <div className={cn("relative", className)} onMouseLeave={() => setHover(null)}>
+      {summary ? <p className="sr-only">{summary}</p> : null}
+      <div className="relative" style={{ height }} aria-hidden={summary ? true : undefined}>
+        <svg
+          viewBox={`0 0 ${WIDTH} ${height}`}
+          preserveAspectRatio="none"
+          className="absolute inset-0 size-full overflow-visible"
+          role={summary ? undefined : "img"}
+          aria-label={summary ? undefined : series.map((s) => s.label).join(" · ")}
+        >
+          {GRID.map((g) => (
+            <line
+              key={g}
+              x1={0}
+              x2={WIDTH}
+              y1={PADDING.top + innerH * g}
+              y2={PADDING.top + innerH * g}
+              stroke={g === 1 ? "var(--border)" : "var(--border-faint)"}
+              strokeWidth={1}
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
 
-        {series.map((s) => {
-          const line = s.values.map((v, i) => `${i === 0 ? "M" : "L"} ${x(i)} ${y(v)}`).join(" ")
-          const area = `${line} L ${x(count - 1)} ${padding.top + innerH} L ${x(0)} ${padding.top + innerH} Z`
-          return (
-            <g key={s.key}>
-              <defs>
-                <linearGradient id={`grad-${s.key}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={s.color} stopOpacity={0.12} />
-                  <stop offset="100%" stopColor={s.color} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <path d={area} fill={`url(#grad-${s.key})`} />
-              <path d={line} fill="none" stroke={s.color} strokeWidth={1.5} />
-            </g>
-          )
-        })}
+          {series.map((s) => {
+            const line = s.values.map((v, i) => `${i === 0 ? "M" : "L"} ${x(i)} ${y(v)}`).join(" ")
+            const area = `${line} L ${x(Math.max(0, count - 1))} ${PADDING.top + innerH} L ${x(0)} ${PADDING.top + innerH} Z`
+            const gradient = `${id}-${s.key}`
+            return (
+              <g key={s.key}>
+                <defs>
+                  <linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={s.color} stopOpacity={0.14} />
+                    <stop offset="100%" stopColor={s.color} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <path d={area} fill={`url(#${gradient})`} />
+                <path
+                  d={line}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth={1.5}
+                  strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </g>
+            )
+          })}
 
-        {hover !== null ? (
-          <>
+          {hover !== null ? (
             <line
               x1={x(hover)}
               x2={x(hover)}
-              y1={padding.top}
-              y2={padding.top + innerH}
+              y1={PADDING.top}
+              y2={PADDING.top + innerH}
               stroke="var(--border-strong)"
               strokeWidth={1}
+              vectorEffect="non-scaling-stroke"
             />
-            {series.map((s) => (
-              <circle
+          ) : null}
+
+          {labels.map((_, i) => (
+            <rect
+              key={i}
+              x={x(i) - innerW / Math.max(1, count) / 2}
+              y={0}
+              width={innerW / Math.max(1, count)}
+              height={height}
+              fill="transparent"
+              onMouseEnter={() => setHover(i)}
+            />
+          ))}
+        </svg>
+
+        {hover !== null
+          ? series.map((s) => (
+              <span
                 key={s.key}
-                cx={x(hover)}
-                cy={y(s.values[hover] ?? 0)}
-                r={3}
-                fill={s.color}
-                stroke="var(--surface-1)"
-                strokeWidth={1.5}
+                aria-hidden="true"
+                className="pointer-events-none absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-surface-1"
+                style={{
+                  left: `${pctX(hover)}%`,
+                  top: `${pctY(s.values[hover] ?? 0)}%`,
+                  backgroundColor: s.color,
+                }}
               />
-            ))}
-          </>
+            ))
+          : null}
+
+        {hover !== null ? (
+          <div
+            className={cn(
+              "pointer-events-none absolute top-0 z-10 min-w-36 rounded-control bg-surface-3 px-2.5 py-2 shadow-overlay",
+              // Flip to the left of the cursor line near the right edge.
+              hoverLeft > 65 ? "mr-3" : "ml-3",
+            )}
+            style={hoverLeft > 65 ? { right: `${100 - hoverLeft}%` } : { left: `${hoverLeft}%` }}
+          >
+            <p className="mb-1 text-meta text-muted-foreground">{labels[hover]}</p>
+            {[...series]
+              .sort((a, b) => (b.values[hover] ?? 0) - (a.values[hover] ?? 0))
+              .map((s) => (
+                <p key={s.key} className="flex items-center gap-2 text-meta">
+                  <span
+                    className="size-1.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: s.color }}
+                    aria-hidden="true"
+                  />
+                  <span className="text-muted-foreground">{s.label}</span>
+                  <span className="ml-auto pl-3 tabular-nums text-foreground">
+                    {f.money(s.values[hover] ?? 0, currency, { compact: true })}
+                  </span>
+                </p>
+              ))}
+          </div>
         ) : null}
-
-        {labels.map((_, i) => (
-          <rect
-            key={i}
-            x={x(i) - innerW / Math.max(1, count) / 2}
-            y={padding.top}
-            width={innerW / Math.max(1, count)}
-            height={innerH}
-            fill="transparent"
-            onMouseEnter={() => setHover(i)}
-          />
-        ))}
-      </svg>
-
-      <div className="mt-1 flex justify-between text-label text-muted-foreground">
-        <span>{labels[0]}</span>
-        <span>{labels[labels.length - 1]}</span>
       </div>
 
-      {hover !== null ? (
-        <div
-          className="pointer-events-none absolute top-0 rounded-control border border-border bg-surface-3 px-2.5 py-2 shadow-[var(--shadow-overlay)]"
-          style={{
-            left: `calc(${((hover / Math.max(1, count - 1)) * 100).toFixed(2)}% - 60px)`,
-          }}
-        >
-          <p className="mb-1 text-label text-muted-foreground">{labels[hover]}</p>
-          {[...series]
-            .sort((a, b) => (b.values[hover] ?? 0) - (a.values[hover] ?? 0))
-            .map((s) => (
-              <p key={s.key} className="flex items-center gap-2 text-meta">
-                <span
-                  className="size-1.5 rounded-full"
-                  style={{ backgroundColor: s.color }}
-                  aria-hidden="true"
-                />
-                <span className="text-muted-foreground">{s.label}</span>
-                <span className="ml-auto font-mono tabular-nums text-foreground">
-                  {f.money(s.values[hover] ?? 0, currency, { compact: true })}
-                </span>
-              </p>
-            ))}
-        </div>
-      ) : null}
+      <div aria-hidden="true" className="relative mt-2 h-4 text-meta tabular-nums text-muted-foreground">
+        {ticks.map((i, n) => (
+          <span
+            key={i}
+            className={cn(
+              "absolute top-0 whitespace-nowrap",
+              n === 0 ? "left-0" : n === ticks.length - 1 ? "right-0" : "-translate-x-1/2 max-sm:hidden",
+            )}
+            style={n === 0 || n === ticks.length - 1 ? undefined : { left: `${pctX(i)}%` }}
+          >
+            {labels[i]}
+          </span>
+        ))}
+      </div>
     </div>
   )
 }

@@ -3,8 +3,9 @@
 import { useTranslations } from "next-intl"
 import { useActionState, useState } from "react"
 
+import { InlineAlert } from "@/components/feedback/inline-alert"
 import { Button } from "@/components/ui/button"
-import { useFormatters } from "@/i18n/use-formatters"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import {
   Dialog,
   DialogBody,
@@ -18,6 +19,7 @@ import {
 import { Field } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { useActionResult } from "@/components/ui/use-action-result"
+import { useFormatters } from "@/i18n/use-formatters"
 
 import { cancelBatchAction, markBatchPaidAction, type PayoutFormState } from "./actions"
 
@@ -34,6 +36,7 @@ export function MarkPaidDialog({
   affiliateCount,
   totalAmountMinor,
   currency,
+  triggerVariant = "secondary",
 }: {
   workspaceSlug: string
   batchId: string
@@ -41,24 +44,31 @@ export function MarkPaidDialog({
   affiliateCount: number
   totalAmountMinor: number
   currency: string
+  /** Secondary in a history row; the batch's own page makes it the primary action. */
+  triggerVariant?: "primary" | "secondary"
 }) {
   const t = useTranslations("forms.batch")
   const ta = useTranslations("common.actions")
   const f = useFormatters()
   const [open, setOpen] = useState(false)
   const [state, action, pending] = useActionState(markBatchPaidAction, INITIAL)
+  // Controlled, so a failed submission keeps the reference that was typed.
+  const [externalReference, setExternalReference] = useState("")
 
-  useActionResult(state, { onSuccess: () => setOpen(false) })
+  // The dialog stays open on failure and says why inline; success closes it
+  // and the row itself changes, so a toast confirms off-screen.
+  useActionResult(state, { onSuccess: () => setOpen(false), toastOnError: false })
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(next) => !pending && setOpen(next)}>
       <DialogTrigger asChild>
-        <Button variant="primary" size="sm">
+        {/* Secondary in the row: the page's amber action is creating a batch. */}
+        <Button variant={triggerVariant} size="sm">
           {t("markPaid")}
         </Button>
       </DialogTrigger>
       <DialogContent>
-        <form action={action}>
+        <form action={action} className="flex min-h-0 flex-col">
           <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
           <input type="hidden" name="batchId" value={batchId} />
 
@@ -68,23 +78,29 @@ export function MarkPaidDialog({
               {t.rich("confirmBody", {
                 count: affiliateCount,
                 amount: f.money(totalAmountMinor, currency),
-                strong: (chunks) => <strong>{chunks}</strong>,
+                strong: (chunks) => <strong className="font-medium text-foreground">{chunks}</strong>,
               })}
             </DialogDescription>
           </DialogHeader>
 
           <DialogBody>
-            <Field
-              label={t("reference")}
-              htmlFor="externalReference"
-              hint={t("referenceHint")}
-            >
-              <Input id="externalReference" name="externalReference" className="font-mono" />
+            <Field label={t("reference")} htmlFor={`externalReference-${batchId}`} hint={t("referenceHint")}>
+              <Input
+                id={`externalReference-${batchId}`}
+                name="externalReference"
+                value={externalReference}
+                onChange={(event) => setExternalReference(event.target.value)}
+                maxLength={120}
+                className="font-mono"
+                autoComplete="off"
+                aria-describedby={`externalReference-${batchId}-hint`}
+              />
             </Field>
+            {state.error ? <InlineAlert tone="danger">{state.error}</InlineAlert> : null}
           </DialogBody>
 
           <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+            <Button type="button" variant="secondary" onClick={() => setOpen(false)} disabled={pending}>
               {ta("cancel")}
             </Button>
             <Button type="submit" variant="primary" loading={pending}>
@@ -97,25 +113,37 @@ export function MarkPaidDialog({
   )
 }
 
+/**
+ * Cancelling a batch returns its commissions to "available". The trigger says
+ * "Cancel batch" rather than "Cancel", so it never reads like the dialog's own
+ * dismiss button, and the confirmation spells out what happens to the money.
+ */
 export function CancelBatchButton({
   workspaceSlug,
   batchId,
+  reference,
 }: {
   workspaceSlug: string
   batchId: string
+  reference: string
 }) {
   const t = useTranslations("forms.batch")
-  const [state, action, pending] = useActionState(cancelBatchAction, INITIAL)
+  const [state, setState] = useState<PayoutFormState>(INITIAL)
 
+  // The dialog closes when the action settles, so the outcome is a toast.
   useActionResult(state)
 
   return (
-    <form action={action}>
+    <ConfirmDialog
+      trigger={t("cancelBatch")}
+      triggerVariant="danger"
+      title={t("cancelTitle", { reference })}
+      description={t("cancelBody")}
+      confirmLabel={t("cancelConfirm")}
+      action={async (formData) => setState(await cancelBatchAction(INITIAL, formData))}
+    >
       <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
       <input type="hidden" name="batchId" value={batchId} />
-      <Button type="submit" variant="ghost" size="sm" loading={pending}>
-        {t("cancelBatch")}
-      </Button>
-    </form>
+    </ConfirmDialog>
   )
 }

@@ -7,6 +7,7 @@ import { notFound } from "next/navigation"
 import { ThemeProvider } from "@/components/layout/theme-provider"
 import { Toaster } from "@/components/feedback/toaster"
 import { BCP47, routing, type Locale } from "@/i18n/routing"
+import { siteUrl } from "@/lib/site"
 
 import "../globals.css"
 
@@ -42,6 +43,8 @@ export async function generateMetadata({
   const t = await getTranslations({ locale, namespace: "meta" })
 
   return {
+    metadataBase: siteUrl(),
+    applicationName: "IndicaFluxo",
     title: { default: t("title"), template: t("titleTemplate") },
     description: t("description"),
   }

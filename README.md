@@ -61,6 +61,32 @@ migrations and controlled scripts. It is not a Supabase API key.
 If a `sb_secret_*` value is ever assigned to a `NEXT_PUBLIC_*` variable, rotate
 it in the Supabase dashboard — a build may already have inlined it.
 
+## Supabase Auth configuration
+
+Sign-up confirmation and password recovery e-mails land on
+`/<locale>/auth/callback`, which exchanges the PKCE code for a session and then
+redirects to a validated local path. Supabase only honours redirect targets it
+has been told about, so every environment needs this in the Supabase dashboard
+(**Authentication → URL Configuration**):
+
+| Setting | Value |
+| --- | --- |
+| Site URL | the same value as `NEXT_PUBLIC_APP_URL` |
+| Redirect URLs | `<APP_URL>/pt-br/auth/callback` and `<APP_URL>/en/auth/callback` (or `<APP_URL>/**`) — add localhost and every deployed origin |
+
+And under **Authentication → Emails**:
+
+- *Confirm signup* and *Reset password* templates must link to
+  `{{ .ConfirmationURL }}`, so the `?code=` reaches the callback. Write them in
+  Portuguese and English and sign them as IndicaFluxo.
+- The links only work in the browser that requested them (PKCE). A link opened
+  elsewhere shows the "link expired" notice on the login page.
+- The resend button on "Confira seu e-mail" waits 60 seconds, matching
+  Supabase's default e-mail rate limit. If you change that limit, change
+  `COOLDOWN_SECONDS` in `src/features/auth/check-email.tsx`.
+- If *Secure password change* is enabled, `updateUser` may require a recent
+  sign-in; the reset page then shows the expired-link state.
+
 ## Commands
 
 ```bash

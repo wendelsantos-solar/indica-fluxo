@@ -2,7 +2,11 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-/** DESIGN.md §6: surface contrast + hairline. No shadow on a resting card. */
+/**
+ * DESIGN.md §6. A bordered panel for a single one-off container — a form, a
+ * chart, a composer. Lists and tables do not go in cards: they sit on the
+ * content panel between hairlines. No shadow on a resting card.
+ */
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
@@ -20,7 +24,7 @@ export function CardHeader({
   return (
     <div
       className={cn(
-        "flex items-start justify-between gap-4 px-4 py-3 sm:px-6 sm:py-4",
+        "flex items-center justify-between gap-4 px-4 py-3",
         bordered && "border-b border-border",
         className,
       )}
@@ -30,25 +34,25 @@ export function CardHeader({
 }
 
 export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h2 className={cn("text-body-sm font-medium tracking-tight", className)} {...props} />
+  return <h2 className={cn("text-caption font-medium text-foreground", className)} {...props} />
 }
 
 export function CardDescription({
   className,
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("mt-1 text-caption text-muted-foreground", className)} {...props} />
+  return <p className={cn("mt-0.5 text-caption text-muted-foreground", className)} {...props} />
 }
 
 export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("px-4 py-4 sm:px-6 sm:py-5", className)} {...props} />
+  return <div className={cn("p-4", className)} {...props} />
 }
 
 export function CardFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-3 border-t border-border px-4 py-3 sm:px-6",
+        "flex items-center justify-between gap-3 border-t border-border px-4 py-3",
         className,
       )}
       {...props}

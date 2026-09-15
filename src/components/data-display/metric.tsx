@@ -1,46 +1,60 @@
 import { ArrowDown, ArrowUp } from "lucide-react"
+import { useLocale } from "next-intl"
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
 /**
  * DESIGN.md §9: label → value → delta with its comparison period.
- * A metric without a comparison is a missed opportunity, not a feature.
+ * Plain-case label, tabular value, no card around it: metrics read as a
+ * hairline strip, not a grid of tiles. A metric without a comparison is a
+ * missed opportunity, not a feature.
  */
 export function Metric({
   label,
   value,
   delta,
+  secondaryValue,
   comparison,
   size = "md",
   className,
   children,
 }: {
-  label: string
+  /** Usually a string; a `Term` when the label is jargon that needs a definition. */
+  label: React.ReactNode
   value: string
+  /**
+   * The same measure in other units shown beside the value, never folded into
+   * it — e.g. other currencies: "+ € 120,00 · £ 80,00". See `lib/money-totals`.
+   */
+  secondaryValue?: string | null
   delta?: number | null
   comparison?: string
   size?: "md" | "lg"
   className?: string
   children?: React.ReactNode
 }) {
+  const locale = useLocale()
   const hasDelta = typeof delta === "number" && Number.isFinite(delta)
   const positive = hasDelta && delta > 0
   const negative = hasDelta && delta < 0
 
   return (
-    <div className={cn("space-y-1.5", className)}>
-      <p className="text-label font-medium uppercase tracking-[0.02em] text-muted-foreground">
-        {label}
-      </p>
+    <div className={cn("min-w-0 space-y-1", className)}>
+      <p className="truncate text-caption text-muted-foreground">{label}</p>
       <p
         className={cn(
-          "font-medium tabular-nums tracking-tight text-foreground",
-          size === "lg" ? "text-heading-sm leading-none" : "text-subheading leading-none",
+          "whitespace-nowrap tabular-nums text-foreground",
+          size === "lg" ? "text-heading-sm" : "text-title",
         )}
       >
         {value}
       </p>
+      {secondaryValue ? (
+        <p className="truncate text-meta tabular-nums text-muted-foreground" title={secondaryValue}>
+          {secondaryValue}
+        </p>
+      ) : null}
       {hasDelta || comparison ? (
         <p className="flex items-center gap-1.5 text-meta">
           {hasDelta ? (
@@ -57,8 +71,12 @@ export function Metric({
               ) : negative ? (
                 <ArrowDown className="size-3" aria-hidden="true" />
               ) : null}
-              {positive ? "+" : ""}
-              {delta.toFixed(1)}%
+              {new Intl.NumberFormat(locale, {
+                style: "percent",
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1,
+                signDisplay: "exceptZero",
+              }).format(delta / 100)}
             </span>
           ) : null}
           {comparison ? <span className="text-muted-foreground">{comparison}</span> : null}
@@ -73,8 +91,7 @@ export function MetricGrid({ className, ...props }: React.HTMLAttributes<HTMLDiv
   return (
     <div
       className={cn(
-        "grid grid-cols-2 gap-px overflow-hidden rounded-panel border border-border bg-border",
-        "lg:grid-cols-3",
+        "grid grid-cols-2 gap-x-6 border-y border-border sm:grid-cols-3",
         className,
       )}
       {...props}
@@ -83,5 +100,5 @@ export function MetricGrid({ className, ...props }: React.HTMLAttributes<HTMLDiv
 }
 
 export function MetricCell({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("bg-surface-1 p-5", className)} {...props} />
+  return <div className={cn("py-4", className)} {...props} />
 }

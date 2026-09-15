@@ -1,6 +1,7 @@
 "use server"
 
 import { actionError, successMessage } from "@/i18n/errors"
+import { getTranslations } from "next-intl/server"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
@@ -11,6 +12,15 @@ import {
   markBatchPaid,
 } from "@/server/services/payouts"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
+
+/**
+ * Route patterns, not URLs: pages live under a locale segment and a translated
+ * pathname, so a literal "/acme/payouts" matches nothing.
+ */
+function revalidatePayoutViews() {
+  revalidatePath("/[locale]/(dashboard)/[workspaceSlug]/payouts", "page")
+  revalidatePath("/[locale]/(dashboard)/[workspaceSlug]/payouts/[batchId]", "page")
+}
 
 export interface PayoutFormState {
   error?: string
@@ -36,7 +46,10 @@ export async function createPayoutBatchAction(
   })
 
   if (!parsed.success) {
-    return { error: z.flattenError(parsed.error).fieldErrors.participationIds?.[0] ?? "Invalid selection." }
+    // An empty selection is the one mistake a founder can make here; anything
+    // else means the form was tampered with.
+    const emptySelection = Boolean(z.flattenError(parsed.error).fieldErrors.participationIds)
+    return { error: await actionError(null, emptySelection ? "selectAffiliate" : "invalidRequest") }
   }
 
   const now = new Date()
@@ -52,8 +65,9 @@ export async function createPayoutBatchAction(
       periodEnd,
     })
 
-    revalidatePath(`/${parsed.data.workspaceSlug}/payouts`)
-    return { success: `Batch ${batch.reference} created.` }
+    revalidatePayoutViews()
+    const t = await getTranslations("success")
+    return { success: t("batchCreated", { reference: batch.reference }) }
   } catch (error) {
     return { error: await actionError(error, "batchNotCreated") }
   }
@@ -86,7 +100,7 @@ export async function markBatchPaidAction(
       parsed.data.batchId,
       parsed.data.externalReference ?? null,
     )
-    revalidatePath(`/${parsed.data.workspaceSlug}/payouts`)
+    revalidatePayoutViews()
     return { success: await successMessage("batchPaid") }
   } catch (error) {
     return { error: await actionError(error, "batchNotPaid") }
@@ -108,7 +122,7 @@ export async function cancelBatchAction(
   try {
     const workspace = await getWorkspaceForUser(user.id, parsed.data.workspaceSlug)
     await cancelPayoutBatch(user.id, workspace.id, parsed.data.batchId)
-    revalidatePath(`/${parsed.data.workspaceSlug}/payouts`)
+    revalidatePayoutViews()
     return { success: await successMessage("batchCancelled") }
   } catch (error) {
     return { error: await actionError(error, "batchNotCancelled") }

@@ -1,6 +1,7 @@
 "use client"
 
 import { useTheme } from "next-themes"
+import * as React from "react"
 import { Toaster as Sonner } from "sonner"
 
 /**
@@ -9,16 +10,25 @@ import { Toaster as Sonner } from "sonner"
  */
 export function Toaster() {
   const { resolvedTheme } = useTheme()
+  const narrow = React.useSyncExternalStore(
+    (onChange) => {
+      const query = window.matchMedia("(max-width: 639px)")
+      query.addEventListener("change", onChange)
+      return () => query.removeEventListener("change", onChange)
+    },
+    () => window.matchMedia("(max-width: 639px)").matches,
+    () => false,
+  )
 
   return (
     <Sonner
       theme={resolvedTheme === "light" ? "light" : "dark"}
-      position="bottom-right"
+      position={narrow ? "bottom-center" : "bottom-right"}
       duration={4000}
       toastOptions={{
         classNames: {
           toast:
-            "!bg-surface-3 !border-border !text-foreground !rounded-panel !shadow-[var(--shadow-overlay)] !text-caption",
+            "!bg-surface-3 !border-border !text-foreground !rounded-panel !shadow-overlay !text-caption",
           description: "!text-muted-foreground",
           actionButton: "!bg-primary !text-primary-foreground",
         },

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { z } from "zod"
 
+import { TRACK_RATE_LIMIT } from "@/lib/api/contract"
 import { peppered } from "@/lib/crypto/hash"
 import { logger } from "@/lib/logger"
 import { clientIp, rateLimit } from "@/lib/rate-limit"
@@ -48,7 +49,7 @@ export function OPTIONS() {
 export async function POST(request: NextRequest) {
   const ip = clientIp(request.headers)
 
-  const limit = rateLimit(`track:${ip}`, { limit: 60, windowSeconds: 60 })
+  const limit = rateLimit(`track:${ip}`, { limit: TRACK_RATE_LIMIT, windowSeconds: 60 })
   if (!limit.ok) {
     return NextResponse.json(
       { error: "rate_limited" },

@@ -1,4 +1,4 @@
-import { ArrowRight, Coins, Users } from "lucide-react"
+import { ArrowRight, Coins } from "lucide-react"
 import type { Metadata } from "next"
 import { getTranslations } from "next-intl/server"
 import { Suspense } from "react"
@@ -9,13 +9,20 @@ import { AreaChart, ChartLegend } from "@/components/data-display/area-chart"
 import { getFormatters } from "@/i18n/format"
 import { Funnel } from "@/components/data-display/funnel"
 import { Metric, MetricCell, MetricGrid } from "@/components/data-display/metric"
-import { EmptyState } from "@/components/feedback/empty-state"
 import { PageHeader, SectionHeader } from "@/components/layout/page-header"
 import { StatusBadge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { MetricSkeleton, TableSkeleton } from "@/components/ui/skeleton"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
+import {
+  amountIn,
+  formatMoneyTotals,
+  formatMoneyTotalsInline,
+  hasNonZeroTotal,
+  type MoneyTotal,
+} from "@/lib/money-totals"
+import { ActivationChecklist, ActivationReminder } from "@/features/onboarding/activation-checklist"
+import { activationSignals, getActivation } from "@/features/onboarding/activation"
 import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
 import {
@@ -25,7 +32,12 @@ import {
   getRevenueSeries,
   getTopAffiliates,
 } from "@/server/repositories/analytics"
+import { listAffiliates } from "@/server/repositories/affiliates"
+import { listPrograms } from "@/server/repositories/programs"
+import { listIntegrations } from "@/server/services/integrations"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
+
+import { OverviewSkeleton } from "./overview-skeleton"
 
 export const dynamic = "force-dynamic"
 
@@ -37,134 +49,218 @@ export async function generateMetadata({
   return { title: t("title") }
 }
 
-export default async function OverviewPage({ params }: PageProps<"/[locale]/[workspaceSlug]/overview">) {
+export default async function OverviewPage({
+  params,
+  searchParams,
+}: PageProps<"/[locale]/[workspaceSlug]/overview">) {
   const { workspaceSlug } = await params
+  const { welcome } = await searchParams
   const t = await getTranslations("dashboard.overview")
 
   return (
     <>
       <PageHeader title={t("title")} description={t("description")} />
       <Suspense fallback={<OverviewSkeleton />}>
-        <OverviewContent slug={workspaceSlug} />
+        <OverviewContent slug={workspaceSlug} welcome={welcome === "1"} />
       </Suspense>
     </>
   )
 }
 
-async function OverviewContent({ slug }: { slug: string }) {
+async function OverviewContent({ slug, welcome }: { slug: string; welcome: boolean }) {
   const t = await getTranslations("dashboard.overview")
   const tc = await getTranslations("common.table")
+  const tm = await getTranslations("common.money")
   const f = await getFormatters()
   const user = await requireUser()
   const workspace = await getWorkspaceForUser(user.id, slug)
 
-  const [overview, series, funnel, topAffiliates, recent] = await withUser(user.id, (tx) =>
-    Promise.all([
-      getDashboardOverview(tx, workspace.id),
-      getRevenueSeries(tx, workspace.id),
-      getConversionFunnel(tx, workspace.id),
-      getTopAffiliates(tx, workspace.id),
-      getRecentConversions(tx, workspace.id),
-    ]),
+  const { overview, series, funnel, topAffiliates, recent, programs, integrations, affiliates } =
+    await withUser(user.id, async (tx) => {
+      // The overview decides the lead currency; the chart then draws that one
+      // currency only. Statements in one transaction run serially anyway.
+      const overview = await getDashboardOverview(tx, workspace.id)
+      const [series, funnel, topAffiliates, recent, programs, integrations, affiliates] =
+        await Promise.all([
+          getRevenueSeries(tx, workspace.id, overview.currency),
+          getConversionFunnel(tx, workspace.id),
+          getTopAffiliates(tx, workspace.id),
+          getRecentConversions(tx, workspace.id),
+          // Activation checklist: existing read functions only, see
+          // features/onboarding/activation.ts for how each step is derived.
+          listPrograms(tx, workspace.id),
+          listIntegrations(tx, workspace.id),
+          listAffiliates(tx, { workspaceId: workspace.id, limit: 1 }),
+        ])
+      return { overview, series, funnel, topAffiliates, recent, programs, integrations, affiliates }
+    })
+
+  const activation = getActivation(
+    activationSignals({ programs, integrations, affiliateTotal: affiliates.total }),
   )
 
-  const delta =
-    overview.revenuePreviousMinor > 0
-      ? ((overview.revenueMinor - overview.revenuePreviousMinor) /
-          overview.revenuePreviousMinor) *
-        100
-      : null
+  const { currency } = overview
+  // Every money figure is per currency: the lead currency is shown as the
+  // value, the others on a compact line beside it — never summed or converted.
+  const money = (totals: MoneyTotal[]) => formatMoneyTotals(f.money, totals, currency)
+  const inline = (totals: MoneyTotal[]) => formatMoneyTotalsInline(f.money, totals, currency)
+  const others = (formatted: { others: string | null }) =>
+    formatted.others ? tm("otherCurrencies", { amounts: formatted.others }) : null
+
+  const revenue = money(overview.revenue)
+  const commission = money(overview.commission)
+  const revenueNow = amountIn(overview.revenue, currency)
+  const revenueBefore = amountIn(overview.revenuePrevious, currency)
+  const delta = revenueBefore > 0 ? ((revenueNow - revenueBefore) / revenueBefore) * 100 : null
 
   const chartSeries = [
     {
       key: "revenue",
       label: t("legendRevenue"),
       color: "var(--chart-1)",
-      values: series.map((point) => point.revenueMinor),
+      values: series.points.map((point) => point.revenueMinor),
     },
     {
       key: "commission",
       label: t("legendCommission"),
       color: "var(--chart-2)",
-      values: series.map((point) => point.commissionMinor),
+      values: series.points.map((point) => point.commissionMinor),
     },
   ]
 
-  const hasData = overview.clicks > 0 || overview.revenueMinor !== 0
+  const hasData = overview.clicks > 0 || hasNonZeroTotal(overview.revenue)
 
   if (!hasData) {
     return (
-      <Card>
-        <EmptyState
-          icon={Users}
-          title={t("empty.title")}
-          description={t("empty.description")}
-          action={
-            <Button asChild variant="primary">
-              <Link href={{ pathname: "/[workspaceSlug]/programs/new", params: { workspaceSlug: slug } }}>{t("empty.action")}</Link>
-            </Button>
-          }
-        />
-      </Card>
+      <ActivationChecklist
+        workspaceSlug={slug}
+        activation={activation}
+        programs={programs}
+        welcome={welcome}
+      />
     )
   }
 
+  // Axis and tooltip dates in the reader's convention ("14 set."), never ISO.
+  const dayLabel = new Intl.DateTimeFormat(f.locale, { day: "numeric", month: "short", timeZone: "UTC" })
+  const labels = series.points.map((point) => dayLabel.format(new Date(`${point.date}T00:00:00Z`)))
+  const peak = series.points.reduce<(typeof series.points)[number] | null>(
+    (best, point) => (best === null || point.revenueMinor > best.revenueMinor ? point : best),
+    null,
+  )
+  const chartSummary = t("chartSummary", {
+    start: labels[0] ?? "",
+    end: labels[labels.length - 1] ?? "",
+    revenue: f.money(
+      series.points.reduce((sum, point) => sum + point.revenueMinor, 0),
+      series.currency,
+    ),
+    commission: f.money(
+      series.points.reduce((sum, point) => sum + point.commissionMinor, 0),
+      series.currency,
+    ),
+    peakDay: peak ? dayLabel.format(new Date(`${peak.date}T00:00:00Z`)) : "",
+    peakRevenue: f.money(peak?.revenueMinor ?? 0, series.currency),
+  })
+  const chartCurrencyNote =
+    series.otherCurrencies.length > 0
+      ? t("chartCurrencyNote", {
+          currency: series.currency,
+          others: new Intl.ListFormat(f.locale, { type: "conjunction" }).format(series.otherCurrencies),
+        })
+      : null
+
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardContent className="flex flex-wrap items-end justify-between gap-6">
-          <Metric
-            label={t("metrics.revenue")}
-            value={f.money(overview.revenueMinor, overview.currency)}
-            delta={delta}
-            comparison={t("metrics.comparison")}
-            size="lg"
-          />
-          <div className="flex flex-wrap gap-8">
+    <div className="space-y-10">
+      {/* 1 — What the program earned, and what is owed right now. */}
+      <div className="space-y-6">
+        <ActivationReminder workspaceSlug={slug} activation={activation} />
+        <MetricGrid className="sm:grid-cols-2 lg:grid-cols-4">
+          {/* The headline figure takes the full row on phones: at half width a
+              large amount with a currency symbol would run into its neighbour. */}
+          <MetricCell className="col-span-2 sm:col-span-1">
+            <Metric
+              label={t("metrics.revenue")}
+              value={revenue.primary}
+              secondaryValue={others(revenue)}
+              delta={delta}
+              comparison={
+                // The delta compares the lead currency only; say so once
+                // another currency is on screen.
+                revenue.others
+                  ? t("metrics.comparisonInCurrency", { currency })
+                  : t("metrics.comparison")
+              }
+              size="lg"
+            />
+          </MetricCell>
+          <MetricCell>
             <Metric
               label={t("metrics.commissions")}
-              value={f.money(overview.commissionMinor, overview.currency)}
+              value={commission.primary}
+              secondaryValue={others(commission)}
+              comparison={t("metrics.netRevenueAfter", { amount: inline(overview.netRevenue) })}
             />
+          </MetricCell>
+          <MetricCell>
             <Metric
-              label={t("metrics.netRevenue")}
-              value={f.money(overview.netRevenueMinor, overview.currency)}
+              label={t("metrics.customers")}
+              value={f.number(overview.customersAcquired)}
+              comparison={t("metrics.conversionOfClicks", {
+                rate: f.rate(overview.customersAcquired, overview.clicks),
+                clicks: overview.clicks,
+              })}
             />
-          </div>
-        </CardContent>
-      </Card>
+          </MetricCell>
+          <MetricCell>
+            <Metric label={t("metrics.activeAffiliates")} value={f.number(overview.activeAffiliates)} />
+          </MetricCell>
+        </MetricGrid>
 
-      <MetricGrid>
-        <MetricCell>
-          <Metric label={t("metrics.activeAffiliates")} value={f.number(overview.activeAffiliates)} />
-        </MetricCell>
-        <MetricCell>
-          <Metric label={t("metrics.customers")} value={f.number(overview.customersAcquired)} />
-        </MetricCell>
-        <MetricCell>
-          <Metric
-            label={t("metrics.conversionRate")}
-            value={f.rate(overview.customersAcquired, overview.clicks)}
-            comparison={t("metrics.clicks", { count: f.number(overview.clicks) })}
-          />
-        </MetricCell>
-      </MetricGrid>
+        {overview.availableCommission.some((total) => total.amountMinor > 0) ? (
+          <Card>
+            <CardContent className="flex flex-wrap items-center justify-between gap-4 py-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-control border border-border text-muted-foreground">
+                  <Coins className="size-4" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-caption font-medium text-foreground">
+                    {t("readyToPay", { amount: inline(overview.availableCommission) })}
+                  </p>
+                  {overview.pendingCommission.some((total) => total.amountMinor > 0) ? (
+                    <p className="text-meta text-muted-foreground">
+                      {t("stillOnHold", { amount: inline(overview.pendingCommission) })}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+              <Button asChild variant="primary" size="sm">
+                <Link href={{ pathname: "/[workspaceSlug]/payouts", params: { workspaceSlug: slug } }}>
+                  {t("reviewPayouts")}
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
+      </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-        <Card>
-          <CardHeader bordered>
+      {/* 2 — How it is trending. */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="min-w-0 lg:col-span-2">
+          <CardHeader bordered className="flex-wrap gap-y-2">
             <CardTitle>{t("revenueOverTime")}</CardTitle>
             <ChartLegend series={chartSeries} />
           </CardHeader>
           <CardContent>
-            <AreaChart
-              labels={series.map((point) => point.date.slice(5))}
-              series={chartSeries}
-              currency={overview.currency}
-            />
+            <AreaChart labels={labels} series={chartSeries} currency={series.currency} summary={chartSummary} />
+            {chartCurrencyNote ? (
+              <p className="mt-3 text-meta text-muted-foreground">{chartCurrencyNote}</p>
+            ) : null}
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="min-w-0">
           <CardHeader bordered>
             <CardTitle>{t("conversionFunnel")}</CardTitle>
           </CardHeader>
@@ -174,14 +270,15 @@ async function OverviewContent({ slug }: { slug: string }) {
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section>
+      {/* 3 — Who and what is behind the numbers. */}
+      <div className="grid gap-x-8 gap-y-10 lg:grid-cols-2">
+        <section className="min-w-0">
           <SectionHeader
             title={t("topAffiliates")}
             action={
               <Button asChild variant="ghost" size="sm">
                 <Link href={{ pathname: "/[workspaceSlug]/affiliates", params: { workspaceSlug: slug } }}>
-                  {t("viewAll")}
+                  {t("viewAllAffiliates")}
                   <ArrowRight aria-hidden="true" />
                 </Link>
               </Button>
@@ -192,7 +289,9 @@ async function OverviewContent({ slug }: { slug: string }) {
               <THead>
                 <tr>
                   <TH>{tc("affiliate")}</TH>
-                  <TH numeric>{tc("revenue")}</TH>
+                  <TH numeric className="max-sm:hidden">
+                    {tc("revenue")}
+                  </TH>
                   <TH numeric>{tc("commission")}</TH>
                 </tr>
               </THead>
@@ -206,13 +305,15 @@ async function OverviewContent({ slug }: { slug: string }) {
                 ) : (
                   topAffiliates.map((affiliate) => (
                     <TR key={affiliate.participationId}>
-                      <TD>
-                        <span className="block text-foreground">{affiliate.name}</span>
-                        <span className="font-mono text-label text-muted-foreground">
+                      <TD className="max-w-0">
+                        <span className="block truncate text-foreground">{affiliate.name}</span>
+                        <span className="block truncate font-mono text-meta text-muted-foreground">
                           {affiliate.code}
                         </span>
                       </TD>
-                      <TD numeric>{f.money(affiliate.revenueMinor, affiliate.currency)}</TD>
+                      <TD numeric className="max-sm:hidden">
+                        {f.money(affiliate.revenueMinor, affiliate.currency)}
+                      </TD>
                       <TD numeric className="text-foreground">
                         {f.money(affiliate.commissionMinor, affiliate.currency)}
                       </TD>
@@ -224,13 +325,13 @@ async function OverviewContent({ slug }: { slug: string }) {
           </TableContainer>
         </section>
 
-        <section>
+        <section className="min-w-0">
           <SectionHeader
             title={t("recentConversions")}
             action={
               <Button asChild variant="ghost" size="sm">
                 <Link href={{ pathname: "/[workspaceSlug]/conversions", params: { workspaceSlug: slug } }}>
-                  {t("viewAll")}
+                  {t("viewAllConversions")}
                   <ArrowRight aria-hidden="true" />
                 </Link>
               </Button>
@@ -241,27 +342,38 @@ async function OverviewContent({ slug }: { slug: string }) {
               <THead>
                 <tr>
                   <TH>{tc("affiliate")}</TH>
-                  <TH>{tc("customer")}</TH>
+                  <TH className="max-sm:hidden">{tc("customer")}</TH>
                   <TH numeric>{tc("commission")}</TH>
+                  <TH className="max-sm:hidden">{tc("status")}</TH>
                 </tr>
               </THead>
               <TBody>
                 {recent.length === 0 ? (
                   <TR>
-                    <TD colSpan={3} className="text-center text-muted-foreground">
+                    <TD colSpan={4} className="text-center text-muted-foreground">
                       {t("noConversions")}
                     </TD>
                   </TR>
                 ) : (
                   recent.map((conversion) => (
                     <TR key={conversion.id}>
-                      <TD className="text-foreground">{conversion.affiliateName}</TD>
-                      <TD mono>{conversion.customerRef}</TD>
-                      <TD numeric>
-                        <span className="flex items-center justify-end gap-2">
-                          {f.money(conversion.commissionMinor, conversion.currency)}
-                          <StatusBadge status={conversion.status} />
+                      <TD className="max-w-0">
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="truncate text-foreground">{conversion.affiliateName}</span>
+                          <StatusBadge status={conversion.status} className="sm:hidden" />
                         </span>
+                        <span className="block truncate font-mono text-meta text-muted-foreground sm:hidden">
+                          {conversion.customerRef}
+                        </span>
+                      </TD>
+                      <TD mono className="max-w-40 truncate max-sm:hidden">
+                        {conversion.customerRef}
+                      </TD>
+                      <TD numeric className="text-foreground">
+                        {f.money(conversion.commissionMinor, conversion.currency)}
+                      </TD>
+                      <TD className="max-sm:hidden">
+                        <StatusBadge status={conversion.status} />
                       </TD>
                     </TR>
                   ))
@@ -271,46 +383,6 @@ async function OverviewContent({ slug }: { slug: string }) {
           </TableContainer>
         </section>
       </div>
-
-      {overview.availableCommissionMinor > 0 ? (
-        <Card>
-          <CardContent className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="flex size-9 items-center justify-center rounded-control bg-surface-2">
-                <Coins className="size-4 text-muted-foreground" aria-hidden="true" />
-              </span>
-              <div>
-                <p className="text-caption font-medium">
-                  {t("readyToPay", {
-                    amount: f.money(overview.availableCommissionMinor, overview.currency),
-                  })}
-                </p>
-                <p className="text-meta text-muted-foreground">
-                  {t("stillOnHold", {
-                    amount: f.money(overview.pendingCommissionMinor, overview.currency),
-                  })}
-                </p>
-              </div>
-            </div>
-            <Button asChild variant="primary">
-              <Link href={{ pathname: "/[workspaceSlug]/payouts", params: { workspaceSlug: slug } }}>{t("reviewPayouts")}</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : null}
-    </div>
-  )
-}
-
-function OverviewSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="grid gap-px overflow-hidden rounded-panel border border-border bg-border sm:grid-cols-3">
-        <MetricSkeleton />
-        <MetricSkeleton />
-        <MetricSkeleton />
-      </div>
-      <TableSkeleton rows={5} columns={3} />
     </div>
   )
 }

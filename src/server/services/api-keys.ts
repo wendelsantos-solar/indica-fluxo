@@ -6,7 +6,7 @@ import { generateApiKey, peppered } from "@/lib/crypto/hash"
 import { db, withUser, type DbClient } from "@/server/db"
 import { apiKeys } from "@/server/db/schema"
 import { UnauthorizedError } from "@/server/policies/errors"
-import { requireMembership } from "@/server/policies/workspace"
+import { atLeast, requireMembership, type WorkspaceRole } from "@/server/policies/workspace"
 
 import { recordAudit } from "./audit"
 
@@ -18,6 +18,12 @@ export interface IssuedKey {
   prefix: string
 }
 
+/**
+ * Mints a publishable + secret pair and returns both plaintexts. Only for a
+ * caller that shows or prints them straight away — today the demo seed.
+ * Workspace creation deliberately does not call it: a key whose plaintext is
+ * discarded can never be used (UI_UX_FUNCTIONAL_FINDINGS F1).
+ */
 export async function createApiKeyPair(
   tx: DbClient,
   workspaceId: string,
@@ -43,6 +49,15 @@ export async function createApiKeyPair(
   }
 
   return issued
+}
+
+/**
+ * Who may see and generate API keys: the same `admin` floor `listApiKeys` and
+ * `rotateApiKey` enforce. Pages use it to avoid calling them for a `member`,
+ * who gets a read-only view instead of an error.
+ */
+export function canManageApiKeys(role: WorkspaceRole): boolean {
+  return atLeast(role, "admin")
 }
 
 export async function listApiKeys(userId: string, workspaceId: string) {

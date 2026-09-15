@@ -1,19 +1,20 @@
 import "server-only"
 
-import { and, desc, eq, inArray, sql } from "drizzle-orm"
+import { and, eq, inArray, like, ne, or } from "drizzle-orm"
 
-import { withUser } from "@/server/db"
-import { qualified } from "@/server/db/qualify"
+import { type Transaction, withUser } from "@/server/db"
 import {
-  affiliates,
   commissions,
   payoutBatches,
   payoutItemCommissions,
   payoutItems,
-  programAffiliates,
 } from "@/server/db/schema"
 import { ConflictError, NotFoundError, ValidationError } from "@/server/policies/errors"
 import { requireMembership } from "@/server/policies/workspace"
+import {
+  payableCommissionFilter,
+  promoteEligibleCommissions,
+} from "@/server/repositories/commissions"
 
 import { recordAudit } from "./audit"
 
@@ -36,34 +37,63 @@ export async function createPayoutBatch(
   workspaceId: string,
   input: CreateBatchInput,
 ): Promise<{ id: string; reference: string; totalAmountMinor: number }> {
-  if (input.participationIds.length === 0) {
+  const participationIds = [...new Set(input.participationIds)]
+  if (participationIds.length === 0) {
     throw new ValidationError("Select at least one affiliate to pay.", {}, "selectAffiliate")
   }
+  const currency = input.currency.toUpperCase()
 
   return withUser(userId, async (tx) => {
     await requireMembership(tx, workspaceId, userId, "admin")
 
+    // Write down every `pending → available` the clock has already decided,
+    // so the ledger is correct at the moment money is committed. Reads apply
+    // the same rule without writing (`payableCommissionFilter`).
+    await promoteEligibleCommissions(tx, workspaceId)
+
     // Lock the commissions being paid so a concurrent batch cannot claim them.
+    // A batch is single-currency by construction: only this currency is read.
     const claimable = await tx
       .select({
         id: commissions.id,
         programAffiliateId: commissions.programAffiliateId,
-        currency: commissions.currency,
         commissionAmountMinor: commissions.commissionAmountMinor,
       })
       .from(commissions)
       .where(
         and(
           eq(commissions.workspaceId, workspaceId),
-          eq(commissions.currency, input.currency.toUpperCase()),
-          inArray(commissions.programAffiliateId, input.participationIds),
-          inArray(commissions.status, ["available", "approved"]),
+          eq(commissions.currency, currency),
+          inArray(commissions.programAffiliateId, participationIds),
+          payableCommissionFilter(),
         ),
       )
       .for("update")
 
     if (claimable.length === 0) {
       throw new ConflictError("Those affiliates have no payable commissions right now.", "nothingPayable")
+    }
+
+    // The lock waits for a concurrent batch to commit, but the NOT EXISTS above
+    // was evaluated against the snapshot taken before it. Re-read the claims
+    // in a fresh statement so a commission can never land in two live batches.
+    const [alreadyClaimed] = await tx
+      .select({ id: payoutItemCommissions.commissionId })
+      .from(payoutItemCommissions)
+      .innerJoin(payoutItems, eq(payoutItems.id, payoutItemCommissions.payoutItemId))
+      .where(
+        and(
+          inArray(
+            payoutItemCommissions.commissionId,
+            claimable.map((row) => row.id),
+          ),
+          ne(payoutItems.status, "cancelled"),
+        ),
+      )
+      .limit(1)
+
+    if (alreadyClaimed) {
+      throw new ConflictError("Some of those commissions were batched meanwhile.", "payableChanged")
     }
 
     const byParticipation = new Map<string, { total: number; ids: string[] }>()
@@ -74,17 +104,27 @@ export async function createPayoutBatch(
       byParticipation.set(row.programAffiliateId, bucket)
     }
 
+    // Everyone the founder ticked must be in the batch with something to be
+    // paid; a silently shorter batch is worse than asking them to look again.
+    const missing = participationIds.filter((id) => (byParticipation.get(id)?.total ?? 0) <= 0)
+    if (missing.length > 0) {
+      throw new ConflictError(
+        `${missing.length} selected affiliate(s) have nothing payable in ${currency}.`,
+        "payableChanged",
+      )
+    }
+
     const total = [...byParticipation.values()].reduce((sum, b) => sum + b.total, 0)
     if (total <= 0) throw new ConflictError("The selected commissions net to zero or less.", "netsToZero")
 
-    const reference = buildReference(input.periodEnd)
+    const reference = await uniqueReference(tx, workspaceId, buildReference(input.periodEnd))
 
     const [batch] = await tx
       .insert(payoutBatches)
       .values({
         workspaceId,
         reference,
-        currency: input.currency.toUpperCase(),
+        currency,
         periodStart: input.periodStart,
         periodEnd: input.periodEnd,
         status: "approved",
@@ -95,15 +135,13 @@ export async function createPayoutBatch(
       .returning({ id: payoutBatches.id })
 
     for (const [participationId, bucket] of byParticipation) {
-      if (bucket.total <= 0) continue
-
       const [item] = await tx
         .insert(payoutItems)
         .values({
           payoutBatchId: batch!.id,
           programAffiliateId: participationId,
           amountMinor: bucket.total,
-          currency: input.currency.toUpperCase(),
+          currency,
           status: "pending",
         })
         .returning({ id: payoutItems.id })
@@ -131,7 +169,7 @@ export async function createPayoutBatch(
         reference,
         affiliates: byParticipation.size,
         totalAmountMinor: total,
-        currency: input.currency,
+        currency,
       },
     })
 
@@ -142,6 +180,30 @@ export async function createPayoutBatch(
 function buildReference(periodEnd: Date): string {
   const month = periodEnd.toLocaleString("en-US", { month: "long", timeZone: "UTC" })
   return `${month} ${periodEnd.getUTCFullYear()}`
+}
+
+/**
+ * `payout_batches_workspace_reference_key` is unique, and a founder paying two
+ * currencies (or two rounds) in one month needs more than one batch: the second
+ * becomes "September 2026 #2".
+ */
+async function uniqueReference(tx: Transaction, workspaceId: string, base: string): Promise<string> {
+  const taken = await tx
+    .select({ reference: payoutBatches.reference })
+    .from(payoutBatches)
+    .where(
+      and(
+        eq(payoutBatches.workspaceId, workspaceId),
+        or(eq(payoutBatches.reference, base), like(payoutBatches.reference, `${base} #%`)),
+      ),
+    )
+
+  const references = new Set(taken.map((row) => row.reference))
+  if (!references.has(base)) return base
+  for (let n = 2; ; n += 1) {
+    const candidate = `${base} #${n}`
+    if (!references.has(candidate)) return candidate
+  }
 }
 
 export async function markBatchPaid(
@@ -227,6 +289,8 @@ export async function cancelPayoutBatch(
     if (batch.status === "paid") {
       throw new ConflictError("A paid batch cannot be cancelled; record an adjustment instead.", "paidBatchNotCancellable")
     }
+    // Cancelling twice would release commissions a later batch has claimed since.
+    if (batch.status === "cancelled") throw new ConflictError("That batch was cancelled.", "batchCancelled")
 
     const items = await tx
       .select({ id: payoutItems.id })
@@ -272,48 +336,4 @@ export async function cancelPayoutBatch(
       action: "payout.cancelled",
     })
   })
-}
-
-export async function listPayoutBatches(tx: Parameters<Parameters<typeof withUser>[1]>[0], workspaceId: string) {
-  return tx
-    .select({
-      id: payoutBatches.id,
-      reference: payoutBatches.reference,
-      currency: payoutBatches.currency,
-      status: payoutBatches.status,
-      totalAmountMinor: payoutBatches.totalAmountMinor,
-      periodStart: payoutBatches.periodStart,
-      periodEnd: payoutBatches.periodEnd,
-      paidAt: payoutBatches.paidAt,
-      createdAt: payoutBatches.createdAt,
-      affiliateCount: sql<number>`(
-        select count(*)::int from ${payoutItems}
-         where ${payoutItems.payoutBatchId} = ${qualified(payoutBatches.id)})`,
-    })
-    .from(payoutBatches)
-    .where(eq(payoutBatches.workspaceId, workspaceId))
-    .orderBy(desc(payoutBatches.createdAt))
-}
-
-export async function listBatchItems(
-  tx: Parameters<Parameters<typeof withUser>[1]>[0],
-  batchId: string,
-) {
-  return tx
-    .select({
-      id: payoutItems.id,
-      amountMinor: payoutItems.amountMinor,
-      currency: payoutItems.currency,
-      status: payoutItems.status,
-      externalReference: payoutItems.externalReference,
-      paidAt: payoutItems.paidAt,
-      affiliateName: affiliates.name,
-      affiliateEmail: affiliates.email,
-      code: programAffiliates.code,
-    })
-    .from(payoutItems)
-    .innerJoin(programAffiliates, eq(programAffiliates.id, payoutItems.programAffiliateId))
-    .innerJoin(affiliates, eq(affiliates.id, programAffiliates.affiliateId))
-    .where(eq(payoutItems.payoutBatchId, batchId))
-    .orderBy(desc(payoutItems.amountMinor))
 }

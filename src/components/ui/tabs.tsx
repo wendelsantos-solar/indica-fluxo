@@ -3,6 +3,7 @@
 import * as Primitive from "@radix-ui/react-tabs"
 import * as React from "react"
 
+import { Link } from "@/i18n/navigation"
 import { cn } from "@/lib/utils"
 
 export const Tabs = Primitive.Root
@@ -11,7 +12,7 @@ export const TabsContent = Primitive.Content
 export function TabsList({ className, ...props }: React.ComponentProps<typeof Primitive.List>) {
   return (
     <Primitive.List
-      className={cn("flex items-center gap-1 border-b border-border", className)}
+      className={cn("flex items-center gap-5 border-b border-border", className)}
       {...props}
     />
   )
@@ -24,10 +25,10 @@ export function TabsTrigger({
   return (
     <Primitive.Trigger
       className={cn(
-        "relative -mb-px px-3 py-2 text-caption font-medium text-muted-foreground",
+        "relative -mb-px flex h-9 items-center gap-1.5 text-caption text-muted-foreground",
         "transition-colors duration-[120ms]",
-        "hover:text-foreground-secondary",
-        "data-[state=active]:text-foreground",
+        "hover:text-foreground",
+        "data-[state=active]:font-medium data-[state=active]:text-foreground",
         "after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-transparent",
         "data-[state=active]:after:bg-foreground",
         "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
@@ -38,20 +39,27 @@ export function TabsTrigger({
   )
 }
 
-/** Link-based tabs for route segments, which Radix cannot own. */
+/**
+ * Link-based tabs for route segments or `?tab=` state, which Radix cannot own.
+ * A locale-aware `Link`, so switching tabs is a client navigation; the scroll
+ * position is kept by default because the tab strip is usually below the fold
+ * of a detail page.
+ */
 export function TabLink({
   active,
   className,
+  scroll = false,
   ...props
-}: React.AnchorHTMLAttributes<HTMLAnchorElement> & { active?: boolean }) {
+}: React.ComponentProps<typeof Link> & { active?: boolean }) {
   return (
-    <a
+    <Link
       aria-current={active ? "page" : undefined}
+      scroll={scroll}
       className={cn(
-        "relative -mb-px px-3 py-2 text-caption font-medium transition-colors duration-[120ms]",
+        "relative -mb-px flex h-9 items-center gap-1.5 text-caption transition-colors duration-[120ms]",
         active
-          ? "text-foreground after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-foreground"
-          : "text-muted-foreground hover:text-foreground-secondary",
+          ? "font-medium text-foreground after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-foreground"
+          : "text-muted-foreground hover:text-foreground",
         className,
       )}
       {...props}

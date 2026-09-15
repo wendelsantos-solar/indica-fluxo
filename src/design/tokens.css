@@ -1,9 +1,13 @@
 /* ---------------------------------------------------------------------------
  * tokens.css — primitives + semantic tokens.
  *
- * Primitives carry the reference palette's own names (void → paper). They are
- * the vocabulary of the style guide, and renaming them would make every future
- * comparison against it a translation exercise.
+ * The system is the Linear-derived product language first built for Outlier
+ * (its ADR 015 / 017): near-black layered surfaces, hairlines instead of
+ * shadows, one signal-amber accent, and a light theme designed on its own
+ * terms — a white content panel on a quiet gray canvas — rather than inverted.
+ *
+ * Primitives carry the reference palette's own names (void → paper), so a
+ * comparison against it stays a lookup, not a translation.
  *
  * Components must NEVER reference a primitive. Use semantic tokens only.
  * See DESIGN.md §2.
@@ -11,195 +15,250 @@
 
 :root {
   /* ====================================================================
-   * PRIMITIVES — neutral ramp.
-   * A single ramp serves both themes: dark reads it bottom-up (void as
-   * canvas, paper as type), light reads it top-down.
+   * PRIMITIVES — dark neutral ramp (the reference's).
    * ================================================================== */
   --color-void: #08090a;
   --color-carbon: #0f1011;
   --color-obsidian: #161718;
+  --color-onyx: #1a1b1d;
+  --color-ink: #18191c;
   --color-graphite: #23252a;
   --color-smoke: #383b3f;
-  --color-ash: #62666d;
+  /* Lightened from the reference's Ash (#62666d, 3.3:1 on carbon) so the
+   * faintest metadata still clears 4.5:1. */
+  --color-ash: #7e838b;
   --color-fog: #8a8f98;
   --color-mist: #d0d6e0;
-  --color-bone: #e5e5e6;
+  --color-snow: #f7f8f8;
   --color-paper: #ffffff;
 
-  /* Light-theme extensions. The reference is dark-only, so these three do
-   * not exist in it; they give light mode the same number of surface steps
-   * the dark ramp has instead of collapsing everything onto white. */
-  --color-chalk: #eceef0;
-  --color-porcelain: #f4f5f6;
-  --color-quartz: #f8f9f9;
+  /* ====================================================================
+   * PRIMITIVES — light neutral ramp. Zinc-leaning, so the gray canvas and
+   * the white panel read as two planes, not as a tint.
+   * ================================================================== */
+  --color-zinc-50: #f4f4f5;
+  --color-zinc-100: #efeff1;
+  --color-zinc-200: #e4e4e7;
+  --color-zinc-300: #d1d1d6;
+  --color-zinc-600: #6a6c74;
+  --color-zinc-650: #5b5d65;
+  --color-zinc-800: #3a3b40;
+  --color-zinc-950: #111113;
 
   /* ====================================================================
    * PRIMITIVES — accent.
-   * Acid lime is the single chromatic action colour in the system.
+   * Signal amber is the only saturated action colour in the product. It
+   * takes the reference's single-accent role: the one primary action per view.
    * ================================================================== */
-  --color-acid-lime: #e4f222;
-  /* Extensions: a brighter step for dark hover, a deeper one so the fill
-   * still reads as a control against a white canvas. */
-  --color-acid-lime-bright: #eef94f;
-  --color-acid-lime-deep: #c2cf10;
+  --color-signal-amber: #f2b84b;
 
   /* ====================================================================
-   * PRIMITIVES — supporting chroma.
-   *
-   * The reference calls these decorative and explicitly says not to use them
-   * as status colours. We deviate deliberately: this is a financial ledger,
-   * not a marketing site, and "reversed" versus "paid" has to be legible at a
-   * glance. The hues are taken from the reference so the product stays in the
-   * same chromatic world; amber has no reference equivalent and is tuned to
-   * sit between the lime and the coral without competing with either.
+   * PRIMITIVES — status chroma. Functional, never decorative: a ledger has
+   * to show "reversed" versus "paid" at a glance. Each hue has a step for
+   * dark surfaces and a deeper one for white, because one value cannot
+   * clear 4.5:1 on both.
    * ================================================================== */
   --color-pulse-green: #27a644;
-  --color-coral-red: #eb5757;
-  --color-signal-teal: #02b8cc;
-  --color-iris-violet: #6366f1;
-  --color-lavender: #8b5cf6;
-  --color-amber: #d8a13a;
-
-  /* Lighter counterparts, for chromatic text on a dark canvas where the
-   * base hue would fall below 4.5:1. */
-  --color-pulse-green-light: #4ecb6b;
-  --color-coral-red-light: #ff8084;
-  --color-signal-teal-light: #4cc9d6;
-  --color-amber-light: #e6b862;
-
-  /* Darker counterparts, for the same problem inverted on white. */
-  --color-pulse-green-deep: #14622c;
-  --color-coral-red-deep: #c0292e;
+  --color-pulse-green-deep: #1a7f4b;
+  --color-ochre: #e2a93b;
+  --color-ochre-deep: #8f5f00;
+  --color-coral-red: #f07070;
+  --color-coral-red-deep: #c62828;
+  --color-signal-teal: #4cc9d6;
   --color-signal-teal-deep: #0a6f7c;
-  --color-amber-deep: #7a5400;
+  --color-lavender: #9d8cf6;
+  /* Syntax strings on dark surfaces. */
+  --color-mint: #8fd4a8;
   --color-iris-violet-deep: #4348c9;
 }
 
 /* =========================================================================
  * LIGHT THEME
  *
- * The reference ships no light theme. This is a derivation, not a copy: the
- * same ramp read from the other end, with the same density, radii and
- * hierarchy. Contrast is verified in DESIGN.md §2.6.
+ * Designed, not inverted: a quiet gray canvas (the sidebar plane) around a
+ * white content panel, soft shadows on floating layers only, and darker
+ * status text so it reads on white. Contrast is verified in DESIGN.md §2.6.
  * ======================================================================= */
 :root {
-  --background: var(--color-quartz);
-  --foreground: var(--color-void);
-  --foreground-secondary: #3c4149;
-
+  /* Planes */
+  --background: var(--color-zinc-50);
   --surface-1: var(--color-paper);
-  --surface-2: var(--color-porcelain);
+  --surface-2: var(--color-zinc-50);
   --surface-3: var(--color-paper);
 
-  --muted: var(--color-porcelain);
-  --muted-foreground: var(--color-ash);
+  /* Interaction fills — alpha, so they work on every plane. */
+  --hover: rgb(16 17 19 / 0.035);
+  --selected: rgb(16 17 19 / 0.06);
+  --fill-subtle: rgb(16 17 19 / 0.02);
+  --fill: rgb(16 17 19 / 0.05);
+  --fill-strong: rgb(16 17 19 / 0.08);
+  --muted: var(--fill);
 
-  --border: var(--color-bone);
-  --border-strong: #c6cad0;
+  /* Text */
+  --foreground: var(--color-zinc-950);
+  --foreground-secondary: var(--color-zinc-800);
+  --muted-foreground: var(--color-zinc-650);
+  --faint-foreground: var(--color-zinc-600);
+  --inverse: var(--color-zinc-950);
+  --inverse-foreground: var(--color-paper);
 
-  --primary: var(--color-acid-lime-deep);
-  --primary-hover: #b0bc0d;
-  --primary-foreground: var(--color-void);
+  /* Lines */
+  --border-faint: var(--color-zinc-100);
+  --border: var(--color-zinc-200);
+  --border-strong: var(--color-zinc-300);
+
+  /* Accent — same amber button in both themes (dark text, 11:1). */
+  --primary: var(--color-signal-amber);
+  --primary-hover: color-mix(in srgb, var(--color-signal-amber) 90%, var(--color-zinc-950));
+  --primary-foreground: var(--color-zinc-950);
+  /* Amber as text or as a mark on white needs to be darker to read. */
+  --primary-text: #9a5b00;
 
   --success: var(--color-pulse-green-deep);
-  --success-subtle: color-mix(in oklab, var(--color-pulse-green) 14%, transparent);
+  --success-subtle: color-mix(in oklab, var(--color-pulse-green) 12%, transparent);
   --success-foreground: var(--color-pulse-green-deep);
 
-  --warning: var(--color-amber-deep);
-  --warning-subtle: color-mix(in oklab, var(--color-amber) 18%, transparent);
-  --warning-foreground: var(--color-amber-deep);
+  --warning: var(--color-ochre-deep);
+  --warning-subtle: color-mix(in oklab, var(--color-ochre) 16%, transparent);
+  --warning-foreground: var(--color-ochre-deep);
 
   --danger: var(--color-coral-red-deep);
   --danger-subtle: color-mix(in oklab, var(--color-coral-red) 12%, transparent);
   --danger-foreground: var(--color-coral-red-deep);
+  /* Text on a solid danger fill (the confirm button of a destructive dialog). */
+  --on-danger: var(--color-paper);
 
   --info: var(--color-signal-teal-deep);
-  --info-subtle: color-mix(in oklab, var(--color-signal-teal) 12%, transparent);
+  --info-subtle: color-mix(in oklab, var(--color-signal-teal) 14%, transparent);
   --info-foreground: var(--color-signal-teal-deep);
 
-  --ring: color-mix(in oklab, var(--foreground) 45%, transparent);
-  --scrim: oklch(0 0 0 / 0.35);
+  /* Focus brightens toward the foreground; no extra chromatic colour. */
+  /* Native select chevron, drawn in the muted text colour of this theme. */
+  --select-chevron: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%235b5d65' stroke-width='1.5'><path d='M3 4.5 6 7.5 9 4.5'/></svg>");
+
+  --ring: var(--color-zinc-950);
+  --scrim: rgb(16 17 19 / 0.32);
   --skeleton-shimmer: color-mix(in oklab, var(--color-paper) 70%, transparent);
 
-  /* Elevation. The reference builds depth from hairline borders and inset
-   * rings rather than shadow stacks; `--elevation-ring` is the inset hairline
-   * that defines a card edge, and is the workhorse. */
+  /* Elevation — hairlines for resting surfaces, soft shadow for floating ones. */
   --elevation-ring: inset 0 0 0 1px var(--border);
-  --elevation-raised: 0 1px 2px 0 oklch(0 0 0 / 0.06), inset 0 0 0 1px var(--border);
+  --elevation-raised: 0 1px 2px 0 rgb(16 17 19 / 0.05), inset 0 0 0 1px var(--border);
   --elevation-overlay:
-    0 8px 24px -8px oklch(0 0 0 / 0.16), 0 2px 6px -2px oklch(0 0 0 / 0.1);
+    0 0 0 1px var(--border), 0 8px 24px rgb(16 17 19 / 0.1), 0 2px 6px rgb(16 17 19 / 0.06);
   --elevation-control:
-    0 1px 1px 0 oklch(0 0 0 / 0.07), 0 3px 2px 0 oklch(0 0 0 / 0.04),
-    0 5px 2px 0 oklch(0 0 0 / 0.01);
+    rgb(0 0 0 / 0.01) 0 5px 2px 0, rgb(0 0 0 / 0.04) 0 3px 2px 0, rgb(0 0 0 / 0.07) 0 1px 1px 0,
+    rgb(0 0 0 / 0.08) 0 0 1px 0;
 
-  --chart-1: var(--color-acid-lime-deep);
+
+  /* Syntax highlighting (Shiki css-variables theme). Low-saturation, on
+   * surface-2; every token clears 4.5:1 against it. */
+  --shiki-foreground: var(--color-zinc-800);
+  --shiki-background: transparent;
+  --shiki-token-comment: var(--color-zinc-600);
+  --shiki-token-keyword: var(--color-iris-violet-deep);
+  --shiki-token-string: var(--color-pulse-green-deep);
+  --shiki-token-string-expression: var(--color-pulse-green-deep);
+  --shiki-token-function: var(--color-signal-teal-deep);
+  --shiki-token-constant: var(--color-ochre-deep);
+  --shiki-token-parameter: var(--color-zinc-800);
+  --shiki-token-punctuation: var(--color-zinc-650);
+  --shiki-token-link: var(--color-signal-teal-deep);
+
+  --chart-1: #b07600;
   --chart-2: var(--color-signal-teal-deep);
   --chart-3: var(--color-iris-violet-deep);
-  --chart-4: var(--color-amber-deep);
+  --chart-4: var(--color-pulse-green-deep);
   --chart-5: var(--color-coral-red-deep);
-  --chart-6: var(--color-pulse-green-deep);
+  --chart-6: var(--color-zinc-600);
 }
 
 /* =========================================================================
- * DARK THEME — the primary experience, and the one the reference describes.
+ * DARK THEME — the primary experience.
  *
- * Surface progression void → carbon → obsidian → graphite is doing the work
- * that shadows usually would.
+ * void (canvas, sidebar) → carbon (content panel) → obsidian (raised) →
+ * onyx (popovers). The surface ladder does the work shadows usually would.
  * ======================================================================= */
 .dark {
   --background: var(--color-void);
-  --foreground: var(--color-paper);
-  --foreground-secondary: var(--color-mist);
-
   --surface-1: var(--color-carbon);
   --surface-2: var(--color-obsidian);
-  --surface-3: var(--color-graphite);
+  --surface-3: var(--color-onyx);
 
-  --muted: var(--color-obsidian);
+  --hover: rgb(255 255 255 / 0.04);
+  --selected: rgb(255 255 255 / 0.07);
+  --fill-subtle: rgb(255 255 255 / 0.025);
+  --fill: rgb(255 255 255 / 0.05);
+  --fill-strong: rgb(255 255 255 / 0.08);
+  --muted: var(--fill);
+
+  --foreground: var(--color-snow);
+  --foreground-secondary: var(--color-mist);
   --muted-foreground: var(--color-fog);
+  --faint-foreground: var(--color-ash);
+  --inverse: #e6e7e9;
+  --inverse-foreground: var(--color-void);
 
+  --border-faint: var(--color-ink);
   --border: var(--color-graphite);
   --border-strong: var(--color-smoke);
 
-  --primary: var(--color-acid-lime);
-  --primary-hover: var(--color-acid-lime-bright);
+  --primary: var(--color-signal-amber);
+  --primary-hover: color-mix(in srgb, var(--color-signal-amber) 90%, var(--color-paper));
   --primary-foreground: var(--color-void);
+  --primary-text: var(--color-signal-amber);
 
-  --success: var(--color-pulse-green-light);
-  --success-subtle: color-mix(in oklab, var(--color-pulse-green) 22%, transparent);
-  --success-foreground: var(--color-pulse-green-light);
+  --success: var(--color-pulse-green);
+  --success-subtle: color-mix(in oklab, var(--color-pulse-green) 20%, transparent);
+  --success-foreground: #4ecb6b;
 
-  --warning: var(--color-amber-light);
-  --warning-subtle: color-mix(in oklab, var(--color-amber) 20%, transparent);
-  --warning-foreground: var(--color-amber-light);
+  --warning: var(--color-ochre);
+  --warning-subtle: color-mix(in oklab, var(--color-ochre) 18%, transparent);
+  --warning-foreground: var(--color-ochre);
 
-  --danger: var(--color-coral-red-light);
-  --danger-subtle: color-mix(in oklab, var(--color-coral-red) 20%, transparent);
-  --danger-foreground: var(--color-coral-red-light);
+  --danger: var(--color-coral-red);
+  --danger-subtle: color-mix(in oklab, var(--color-coral-red) 18%, transparent);
+  --danger-foreground: var(--color-coral-red);
+  --on-danger: var(--color-void);
 
-  --info: var(--color-signal-teal-light);
-  --info-subtle: color-mix(in oklab, var(--color-signal-teal) 20%, transparent);
-  --info-foreground: var(--color-signal-teal-light);
+  --info: var(--color-signal-teal);
+  --info-subtle: color-mix(in oklab, var(--color-signal-teal) 18%, transparent);
+  --info-foreground: var(--color-signal-teal);
 
-  --ring: color-mix(in oklab, var(--color-paper) 55%, transparent);
-  --scrim: oklch(0 0 0 / 0.6);
-  --skeleton-shimmer: color-mix(in oklab, var(--color-paper) 6%, transparent);
+  --select-chevron: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%238a8f98' stroke-width='1.5'><path d='M3 4.5 6 7.5 9 4.5'/></svg>");
 
-  /* `--elevation-ring` is the reference's `--shadow-subtle`:
-   * rgb(35,37,42) 0 0 0 1px inset — the card edge, drawn as an inner ring. */
+  /* Focus brightens to Mist, as in the reference. */
+  --ring: var(--color-mist);
+  --scrim: rgb(0 0 0 / 0.55);
+  --skeleton-shimmer: color-mix(in oklab, var(--color-paper) 5%, transparent);
+
   --elevation-ring: inset 0 0 0 1px var(--color-graphite);
-  --elevation-raised: 0 2px 4px 0 oklch(0 0 0 / 0.4), inset 0 0 0 1px var(--color-graphite);
-  --elevation-overlay: 0 4px 32px 0 color-mix(in oklab, var(--color-void) 60%, transparent);
-  /* The reference applies a real shadow stack in exactly one place: the
-   * acid-lime CTA. This is it. */
+  --elevation-raised: 0 2px 4px 0 rgb(0 0 0 / 0.4), inset 0 0 0 1px var(--color-graphite);
+  /* The reference's `subtle-4` inset stack plus a hairline: a popover edge is
+   * lit from above, not floated on a glow. */
+  --elevation-overlay:
+    rgb(255 255 255 / 0.03) 0 0 0 1px inset, rgb(255 255 255 / 0.04) 0 1px 0 0 inset,
+    0 0 0 1px var(--border), rgb(8 9 10 / 0.6) 0 4px 32px 0;
   --elevation-control:
-    inset 0 0 0 1px oklch(1 0 0 / 0.03), inset 0 1px 0 0 oklch(1 0 0 / 0.04),
-    0 0 0 1px oklch(0 0 0 / 0.6), 0 4px 4px 0 oklch(0 0 0 / 0.1);
+    rgb(0 0 0 / 0.01) 0 5px 2px 0, rgb(0 0 0 / 0.04) 0 3px 2px 0, rgb(0 0 0 / 0.07) 0 1px 1px 0,
+    rgb(0 0 0 / 0.08) 0 0 1px 0;
 
-  --chart-1: var(--color-acid-lime);
-  --chart-2: var(--color-signal-teal-light);
+
+  --shiki-foreground: var(--color-mist);
+  --shiki-background: transparent;
+  --shiki-token-comment: var(--color-ash);
+  --shiki-token-keyword: var(--color-lavender);
+  --shiki-token-string: var(--color-mint);
+  --shiki-token-string-expression: var(--color-mint);
+  --shiki-token-function: var(--color-signal-teal);
+  --shiki-token-constant: var(--color-ochre);
+  --shiki-token-parameter: var(--color-mist);
+  --shiki-token-punctuation: var(--color-fog);
+  --shiki-token-link: var(--color-signal-teal);
+
+  --chart-1: var(--color-signal-amber);
+  --chart-2: var(--color-signal-teal);
   --chart-3: var(--color-lavender);
-  --chart-4: var(--color-amber-light);
-  --chart-5: var(--color-coral-red-light);
-  --chart-6: var(--color-pulse-green-light);
+  --chart-4: var(--color-pulse-green);
+  --chart-5: var(--color-coral-red);
+  --chart-6: var(--color-fog);
 }

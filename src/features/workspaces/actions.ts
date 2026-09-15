@@ -1,7 +1,7 @@
 "use server"
 
-import { actionError, successMessage, translateFieldErrors } from "@/i18n/errors"
-import { getLocale } from "next-intl/server"
+import { actionError, fieldErrorsFrom, successMessage } from "@/i18n/errors"
+import { getLocale, getTranslations } from "next-intl/server"
 
 import { redirect } from "@/i18n/navigation"
 import { revalidatePath } from "next/cache"
@@ -13,6 +13,7 @@ import {
   inviteMember,
   updateWorkspace,
 } from "@/server/services/workspaces"
+import { DASHBOARD_LAYOUT } from "@/lib/revalidate"
 
 export interface FormState {
   error?: string
@@ -39,7 +40,7 @@ export async function createWorkspaceAction(
   })
 
   if (!parsed.success) return {
-      fieldErrors: await translateFieldErrors(z.flattenError(parsed.error).fieldErrors),
+      fieldErrors: await fieldErrorsFrom(parsed.error),
     }
 
   let slug: string
@@ -76,7 +77,7 @@ export async function updateWorkspaceAction(
   })
 
   if (!parsed.success) return {
-      fieldErrors: await translateFieldErrors(z.flattenError(parsed.error).fieldErrors),
+      fieldErrors: await fieldErrorsFrom(parsed.error),
     }
 
   try {
@@ -86,7 +87,7 @@ export async function updateWorkspaceAction(
     return { error: await actionError(error, "workspaceNotSaved") }
   }
 
-  revalidatePath("/", "layout")
+  revalidatePath(DASHBOARD_LAYOUT, "layout")
   return { success: await successMessage("workspaceUpdated") }
 }
 
@@ -109,7 +110,7 @@ export async function inviteMemberAction(
   })
 
   if (!parsed.success) return {
-      fieldErrors: await translateFieldErrors(z.flattenError(parsed.error).fieldErrors),
+      fieldErrors: await fieldErrorsFrom(parsed.error),
     }
 
   try {
@@ -121,6 +122,7 @@ export async function inviteMemberAction(
     return { error: await actionError(error, "inviteNotSent") }
   }
 
-  revalidatePath("/", "layout")
-  return { success: `${parsed.data.email} will join when they sign in.` }
+  revalidatePath(DASHBOARD_LAYOUT, "layout")
+  const t = await getTranslations("success")
+  return { success: t("inviteSent", { email: parsed.data.email }) }
 }

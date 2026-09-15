@@ -1,7 +1,8 @@
 import type { Metadata } from "next"
 import { getTranslations, setRequestLocale } from "next-intl/server"
 
-import { AuthForm } from "@/features/auth/auth-form"
+import { SignInForm } from "@/features/auth/sign-in-form"
+import { safeRedirectPath } from "@/features/auth/safe-redirect"
 
 export async function generateMetadata({
   params,
@@ -11,8 +12,19 @@ export async function generateMetadata({
   return { title: t("signin.title") }
 }
 
-export default async function LoginPage({ params }: PageProps<"/[locale]/login">) {
+function first(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value
+}
+
+export default async function LoginPage({ params, searchParams }: PageProps<"/[locale]/login">) {
   const { locale } = await params
   setRequestLocale(locale)
-  return <AuthForm mode="signin" />
+  const query = await searchParams
+
+  // The proxy sets `next` to the page that asked for a session. An unsafe
+  // value is dropped here, and `signIn` checks it again, since the hidden
+  // field can be edited like any other.
+  const next = safeRedirectPath(first(query.next), "") || undefined
+
+  return <SignInForm next={next} linkExpired={first(query.error) === "link"} />
 }

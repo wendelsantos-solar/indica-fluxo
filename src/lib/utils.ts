@@ -1,5 +1,34 @@
 import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { extendTailwindMerge } from "tailwind-merge"
+
+/**
+ * tailwind-merge only knows Tailwind's default type scale, so it would read
+ * `text-caption` as a text *colour* and drop it next to `text-foreground`.
+ * Registering the scale from `src/design/theme.css` keeps size and colour apart.
+ */
+const twMerge = extendTailwindMerge({
+  extend: {
+    theme: {
+      text: [
+        "micro",
+        "label",
+        "meta",
+        "caption",
+        "ui",
+        "body-sm",
+        "body",
+        "body-md",
+        "title",
+        "body-lg",
+        "subheading",
+        "heading-sm",
+        "heading",
+        "heading-lg",
+        "display",
+      ],
+    },
+  },
+})
 
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs))

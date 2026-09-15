@@ -10,6 +10,8 @@ import { createClient } from "@/lib/supabase/server"
 export interface SessionUser {
   id: string
   email: string
+  /** `full_name` from sign-up metadata, when the person gave one. */
+  name: string | null
 }
 
 /**
@@ -23,7 +25,12 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   } = await supabase.auth.getUser()
 
   if (!user?.email) return null
-  return { id: user.id, email: user.email }
+  const fullName = user.user_metadata?.full_name
+  return {
+    id: user.id,
+    email: user.email,
+    name: typeof fullName === "string" && fullName.trim() ? fullName.trim() : null,
+  }
 })
 
 export async function requireUser(): Promise<SessionUser> {

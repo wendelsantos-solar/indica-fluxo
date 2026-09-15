@@ -47,6 +47,10 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
 
+  // The dev server is also reached through a tunnel on this host. Without it,
+  // Next blocks cross-origin requests to dev-only assets (HMR, `/_next/*`).
+  allowedDevOrigins: ["fazproposta.wendelpaco.dev"],
+
   async headers() {
     return [
       {

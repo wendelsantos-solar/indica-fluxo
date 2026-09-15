@@ -31,6 +31,11 @@ export const programs = pgTable(
     name: text("name").notNull(),
     slug: text("slug").notNull(),
     description: text("description"),
+    /**
+     * The product's own site, where the founder installed the tracker. The
+     * affiliate's default referral link points here; NULL until configured.
+     */
+    websiteUrl: text("website_url"),
     status: programStatusEnum("status").notNull().default("draft"),
 
     commissionType: commissionTypeEnum("commission_type").notNull().default("percentage"),

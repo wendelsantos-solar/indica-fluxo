@@ -11,8 +11,22 @@ const intlMiddleware = createIntlMiddleware(routing)
 /**
  * Canonical (un-prefixed, un-translated) paths that do not require a session.
  * Everything else does.
+ *
+ * `/reset-password` renders for both states (a recovery session, or an
+ * expired-link notice), so it must not bounce to sign-in. `/auth/callback` is
+ * where e-mailed links land *before* a session exists — gating it would send
+ * every confirmation and recovery link to the login page.
  */
-const PUBLIC_PATHS = new Set(["/", "/pricing", "/docs", "/login", "/signup"])
+const PUBLIC_PATHS = new Set([
+  "/",
+  "/pricing",
+  "/docs",
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/auth/callback",
+])
 
 /** Public ingest surfaces: no locale, no session, no cookie refresh. */
 function isIngest(pathname: string): boolean {
@@ -72,6 +86,8 @@ export async function proxy(request: NextRequest) {
 
   const { locale, path } = canonicalPath(pathname)
   if (PUBLIC_PATHS.has(path)) return intlResponse
+  // Generated social cards (`opengraph-image`) are public by definition.
+  if (/\/opengraph-image(-\w+)?$/.test(pathname)) return intlResponse
 
   const { response, user } = await updateSession(request)
 

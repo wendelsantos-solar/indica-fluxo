@@ -37,6 +37,8 @@ export const routing = defineRouting({
     // Auth
     "/login": { "pt-br": "/entrar", en: "/login" },
     "/signup": { "pt-br": "/criar-conta", en: "/signup" },
+    "/forgot-password": { "pt-br": "/esqueci-a-senha", en: "/forgot-password" },
+    "/reset-password": { "pt-br": "/redefinir-senha", en: "/reset-password" },
     "/onboarding": { "pt-br": "/primeiros-passos", en: "/onboarding" },
 
     // The post-login fork. Not user-facing for long, but it must not 404.
@@ -85,6 +87,10 @@ export const routing = defineRouting({
     "/[workspaceSlug]/payouts": {
       "pt-br": "/[workspaceSlug]/pagamentos",
       en: "/[workspaceSlug]/payouts",
+    },
+    "/[workspaceSlug]/payouts/[batchId]": {
+      "pt-br": "/[workspaceSlug]/pagamentos/[batchId]",
+      en: "/[workspaceSlug]/payouts/[batchId]",
     },
     "/[workspaceSlug]/integrations": {
       "pt-br": "/[workspaceSlug]/integracoes",

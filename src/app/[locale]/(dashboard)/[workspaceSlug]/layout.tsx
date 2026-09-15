@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation"
 
-import { Sidebar } from "@/components/layout/sidebar"
-import { TopBar } from "@/components/layout/top-bar"
+import { DashboardShell } from "@/components/layout/dashboard-shell"
 import { requireUser } from "@/server/auth/session"
+import { withUser } from "@/server/db"
+import { listParticipationsForUser } from "@/server/repositories/affiliates"
 import { getWorkspaceForUser, listUserWorkspaces } from "@/server/services/workspaces"
 
 export const dynamic = "force-dynamic"
@@ -22,15 +23,18 @@ export default async function DashboardLayout({
   // can never keep a revoked member inside the shell.
   await getWorkspaceForUser(user.id, workspaceSlug)
 
+  // The account menu only offers the affiliate portal to someone who has one.
+  const participations = await withUser(user.id, (tx) => listParticipationsForUser(tx, user.id))
+
   return (
-    <div className="flex min-h-dvh bg-background">
-      <Sidebar workspaces={workspaces} current={current} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar email={user.email} />
-        <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 sm:py-8">
-          {children}
-        </main>
-      </div>
-    </div>
+    <DashboardShell
+      workspaces={workspaces}
+      current={current}
+      email={user.email}
+      name={user.name}
+      isAffiliate={participations.length > 0}
+    >
+      {children}
+    </DashboardShell>
   )
 }
