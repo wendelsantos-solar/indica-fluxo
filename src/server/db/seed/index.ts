@@ -83,6 +83,10 @@ async function createWorkspace(): Promise<Seeded> {
       slug: DEMO_WORKSPACE.slug,
       defaultCurrency: DEMO_WORKSPACE.currency,
       timezone: DEMO_WORKSPACE.timezone,
+      // Growth, explicitly: the demo gives Agency Labs a negotiated rate and
+      // shows the audit log, both Growth features. On Starter the demo data
+      // itself would break the rules enforced for real workspaces.
+      plan: DEMO_WORKSPACE.plan,
     })
     .returning({ id: workspaces.id })
 
@@ -364,6 +368,7 @@ async function seedBilling(seeded: Seeded, conversions: Conversion[]): Promise<n
           occurredAt,
           providerAccountId: DEMO_STRIPE_ACCOUNT,
           providerTransactionId: chargeId,
+          providerReferences: [],
           providerCustomerId: conversion.providerCustomerId,
           providerSubscriptionId: conversion.providerSubscriptionId,
           customerEmail: `${conversion.externalId}@example.com`,
@@ -384,11 +389,11 @@ async function seedBilling(seeded: Seeded, conversions: Conversion[]): Promise<n
             type: "payment.refunded",
             provider: "stripe",
             providerEventId: `evt_demo_refund_${conversion.code}_${conversion.index}_${cycle}`,
-            rawType: "charge.refunded",
+            rawType: "refund.created",
             occurredAt: refundedAt,
             providerAccountId: DEMO_STRIPE_ACCOUNT,
             providerTransactionId: `re_demo_${conversion.code}_${conversion.index}_${cycle}`,
-            providerParentTransactionId: chargeId,
+            paymentReferences: [chargeId],
             providerCustomerId: conversion.providerCustomerId,
             currency: DEMO_PROGRAM.currency,
             amountMinor: conversion.planMinor,

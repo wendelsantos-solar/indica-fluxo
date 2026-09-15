@@ -1,6 +1,6 @@
 import "server-only"
 
-import { and, desc, eq, gt, gte, inArray, lte, sql, type SQL } from "drizzle-orm"
+import { and, asc, desc, eq, gt, gte, inArray, lte, sql, type SQL } from "drizzle-orm"
 
 import { orderMoneyTotals, toMoneyTotals, type MoneyTotal } from "@/lib/money-totals"
 import { type DbClient } from "@/server/db"
@@ -25,19 +25,26 @@ export type CommissionStatus =
   | "reversed"
   | "rejected"
 
+export type CommissionSortField = "date" | "amount" | "status"
+
 export interface CommissionListParams {
   workspaceId: string
   programId?: string
   participationId?: string
+  /** Every participation of one affiliate, across programs. */
+  affiliateId?: string
   statuses?: CommissionStatus[]
   from?: Date
   to?: Date
+  /** Defaults to the newest record first. */
+  sort?: { field: CommissionSortField; dir: "asc" | "desc" }
   limit?: number
   offset?: number
 }
 
 export interface CommissionListRow {
   id: string
+  affiliateId: string
   affiliateName: string
   affiliateCode: string
   programName: string
@@ -50,6 +57,8 @@ export interface CommissionListRow {
   status: CommissionStatus
   eligibleAt: Date
   createdAt: Date
+  /** When the customer's payment (or refund) happened — the ledger date. */
+  occurredAt: Date
   ruleApplied: string | null
 }
 
@@ -76,6 +85,13 @@ function filters(params: CommissionListParams): SQL | undefined {
   if (params.programId) parts.push(eq(commissions.programId, params.programId))
   if (params.participationId) {
     parts.push(eq(commissions.programAffiliateId, params.participationId))
+  }
+  if (params.affiliateId) {
+    parts.push(
+      sql`${commissions.programAffiliateId} in (
+        select ${programAffiliates.id} from ${programAffiliates}
+         where ${programAffiliates.affiliateId} = ${params.affiliateId})`,
+    )
   }
   // Filter on the *effective* status: a matured `pending` row is listed under
   // `available`, and no longer under `pending`.
@@ -107,6 +123,7 @@ export async function listCommissions(
   const rows = await tx
     .select({
       id: commissions.id,
+      affiliateId: affiliates.id,
       affiliateName: affiliates.name,
       affiliateCode: programAffiliates.code,
       programName: programs.name,
@@ -119,6 +136,7 @@ export async function listCommissions(
       status: effectiveCommissionStatusSql(),
       eligibleAt: commissions.eligibleAt,
       createdAt: commissions.createdAt,
+      occurredAt: transactions.occurredAt,
       ruleApplied: commissions.ruleApplied,
     })
     .from(commissions)
@@ -128,7 +146,7 @@ export async function listCommissions(
     .innerJoin(customers, eq(customers.id, commissions.customerId))
     .innerJoin(transactions, eq(transactions.id, commissions.transactionId))
     .where(where)
-    .orderBy(desc(commissions.createdAt))
+    .orderBy(...commissionOrder(params.sort))
     .limit(params.limit ?? 50)
     .offset(params.offset ?? 0)
 
@@ -149,6 +167,54 @@ export async function listCommissions(
     total: byCurrency.reduce((sum, row) => sum + row.count, 0),
     totals: orderMoneyTotals(toMoneyTotals(byCurrency)),
   }
+}
+
+/** Whitelisted sort columns; `id` breaks ties so pages never repeat a row. */
+function commissionOrder(sort: CommissionListParams["sort"]): SQL[] {
+  const by = sort?.dir === "asc" ? asc : desc
+  switch (sort?.field) {
+    case "amount":
+      return [by(commissions.commissionAmountMinor), desc(transactions.occurredAt), desc(commissions.id)]
+    case "status":
+      return [by(effectiveCommissionStatusSql()), desc(transactions.occurredAt), desc(commissions.id)]
+    case "date":
+      return [by(transactions.occurredAt), by(commissions.id)]
+    default:
+      return [desc(commissions.createdAt), desc(commissions.id)]
+  }
+}
+
+/**
+ * One affiliate's commissions per effective status, per currency — the money
+ * block of the affiliate detail page. Never summed across currencies.
+ */
+export async function commissionTotalsByStatus(
+  tx: DbClient,
+  params: { workspaceId: string; affiliateId: string },
+): Promise<Record<CommissionStatus, MoneyTotal[]>> {
+  const status = effectiveCommissionStatusSql()
+  const rows = await tx
+    .select({
+      status,
+      currency: commissions.currency,
+      amountMinor: sql<number>`coalesce(sum(${commissions.commissionAmountMinor}), 0)::bigint`.mapWith(Number),
+    })
+    .from(commissions)
+    .where(filters({ workspaceId: params.workspaceId, affiliateId: params.affiliateId }))
+    .groupBy(status, commissions.currency)
+
+  const result: Record<CommissionStatus, MoneyTotal[]> = {
+    pending: [],
+    available: [],
+    approved: [],
+    paid: [],
+    reversed: [],
+    rejected: [],
+  }
+  for (const key of Object.keys(result) as CommissionStatus[]) {
+    result[key] = orderMoneyTotals(toMoneyTotals(rows.filter((row) => row.status === key)))
+  }
+  return result
 }
 
 /**

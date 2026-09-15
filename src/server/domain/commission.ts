@@ -27,6 +27,10 @@ export interface CommissionInput {
     commissionAmountMinor: number
     baseAmountMinor: number
     currency: string
+    /** Refunded from this payment by earlier refunds/disputes (positive minor units). */
+    refundedBeforeMinor?: number
+    /** Already reversed from this commission by earlier reversal rows (positive minor units). */
+    reversedBeforeMinor?: number
   } | null
   now: Date
 }
@@ -121,6 +125,18 @@ export function computeAmount(
 export function calculateCommission(input: CommissionInput): CommissionResult {
   const { program, participation, transaction, attribution } = input
 
+  // A refund undoes money already credited, whatever the affiliate's standing
+  // is today: suspending an affiliate must not exempt their commissions from
+  // the reversal. So reversals are decided before the participation gate, and
+  // their currency is checked against the commission they reverse.
+  if (transaction.type === "refund" || transaction.type === "chargeback") {
+    const currency = input.originalCommission?.currency ?? program.currency
+    if (transaction.currency.toUpperCase() !== currency.toUpperCase()) {
+      return skip("currency_mismatch", `refund is ${transaction.currency}, commission was ${currency}`)
+    }
+    return calculateReversal(input)
+  }
+
   if (participation.status !== "approved") {
     return skip("participation_not_approved", `participation is ${participation.status}`)
   }
@@ -130,10 +146,6 @@ export function calculateCommission(input: CommissionInput): CommissionResult {
       "currency_mismatch",
       `transaction is ${transaction.currency}, program pays in ${program.currency}`,
     )
-  }
-
-  if (transaction.type === "refund" || transaction.type === "chargeback") {
-    return calculateReversal(input)
   }
 
   if (transaction.type !== "payment") {
@@ -186,9 +198,27 @@ export function calculateCommission(input: CommissionInput): CommissionResult {
 }
 
 /**
+ * `round_half_up(numerator / denominator)` for non-negative integers, exact:
+ * BigInt, so `commission × refunded` cannot lose precision past 2^53.
+ */
+export function proportionHalfUp(amountMinor: number, numerator: number, denominator: number): number {
+  if (denominator <= 0) throw new Error("denominator must be positive")
+  const a = BigInt(amountMinor)
+  const n = BigInt(numerator)
+  const d = BigInt(denominator)
+  const two = BigInt(2)
+  return Number((two * a * n + d) / (two * d))
+}
+
+/**
  * A refund never deletes or edits the original row. It produces a negative
- * reversal that references it, so the ledger keeps its history. Partial refunds
- * reverse proportionally to the refunded share of the original base amount.
+ * reversal that references it, so the ledger keeps its history.
+ *
+ * Partial refunds reverse proportionally, cumulatively: the total reversed
+ * after this refund is `round_half_up(commission × refunded so far / base)`,
+ * and this row is that total minus what earlier reversals already took. Two
+ * partial refunds therefore never over- or under-reverse by a rounding unit,
+ * and refunds reaching the full base always reverse exactly the commission.
  */
 function calculateReversal(input: CommissionInput): CommissionResult {
   const { transaction, originalCommission, program, now } = input
@@ -201,28 +231,72 @@ function calculateReversal(input: CommissionInput): CommissionResult {
   if (refundedMinor <= 0) return skip("zero_amount", "refund has no amount")
 
   const originalBase = originalCommission.baseAmountMinor
-  const isFull = refundedMinor >= originalBase
+  const commission = Math.abs(originalCommission.commissionAmountMinor)
+  const refundedBefore = Math.max(0, originalCommission.refundedBeforeMinor ?? 0)
+  const reversedBefore = Math.max(0, originalCommission.reversedBeforeMinor ?? 0)
+  const refundedTotal = refundedBefore + refundedMinor
+  const isFull = originalBase <= 0 || refundedTotal >= originalBase
 
-  const reversedMinor = isFull
-    ? originalCommission.commissionAmountMinor
-    : applyBasisPoints(
-        originalCommission.commissionAmountMinor,
-        Math.round((refundedMinor / originalBase) * 10_000),
-      )
+  const targetReversed = isFull ? commission : proportionHalfUp(commission, refundedTotal, originalBase)
+  const reversedMinor = Math.min(commission, targetReversed) - reversedBefore
+
+  if (reversedMinor <= 0) {
+    return skip("zero_amount", "the commission is already reversed up to this refund")
+  }
 
   return {
     kind: "reversal",
     currency: originalCommission.currency,
     baseAmountMinor: -refundedMinor,
     commissionRate: null,
-    commissionAmountMinor: -Math.abs(reversedMinor),
+    commissionAmountMinor: -reversedMinor,
     // A reversal is immediately final; there is nothing to hold.
     eligibleAt: transaction.occurredAt > now ? transaction.occurredAt : now,
     ruleApplied: isFull
-      ? `full ${transaction.type} of ${program.currency} transaction`
-      : `partial ${transaction.type}: ${refundedMinor}/${originalBase} of base`,
+      ? refundedBefore > 0
+        ? `final ${transaction.type}: ${refundedTotal}/${originalBase} of base refunded`
+        : `full ${transaction.type} of ${program.currency} transaction`
+      : `partial ${transaction.type}: ${refundedTotal}/${originalBase} of base refunded`,
     reversalOfCommissionId: originalCommission.id,
   }
+}
+
+/** Whether refunds so far cover the whole payment the commission was earned on. */
+export function isFullyRefunded(baseAmountMinor: number, refundedTotalMinor: number): boolean {
+  return baseAmountMinor <= 0 || refundedTotalMinor >= baseAmountMinor
+}
+
+export type StoredCommissionStatus = "pending" | "available" | "approved" | "paid" | "reversed" | "rejected"
+
+export interface ReversalPlan {
+  /** Status of the new negative row. */
+  rowStatus: StoredCommissionStatus
+  /** `original`: inherit the original's hold; `now`: payable at once. */
+  rowEligibleAt: "original" | "now"
+  /** Flip the original to `reversed` (only on a full refund of an unpaid commission). */
+  flipOriginal: boolean
+  /** Also settle earlier, still-unbatched partial reversal rows to `reversed`. */
+  settlePriorReversals: boolean
+}
+
+/**
+ * Ledger statuses after a refund or dispute. No new status: a partial
+ * reversal is a negative row that is payable exactly when the original is, so
+ * a payout batch nets the two. Only a full refund of an unpaid commission
+ * flips the original — and then its earlier partial rows, which would
+ * otherwise subtract from nothing. A `paid` commission is never rewritten: the
+ * reversal is recorded, not recovered (no clawback yet).
+ */
+export function planReversal(original: StoredCommissionStatus, fullyRefunded: boolean): ReversalPlan {
+  if (original === "paid" || original === "reversed" || original === "rejected") {
+    return { rowStatus: "reversed", rowEligibleAt: "now", flipOriginal: false, settlePriorReversals: false }
+  }
+  if (fullyRefunded) {
+    return { rowStatus: "reversed", rowEligibleAt: "now", flipOriginal: true, settlePriorReversals: true }
+  }
+  return original === "pending"
+    ? { rowStatus: "pending", rowEligibleAt: "original", flipOriginal: false, settlePriorReversals: false }
+    : { rowStatus: "available", rowEligibleAt: "now", flipOriginal: false, settlePriorReversals: false }
 }
 
 function describeRule(rate: ResolvedRate, program: ProgramRules): string {

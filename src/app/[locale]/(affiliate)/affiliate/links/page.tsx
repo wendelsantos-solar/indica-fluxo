@@ -3,16 +3,17 @@ import { getTranslations } from "next-intl/server"
 
 import { ReferralLinkField } from "@/components/data-display/copy-button"
 import { PageHeader, SectionHeader } from "@/components/layout/page-header"
-import { StatusBadge } from "@/components/ui/badge"
 import { CreateLinkForm } from "@/features/affiliates/create-link-form"
 import { getFormatters } from "@/i18n/format"
 import { buildReferralUrl } from "@/lib/tracking/visitor"
 import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
-import { listLinks, listParticipationsForUser } from "@/server/repositories/affiliates"
+import { listPortalLinks, listPortalParticipations } from "@/server/repositories/portal"
 
 import { DefaultReferralLink } from "../_components/default-link"
+import { LinkActions } from "../_components/link-actions"
 import { linkEarns, ParticipationNotice } from "../_components/participation-notice"
+import { ParticipationBadge } from "../_components/portal-badges"
 import { PortalList, PortalListItem } from "../_components/portal-list"
 
 export const dynamic = "force-dynamic"
@@ -35,25 +36,29 @@ function namedLinkUrl(destinationUrl: string, participationCode: string, linkCod
 }
 
 /**
- * One section per program: the default link first (the thing most affiliates
- * came to copy), then the named links as a compact list — each with its full
- * URL, a copy button and its clicks — and a quiet "Criar link" that opens the
- * form only when asked.
+ * One section per program: what the program is, the default link first (the
+ * thing most affiliates came to copy), then the named links as a compact list
+ * — each with its full URL, a copy button, its clicks, rename and delete — and
+ * a quiet "Criar link" that opens the form only when asked.
  */
 export default async function AffiliateLinksPage() {
   const t = await getTranslations("portal.links")
   const f = await getFormatters()
   const user = await requireUser()
 
-  const data = await withUser(user.id, async (tx) => {
-    const participations = await listParticipationsForUser(tx, user.id)
-    return Promise.all(
-      participations.map(async (participation) => ({
-        participation,
-        links: await listLinks(tx, participation.participationId),
-      })),
+  const { participations, links } = await withUser(user.id, async (tx) => {
+    const participations = await listPortalParticipations(tx, user.id)
+    const links = await listPortalLinks(
+      tx,
+      participations.map((participation) => participation.participationId),
     )
+    return { participations, links }
   })
+
+  const data = participations.map((participation) => ({
+    participation,
+    links: links.filter((link) => link.participationId === participation.participationId),
+  }))
 
   // The one amber copy button: the first default link that exists and earns.
   const featuredId = data.find(
@@ -64,14 +69,15 @@ export default async function AffiliateLinksPage() {
     <>
       <PageHeader title={t("title")} description={t("description")} />
 
-      <div className="space-y-12">
+      <div className="space-y-10">
         {data.map(({ participation, links }) => (
           <section key={participation.participationId} className="space-y-5">
             <SectionHeader
               title={participation.programName}
+              description={participation.programDescription || undefined}
               action={
                 participation.status === "approved" ? undefined : (
-                  <StatusBadge status={participation.status} className="mt-1.5" />
+                  <ParticipationBadge status={participation.status} className="mt-1.5" />
                 )
               }
               className="mb-0"
@@ -114,11 +120,14 @@ export default async function AffiliateLinksPage() {
                         link.campaign ? t("campaignLabel", { campaign: link.campaign }) : undefined
                       }
                     >
-                      <ReferralLinkField
-                        compact
-                        url={namedLinkUrl(link.destinationUrl, participation.code, link.code)}
-                        copyLabel={t("copyLink", { name: link.name })}
-                      />
+                      <div className="space-y-1">
+                        <ReferralLinkField
+                          compact
+                          url={namedLinkUrl(link.destinationUrl, participation.code, link.code)}
+                          copyLabel={t("copyLink", { name: link.name })}
+                        />
+                        <LinkActions linkId={link.id} name={link.name} />
+                      </div>
                     </PortalListItem>
                   ))}
                 </PortalList>

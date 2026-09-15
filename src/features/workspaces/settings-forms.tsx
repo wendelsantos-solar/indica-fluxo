@@ -9,9 +9,8 @@ import { Card } from "@/components/ui/card"
 import { Field } from "@/components/ui/field"
 import { FormSection } from "@/components/ui/form-section"
 import { Input, Select } from "@/components/ui/input"
-import { useActionResult } from "@/components/ui/use-action-result"
 
-import { inviteMemberAction, updateWorkspaceAction, type FormState } from "./actions"
+import { updateWorkspaceAction, type FormState } from "./actions"
 import type { SelectOption } from "./options"
 
 const INITIAL: FormState = {}
@@ -125,54 +124,3 @@ export function WorkspaceSettingsForm({
   )
 }
 
-export function InviteMemberForm({ workspaceId }: { workspaceId: string }) {
-  const ti = useTranslations("forms.inviteMember")
-  const tr = useTranslations("common.roles")
-  const [state, action, pending] = useActionState(inviteMemberAction, INITIAL)
-  const [email, setEmail] = useState("")
-
-  // The outcome is shown inline under the form, so no toast; a sent invite
-  // clears the address so the next one starts empty.
-  useActionResult(state, { onSuccess: () => setEmail(""), toastOnSuccess: false, toastOnError: false })
-
-  return (
-    <form action={action} className="space-y-3" noValidate>
-      <input type="hidden" name="workspaceId" value={workspaceId} />
-
-      <div className="flex flex-wrap items-end gap-2">
-        <Field
-          label={ti("label")}
-          htmlFor="invite-email"
-          className="min-w-56 flex-1"
-          error={state.fieldErrors?.email?.[0]}
-        >
-          <Input
-            id="invite-email"
-            name="email"
-            type="email"
-            autoComplete="off"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder={ti("placeholder")}
-            aria-describedby={state.fieldErrors?.email ? "invite-email-error" : undefined}
-            invalid={Boolean(state.fieldErrors?.email)}
-          />
-        </Field>
-
-        <Field label={ti("role")} htmlFor="invite-role" className="w-full sm:w-36">
-          <Select id="invite-role" name="role" defaultValue="member">
-            <option value="member">{tr("member")}</option>
-            <option value="admin">{tr("admin")}</option>
-          </Select>
-        </Field>
-
-        <Button type="submit" variant="secondary" loading={pending} className="max-sm:w-full">
-          {ti("submit")}
-        </Button>
-      </div>
-
-      {state.success ? <InlineAlert tone="success">{state.success}</InlineAlert> : null}
-      {state.error ? <InlineAlert tone="danger">{state.error}</InlineAlert> : null}
-    </form>
-  )
-}

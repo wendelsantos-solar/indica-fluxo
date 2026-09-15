@@ -23,8 +23,13 @@ const INITIAL: SignUpState = { status: "idle" }
  * address lives in the action result, so a resend never loses it, and the
  * address is never put in a URL. "Use another e-mail" dismisses that one
  * result and remounts an empty form.
+ *
+ * `invitedEmail` comes from an invitation link (`?email=…&invite=1`, see
+ * `parseInviteQuery`): the address is filled in and locked, because the
+ * invitation is claimed by that exact address. It grants nothing by itself —
+ * the account still has to be confirmed from that inbox.
  */
-export function SignUpFlow() {
+export function SignUpFlow({ invitedEmail }: { invitedEmail?: string } = {}) {
   const [state, dispatch, pending] = useActionState(signUp, INITIAL)
   const [dismissed, setDismissed] = React.useState<SignUpState | null>(null)
   const [formKey, setFormKey] = React.useState(0)
@@ -49,6 +54,7 @@ export function SignUpFlow() {
       dispatch={dispatch}
       pending={pending}
       autoFocus={formKey > 0}
+      invitedEmail={invitedEmail}
     />
   )
 }
@@ -58,11 +64,13 @@ function SignUpForm({
   dispatch,
   pending,
   autoFocus,
+  invitedEmail,
 }: {
   state: SignUpState
   dispatch: (payload: FormData) => void
   pending: boolean
   autoFocus: boolean
+  invitedEmail?: string
 }) {
   const t = useTranslations("auth")
   const tErrors = useTranslations("errors")
@@ -73,7 +81,15 @@ function SignUpForm({
 
   return (
     <>
-      <AuthHeading title={t("signup.title")} description={t("signup.subtitle")} />
+      {invitedEmail ? (
+        <AuthHeading
+          title={t("signup.inviteTitle")}
+          description={t("signup.inviteSubtitle")}
+          hint={t("signup.inviteHint")}
+        />
+      ) : (
+        <AuthHeading title={t("signup.title")} description={t("signup.subtitle")} />
+      )}
 
       <form action={dispatch} onSubmit={onSubmit} className="space-y-4" noValidate>
         <Field label={t("fields.fullName")} htmlFor="fullName" error={fieldErrors?.fullName?.[0]}>
@@ -99,10 +115,21 @@ function SignUpForm({
             autoCapitalize="none"
             spellCheck={false}
             required
+            defaultValue={invitedEmail}
+            // Locked, not disabled: a disabled field is not submitted.
+            readOnly={Boolean(invitedEmail)}
             invalid={Boolean(fieldErrors?.email)}
             aria-describedby={errorId("email", fieldErrors?.email)}
           />
         </Field>
+        {invitedEmail ? (
+          <p className="-mt-2 text-meta text-muted-foreground">
+            {t("signup.inviteLocked")}{" "}
+            <Link href="/signup" className={AUTH_LINK}>
+              {t("signup.inviteUseAnother")}
+            </Link>
+          </p>
+        ) : null}
 
         <Field label={t("fields.password")} htmlFor="password" error={fieldErrors?.password?.[0]}>
           <PasswordInput
@@ -123,7 +150,10 @@ function SignUpForm({
           <FormAlert>
             {tErrors.rich("emailUnavailable", {
               login: (chunks) => (
-                <Link href="/login" className={ALERT_LINK}>
+                <Link
+                  href={invitedEmail ? { pathname: "/login", query: { email: invitedEmail } } : "/login"}
+                  className={ALERT_LINK}
+                >
                   {chunks}
                 </Link>
               ),
@@ -149,7 +179,10 @@ function SignUpForm({
 
       <p className="mt-6 text-caption text-muted-foreground">
         {t("signup.switchPrompt")}{" "}
-        <Link href="/login" className={AUTH_LINK}>
+        <Link
+          href={invitedEmail ? { pathname: "/login", query: { email: invitedEmail } } : "/login"}
+          className={AUTH_LINK}
+        >
           {t("signup.switchAction")}
         </Link>
       </p>

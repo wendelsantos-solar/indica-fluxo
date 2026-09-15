@@ -13,6 +13,7 @@ import { routing, type Locale } from "@/i18n/routing"
 import { clientEnv } from "@/lib/env/client"
 import { logger } from "@/lib/logger"
 import { createClient } from "@/lib/supabase/server"
+import { claimPendingInvites } from "@/server/services/workspaces"
 
 import { classifyAuthError, type AuthErrorKind } from "./auth-errors"
 import { safeRedirectPath } from "./safe-redirect"
@@ -109,7 +110,7 @@ export async function signIn(_prev: SignInState, formData: FormData): Promise<Si
 
   const current = await locale()
   const supabase = await createClient()
-  const { error } = await supabase.auth.signInWithPassword(parsed.data)
+  const { data, error } = await supabase.auth.signInWithPassword(parsed.data)
 
   if (error) {
     const kind = classifyAuthError(error)
@@ -120,6 +121,9 @@ export async function signIn(_prev: SignInState, formData: FormData): Promise<Si
     // password (unconfirmed e-mail) get their own wording in `errorState`.
     return errorState(kind, "badCredentials")
   }
+
+  // An invitation sent to this address after the account existed.
+  await claimPendingInvites(data.user.id)
 
   const fallback = getPathname({ href: "/app", locale: current })
   return redirectToPath(safeRedirectPath(formData.get("next"), fallback))

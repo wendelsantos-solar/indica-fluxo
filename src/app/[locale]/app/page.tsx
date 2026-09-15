@@ -5,7 +5,7 @@ import { redirect } from "@/i18n/navigation"
 import { listParticipationsForUser } from "@/server/repositories/affiliates"
 import { withUser } from "@/server/db"
 import { requireUser } from "@/server/auth/session"
-import { listUserWorkspaces } from "@/server/services/workspaces"
+import { claimPendingInvites, listUserWorkspaces } from "@/server/services/workspaces"
 
 export const dynamic = "force-dynamic"
 
@@ -16,6 +16,9 @@ export const dynamic = "force-dynamic"
 export default async function AppEntryPage() {
   const locale = await getLocale()
   const user = await requireUser()
+  // Before forking, so an invitation accepted by an existing account lands
+  // the person in what they were invited to.
+  await claimPendingInvites(user.id)
 
   const workspaces = await listUserWorkspaces(user.id)
   if (workspaces.length > 0) {

@@ -9,13 +9,42 @@ import {
   toMoneyTotals,
   type MoneyTotal,
 } from "@/lib/money-totals"
+import { localDayRange, resolveTimeZone, type LocalDayRange } from "@/lib/time-zone"
 import { type DbClient } from "@/server/db"
-import { effectiveCommissionStatusSql } from "@/server/repositories/commissions"
+import { effectiveCommissionStatusSql, type CommissionStatus } from "@/server/repositories/commissions"
 
 /**
  * Read models. These never hydrate entities: every figure is aggregated in
  * Postgres and only the columns a view renders come back. See ARCHITECTURE.md §6.
  */
+
+/**
+ * "The last `days` days" of a workspace, on its own wall clock: the window
+ * starts at local midnight and day buckets are local dates, so a 22:00 São
+ * Paulo payment lands on its own day, not UTC's next one.
+ */
+export interface AnalyticsWindow {
+  days: number
+  /** The workspace's IANA zone. Validated here before it reaches SQL. */
+  timeZone: string
+  /** Defaults to the current instant; pass one `now` to every query of a page. */
+  now?: Date
+}
+
+interface ResolvedWindow extends LocalDayRange {
+  /** A supported zone, bound as a query parameter — never spliced into SQL. */
+  timeZone: string
+}
+
+function resolveWindow(window: AnalyticsWindow): ResolvedWindow {
+  const timeZone = resolveTimeZone(window.timeZone)
+  return { timeZone, ...localDayRange(window.now ?? new Date(), timeZone, window.days) }
+}
+
+/** A JS instant as a `timestamptz` parameter. */
+function instant(value: Date) {
+  return sql`${value.toISOString()}::timestamptz`
+}
 
 export interface DashboardOverview {
   /**
@@ -29,7 +58,15 @@ export interface DashboardOverview {
   revenuePrevious: MoneyTotal[]
   commission: MoneyTotal[]
   netRevenue: MoneyTotal[]
+  /**
+   * Approved participations with a click or a commission inside the period —
+   * the same window as every other figure on the overview.
+   */
   activeAffiliates: number
+  /** Approved participations, all time. */
+  approvedAffiliates: number
+  /** Any non-rejected commission, ever — the workspace has produced money. */
+  hasCommission: boolean
   customersAcquired: number
   clicks: number
   conversionRate: number
@@ -40,21 +77,41 @@ export interface DashboardOverview {
 export async function getDashboardOverview(
   tx: DbClient,
   workspaceId: string,
-  days = 30,
+  period: AnalyticsWindow,
 ): Promise<DashboardOverview> {
+  const window = resolveWindow(period)
+
   const [counts] = await tx.execute<{
     default_currency: string | null
     active_affiliates: number
+    approved_affiliates: number
+    has_commission: boolean
     customers_acquired: number
     clicks: number
   }>(sql`
-    with bounds as (select now() - make_interval(days => ${days}) as current_start)
+    with bounds as (select ${instant(window.start)} as current_start)
     select
       (select default_currency from workspaces where id = ${workspaceId}) as default_currency,
       (select count(distinct pa.id)
          from program_affiliates pa
          join programs p on p.id = pa.program_id
-        where p.workspace_id = ${workspaceId} and pa.status = 'approved')::int as active_affiliates,
+        where p.workspace_id = ${workspaceId} and pa.status = 'approved')::int as approved_affiliates,
+      (select count(distinct pa.id)
+         from program_affiliates pa
+         join programs p on p.id = pa.program_id
+        where p.workspace_id = ${workspaceId}
+          and pa.status = 'approved'
+          and (
+            exists (select 1 from referral_clicks rc
+                     where rc.program_affiliate_id = pa.id
+                       and rc.occurred_at >= (select current_start from bounds))
+            or exists (select 1 from commissions c
+                        where c.program_affiliate_id = pa.id
+                          and c.status <> 'rejected'
+                          and c.created_at >= (select current_start from bounds))
+          ))::int as active_affiliates,
+      exists (select 1 from commissions c
+               where c.workspace_id = ${workspaceId} and c.status <> 'rejected') as has_commission,
       (select count(distinct t.customer_id)
          from transactions t
          join commissions c on c.transaction_id = t.id
@@ -80,8 +137,8 @@ export async function getDashboardOverview(
   }>(sql`
     with bounds as (
       select
-        now() - make_interval(days => ${days}) as current_start,
-        now() - make_interval(days => ${days * 2}) as previous_start
+        ${instant(window.start)} as current_start,
+        ${instant(window.previousStart)} as previous_start
     ),
     revenue as (
       select
@@ -149,6 +206,8 @@ export async function getDashboardOverview(
     commission: ordered(commission),
     netRevenue: ordered(subtractMoneyTotals(revenue, commission)),
     activeAffiliates: Number(counts?.active_affiliates ?? 0),
+    approvedAffiliates: Number(counts?.approved_affiliates ?? 0),
+    hasCommission: Boolean(counts?.has_commission),
     customersAcquired: customers,
     clicks,
     conversionRate: clicks > 0 ? customers / clicks : 0,
@@ -175,50 +234,59 @@ export interface RevenueSeries {
  * Daily revenue and commission in ONE currency. A chart cannot draw BRL and
  * USD on the same axis without converting, so the caller picks the currency
  * (normally `DashboardOverview.currency`) and is told what else was left out.
+ * Days are the workspace's local dates (`AnalyticsWindow`).
  */
 export async function getRevenueSeries(
   tx: DbClient,
   workspaceId: string,
   currency: string,
-  days = 30,
+  period: AnalyticsWindow,
 ): Promise<RevenueSeries> {
+  const window = resolveWindow(period)
+  const firstDay = window.keys[0]!
+  const lastDay = window.keys[window.keys.length - 1]!
+
   const rows = await tx.execute<{
     day: string
     revenue_minor: string
     commission_minor: string
   }>(sql`
     with series as (
-      select generate_series(
-        date_trunc('day', now() - make_interval(days => ${days - 1})),
-        date_trunc('day', now()),
-        interval '1 day'
-      )::date as day
+      select generate_series(${firstDay}::date::timestamp, ${lastDay}::date::timestamp, interval '1 day')::date as day
+    ),
+    revenue as (
+      select (t.occurred_at at time zone ${window.timeZone}::text)::date as day,
+             sum(t.gross_amount_minor) as minor
+        from transactions t
+        join commissions c on c.transaction_id = t.id
+       where t.workspace_id = ${workspaceId}
+         and t.type = 'payment'
+         and t.currency = ${currency}
+         and t.occurred_at >= ${instant(window.start)}
+       group by 1
+    ),
+    commission as (
+      select (c.created_at at time zone ${window.timeZone}::text)::date as day,
+             sum(c.commission_amount_minor) as minor
+        from commissions c
+       where c.workspace_id = ${workspaceId}
+         and c.status <> 'rejected'
+         and c.currency = ${currency}
+         and c.created_at >= ${instant(window.start)}
+       group by 1
     )
     select
       s.day::text as day,
-      coalesce((
-        select sum(t.gross_amount_minor)
-          from transactions t
-          join commissions c on c.transaction_id = t.id
-         where t.workspace_id = ${workspaceId}
-           and t.type = 'payment'
-           and t.currency = ${currency}
-           and date_trunc('day', t.occurred_at)::date = s.day
-      ), 0)::bigint as revenue_minor,
-      coalesce((
-        select sum(c.commission_amount_minor)
-          from commissions c
-         where c.workspace_id = ${workspaceId}
-           and c.status <> 'rejected'
-           and c.currency = ${currency}
-           and date_trunc('day', c.created_at)::date = s.day
-      ), 0)::bigint as commission_minor
+      coalesce(r.minor, 0)::bigint as revenue_minor,
+      coalesce(c.minor, 0)::bigint as commission_minor
     from series s
+    left join revenue r on r.day = s.day
+    left join commission c on c.day = s.day
     order by s.day
   `)
 
   const others = await tx.execute<{ currency: string }>(sql`
-    with bounds as (select date_trunc('day', now() - make_interval(days => ${days - 1})) as start_at)
+    with bounds as (select ${instant(window.start)} as start_at)
     select distinct currency from (
       select t.currency
         from transactions t
@@ -257,15 +325,16 @@ export interface FunnelStep {
 export async function getConversionFunnel(
   tx: DbClient,
   workspaceId: string,
-  days = 30,
+  period: AnalyticsWindow,
 ): Promise<FunnelStep[]> {
+  const window = resolveWindow(period)
   const [row] = await tx.execute<{
     clicks: number
     identified: number
     trials: number
     customers: number
   }>(sql`
-    with bounds as (select now() - make_interval(days => ${days}) as start_at)
+    with bounds as (select ${instant(window.start)} as start_at)
     select
       (select count(*) from referral_clicks rc
          join programs p on p.id = rc.program_id
@@ -295,6 +364,7 @@ export async function getConversionFunnel(
 
 export interface TopAffiliate {
   participationId: string
+  affiliateId: string
   name: string
   code: string
   revenueMinor: number
@@ -310,6 +380,7 @@ export async function getTopAffiliates(
 ): Promise<TopAffiliate[]> {
   const rows = await tx.execute<{
     participation_id: string
+    affiliate_id: string
     name: string
     code: string
     revenue_minor: string
@@ -319,6 +390,7 @@ export async function getTopAffiliates(
   }>(sql`
     select
       c.program_affiliate_id as participation_id,
+      a.id as affiliate_id,
       a.name,
       pa.code,
       c.currency,
@@ -329,13 +401,14 @@ export async function getTopAffiliates(
     join program_affiliates pa on pa.id = c.program_affiliate_id
     join affiliates a on a.id = pa.affiliate_id
     where c.workspace_id = ${workspaceId} and c.status <> 'rejected'
-    group by c.program_affiliate_id, a.name, pa.code, c.currency
+    group by c.program_affiliate_id, a.id, a.name, pa.code, c.currency
     order by sum(c.commission_amount_minor) desc
     limit ${limit}
   `)
 
   return rows.map((row) => ({
     participationId: row.participation_id,
+    affiliateId: row.affiliate_id,
     name: row.name,
     code: row.code,
     currency: row.currency,
@@ -347,13 +420,28 @@ export async function getTopAffiliates(
 
 export interface RecentConversion {
   id: string
+  affiliateId: string
   affiliateName: string
+  programName: string
   customerRef: string
   currency: string
   amountMinor: number
   commissionMinor: number
   occurredAt: Date
-  status: string
+  status: CommissionStatus
+}
+
+export type ConversionSortField = "date" | "amount"
+
+export interface ConversionFilters {
+  workspaceId: string
+  affiliateId?: string
+  programId?: string
+  /**
+   * Payments that occurred at or after this instant. Views inside a workspace
+   * resolve it on the workspace's wall clock (`periodStartInZone`).
+   */
+  from?: Date
 }
 
 /** The few newest conversions, for the overview. */
@@ -362,79 +450,103 @@ export async function getRecentConversions(
   workspaceId: string,
   limit = 6,
 ): Promise<RecentConversion[]> {
-  return selectConversions(tx, workspaceId, limit, 0)
+  return selectConversions(tx, { workspaceId }, { field: "date", dir: "desc" }, limit, 0)
 }
 
 export interface ConversionPage {
   rows: RecentConversion[]
-  /** Every conversion in the workspace, not the length of this page. */
+  /** Every conversion matching the filters, not the length of this page. */
   total: number
 }
 
 /** The founder's full conversions list, offset-paginated with a hard limit. */
 export async function listConversions(
   tx: DbClient,
-  params: { workspaceId: string; limit?: number; offset?: number },
+  params: ConversionFilters & {
+    sort?: { field: ConversionSortField; dir: "asc" | "desc" }
+    limit?: number
+    offset?: number
+  },
 ): Promise<ConversionPage> {
   const limit = Math.min(Math.max(1, params.limit ?? 50), 200)
   const offset = Math.max(0, params.offset ?? 0)
+  const sort = params.sort ?? { field: "date", dir: "desc" }
 
-  const rows = await selectConversions(tx, params.workspaceId, limit, offset)
-  // Same joins as the page query, so the count can never disagree with the rows.
+  const rows = await selectConversions(tx, params, sort, limit, offset)
+  // Same joins and filters as the page query, so the count can never disagree with the rows.
   const [count] = await tx.execute<{ total: number }>(sql`
     select count(*)::int as total
-    from commissions c
-    join transactions t on t.id = c.transaction_id
-    join customers cu on cu.id = c.customer_id
-    join program_affiliates pa on pa.id = c.program_affiliate_id
-    join affiliates a on a.id = pa.affiliate_id
-    where c.workspace_id = ${params.workspaceId}
+    ${conversionsFrom(params)}
   `)
 
   return { rows, total: Number(count?.total ?? 0) }
 }
 
+function conversionsFrom(filters: ConversionFilters) {
+  return sql`
+    from commissions c
+    join transactions t on t.id = c.transaction_id
+    join customers cu on cu.id = c.customer_id
+    join program_affiliates pa on pa.id = c.program_affiliate_id
+    join affiliates a on a.id = pa.affiliate_id
+    join programs p on p.id = c.program_id
+    where c.workspace_id = ${filters.workspaceId}
+      ${filters.affiliateId ? sql`and pa.affiliate_id = ${filters.affiliateId}` : sql``}
+      ${filters.programId ? sql`and c.program_id = ${filters.programId}` : sql``}
+      ${filters.from ? sql`and t.occurred_at >= ${filters.from.toISOString()}` : sql``}
+  `
+}
+
 async function selectConversions(
   tx: DbClient,
-  workspaceId: string,
+  filters: ConversionFilters,
+  sort: { field: ConversionSortField; dir: "asc" | "desc" },
   limit: number,
   offset: number,
 ): Promise<RecentConversion[]> {
+  // Whitelisted columns and directions only: nothing from the URL is spliced in.
+  const direction = sort.dir === "asc" ? sql`asc` : sql`desc`
+  const order =
+    sort.field === "amount"
+      ? sql`t.gross_amount_minor ${direction}, t.occurred_at desc, c.id`
+      : sql`t.occurred_at ${direction}, c.id`
+
   const rows = await tx.execute<{
     id: string
+    affiliate_id: string
     affiliate_name: string
+    program_name: string
     customer_ref: string
     currency: string
     amount_minor: string
     commission_minor: string
     occurred_at: string
-    status: string
+    status: CommissionStatus
   }>(sql`
     select
       c.id,
+      a.id as affiliate_id,
       a.name as affiliate_name,
+      p.name as program_name,
       coalesce(cu.external_id, cu.provider_customer_id, left(cu.id::text, 8)) as customer_ref,
       c.currency,
       t.gross_amount_minor::bigint as amount_minor,
       c.commission_amount_minor::bigint as commission_minor,
       t.occurred_at,
       ${effectiveCommissionStatusSql("c")}::text as status
-    from commissions c
-    join transactions t on t.id = c.transaction_id
-    join customers cu on cu.id = c.customer_id
-    join program_affiliates pa on pa.id = c.program_affiliate_id
-    join affiliates a on a.id = pa.affiliate_id
-    where c.workspace_id = ${workspaceId}
-    order by t.occurred_at desc, c.id
+    ${conversionsFrom(filters)}
+    order by ${order}
     limit ${limit}
     offset ${offset}
   `)
 
   return rows.map((row) => ({
     id: row.id,
+    affiliateId: row.affiliate_id,
     affiliateName: row.affiliate_name,
+    programName: row.program_name,
     customerRef: row.customer_ref,
-    currency: row.currency,
+    currency: row.currency.trim(),
     amountMinor: Number(row.amount_minor),
     commissionMinor: Number(row.commission_minor),
     occurredAt: new Date(row.occurred_at),
@@ -448,6 +560,11 @@ export interface AffiliateSeriesPoint {
   commissionMinor: number
 }
 
+/**
+ * The affiliate portal's daily series. Days are UTC dates on purpose: one
+ * affiliate may earn in several workspaces, each in its own zone, and the
+ * portal has no single workspace clock to follow.
+ */
 export async function getAffiliateSeries(
   tx: DbClient,
   participationIds: string[],

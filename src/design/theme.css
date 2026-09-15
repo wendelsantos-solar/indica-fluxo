@@ -210,6 +210,33 @@
   --container-detail: 880px;
 
   /* ====================================================================
+   * STACKING — the whole z-index vocabulary, lowest to highest. Tailwind
+   * reads `--z-index-*`, so each step is a class (`z-sticky`, `z-popover`).
+   * No arbitrary bracket values: a layer not on this list has not decided what it is.
+   *
+   * Floating layers that portal out of their trigger (dropdowns, tooltips,
+   * popovers) sit ABOVE the drawer and the modal, because they are always
+   * opened from inside one of them: a menu opened from the mobile drawer or
+   * a dialog must never render behind it.
+   * ================================================================== */
+  --z-index-base: 0;
+  /* in-flow lifts: a control above a full-row link, a chart tooltip */
+  --z-index-raised: 10;
+  /* the page header bar and other sticky bars inside the content panel */
+  --z-index-sticky: 20;
+  /* the phone app bar and marketing/docs site headers */
+  --z-index-header: 30;
+  /* the mobile navigation drawer and its scrim */
+  --z-index-drawer: 40;
+  /* dialogs, the command palette and their scrims */
+  --z-index-modal: 50;
+  /* dropdowns, tooltips, popovers — above whatever opened them */
+  --z-index-popover: 60;
+  --z-index-toast: 70;
+  /* the skip link, which must win over everything while focused */
+  --z-index-skip: 80;
+
+  /* ====================================================================
    * ELEVATION — borders and inset rings, not shadow stacks.
    * ================================================================== */
   --shadow-ring: var(--elevation-ring);

@@ -2,6 +2,9 @@ import { pgEnum } from "drizzle-orm/pg-core"
 
 export const workspaceRoleEnum = pgEnum("workspace_role", ["owner", "admin", "member"])
 
+/** Commercial plan of a workspace. Limits live in `src/lib/plans.ts`. */
+export const workspacePlanEnum = pgEnum("workspace_plan", ["starter", "growth"])
+
 export const programStatusEnum = pgEnum("program_status", [
   "draft",
   "active",

@@ -9,6 +9,7 @@ import { ConflictError, NotFoundError, ValidationError } from "@/server/policies
 import { requireMembership } from "@/server/policies/workspace"
 
 import { recordAudit } from "./audit"
+import { assertWithinPlan } from "./plans"
 
 export interface ProgramInput {
   name: string
@@ -62,6 +63,10 @@ export async function createProgram(
       .limit(1)
 
     if (existing) throw new ConflictError("A program with that name already exists.", "programNameTaken")
+
+    // Inside the transaction and right before the write, so the count it reads
+    // is the one the insert lands on.
+    await assertWithinPlan(tx, workspaceId, "programs")
 
     const [row] = await tx
       .insert(programs)

@@ -1,14 +1,16 @@
 "use client"
 
 import type { LucideIcon } from "lucide-react"
-import { Menu, PanelLeft, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react"
+import { Command as CommandIcon, Menu, PanelLeft, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react"
 import { useTranslations } from "next-intl"
 import * as React from "react"
 
 import { Link, usePathname, useRouter } from "@/i18n/navigation"
 
-import { CommandPalette, type Command } from "@/components/layout/command-palette"
+import { CommandPalette, type Command, type PaletteSearch } from "@/components/layout/command-palette"
+import { FocusFrame } from "@/components/layout/focus-frame"
 import { Kbd } from "@/components/ui/kbd"
+import { Tooltip } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 export type AppHref = Parameters<ReturnType<typeof useRouter>["push"]>[0]
@@ -30,8 +32,21 @@ export interface NavSection {
   items: NavItem[]
 }
 
-type Shell = { openPalette: () => void; toggleSidebar: () => void }
-const ShellContext = React.createContext<Shell>({ openPalette: () => {}, toggleSidebar: () => {} })
+type Shell = {
+  openPalette: () => void
+  toggleSidebar: () => void
+  /**
+   * Whether the sidebar is currently an icon rail (768–1023px, or collapsed
+   * from 1024px). Labels are hidden then, so controls show their name in a
+   * tooltip instead.
+   */
+  rail: boolean
+}
+const ShellContext = React.createContext<Shell>({
+  openPalette: () => {},
+  toggleSidebar: () => {},
+  rail: false,
+})
 export const useShell = () => React.useContext(ShellContext)
 
 const SIDEBAR_KEY = "indica.sidebar.collapsed"
@@ -55,15 +70,46 @@ function readCollapsed() {
   }
 }
 
+const RAIL_QUERY = "(min-width: 768px) and (max-width: 1023.98px)"
+const DESKTOP_QUERY = "(min-width: 1024px)"
+
+function subscribeViewport(onChange: () => void) {
+  const queries = [window.matchMedia(RAIL_QUERY), window.matchMedia(DESKTOP_QUERY)]
+  for (const query of queries) query.addEventListener("change", onChange)
+  return () => {
+    for (const query of queries) query.removeEventListener("change", onChange)
+  }
+}
+
+/** "rail" | "desktop" | "phone" — the server renders as a phone, which shows no tooltips. */
+function readViewport(): "rail" | "desktop" | "phone" {
+  if (window.matchMedia(RAIL_QUERY).matches) return "rail"
+  if (window.matchMedia(DESKTOP_QUERY).matches) return "desktop"
+  return "phone"
+}
+
 /**
  * Label visibility in the sidebar. At ≥1024px labels hide only when the user
  * collapses the sidebar; between 768 and 1024px it is always an icon rail;
  * inside the mobile drawer labels always show.
  */
-const LABEL =
+export const SIDEBAR_LABEL =
   "hidden lg:block lg:group-data-[collapsed=true]/sidebar:hidden group-data-[drawer=true]/sidebar:block"
-const CENTER_IN_RAIL =
+export const SIDEBAR_CENTER_IN_RAIL =
   "max-lg:justify-center lg:group-data-[collapsed=true]/sidebar:justify-center group-data-[drawer=true]/sidebar:justify-start"
+const LABEL = SIDEBAR_LABEL
+const CENTER_IN_RAIL = SIDEBAR_CENTER_IN_RAIL
+
+/** A name shown beside a control only while the sidebar is a rail. */
+export function RailTooltip({ label, children }: { label: string; children: React.ReactElement }) {
+  const { rail } = useShell()
+  if (!rail) return children
+  return (
+    <Tooltip content={label} side="right">
+      {children}
+    </Tooltip>
+  )
+}
 
 export function isTypingTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false
@@ -86,9 +132,15 @@ export function AppShell({
   footer,
   account,
   commands,
+  search,
+  focus = false,
   children,
 }: {
-  /** Top-left slot: the workspace switcher, or the logo in the affiliate portal. */
+  /**
+   * Top-left slot: the workspace switcher, or the logo in the affiliate portal.
+   * Rendered in the sidebar, the rail and the phone app bar; hide its text in
+   * the rail with `SIDEBAR_LABEL`.
+   */
   brand: React.ReactNode
   sections: NavSection[]
   /** Nav items pinned to the bottom (settings). */
@@ -96,6 +148,13 @@ export function AppShell({
   account: React.ReactNode
   /** Page-independent actions for the palette, beyond navigation. */
   commands: Command[]
+  /** Record lookup for the palette. Without it the trigger says "Comandos", not "Buscar". */
+  search?: PaletteSearch
+  /**
+   * A guided flow (onboarding) that must not invite the reader to wander off:
+   * no sidebar, no palette, no `G` chords — the same bare frame as step 1.
+   */
+  focus?: boolean
   children: React.ReactNode
 }) {
   const t = useTranslations("nav")
@@ -107,6 +166,8 @@ export function AppShell({
     readCollapsed,
     () => false,
   )
+  const viewport = React.useSyncExternalStore(subscribeViewport, readViewport, () => "phone" as const)
+  const rail = viewport === "rail" || (viewport === "desktop" && collapsed)
   const [paletteOpen, setPaletteOpen] = React.useState(false)
   const [drawerOpen, setDrawerOpen] = React.useState(false)
   const [lastPathname, setLastPathname] = React.useState(pathname)
@@ -176,6 +237,7 @@ export function AppShell({
   }, [drawerOpen])
 
   React.useEffect(() => {
+    if (focus) return
     let pendingG = 0
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
@@ -203,11 +265,11 @@ export function AppShell({
     }
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [allItems, router, toggleSidebar])
+  }, [allItems, router, toggleSidebar, focus])
 
   const shell = React.useMemo(
-    () => ({ openPalette: () => setPaletteOpen(true), toggleSidebar }),
-    [toggleSidebar],
+    () => ({ openPalette: () => setPaletteOpen(true), toggleSidebar, rail }),
+    [toggleSidebar, rail],
   )
 
   const paletteCommands = React.useMemo<Command[]>(
@@ -240,17 +302,26 @@ export function AppShell({
       footer={footer}
       account={account}
       pathname={pathname}
+      searchable={Boolean(search)}
       onNavigate={onNavigate}
       onToggle={onToggle}
     />
   )
+
+  if (focus) {
+    return (
+      <ShellContext.Provider value={shell}>
+        <FocusFrame skipLabel={t("skip")}>{children}</FocusFrame>
+      </ShellContext.Provider>
+    )
+  }
 
   return (
     <ShellContext.Provider value={shell}>
       <div className="min-h-dvh bg-background md:grid md:h-dvh md:grid-cols-[auto_minmax(0,1fr)] md:overflow-hidden">
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[200] focus:rounded-control focus:bg-inverse focus:px-3 focus:py-2 focus:text-inverse-foreground"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-skip focus:rounded-control focus:bg-inverse focus:px-3 focus:py-2 focus:text-inverse-foreground"
         >
           {t("skip")}
         </a>
@@ -263,7 +334,7 @@ export function AppShell({
         </aside>
 
         {/* Phones: an app bar frames the page and opens the drawer. */}
-        <header className="sticky top-0 z-30 flex h-12 items-center gap-1 border-b border-border bg-background/95 px-2 pt-[env(safe-area-inset-top)] backdrop-blur-[2px] md:hidden">
+        <header className="sticky top-0 z-header flex h-12 items-center gap-1 border-b border-border bg-background/95 px-2 pt-[env(safe-area-inset-top)] backdrop-blur-[2px] md:hidden">
           <button
             ref={menuButtonRef}
             type="button"
@@ -274,11 +345,14 @@ export function AppShell({
           >
             <Menu className="size-4.5" aria-hidden="true" />
           </button>
-          <div className="min-w-0 flex-1">{brand}</div>
+          {/* The brand reads its labels as in the drawer: full name, no rail. */}
+          <div data-drawer="true" className="group/sidebar min-w-0 flex-1">
+            {brand}
+          </div>
           <button
             type="button"
             onClick={() => setPaletteOpen(true)}
-            aria-label={t("searchLabel")}
+            aria-label={search ? t("searchLabel") : t("commandsLabel")}
             className="flex size-10 items-center justify-center rounded-control text-muted-foreground hover:bg-hover hover:text-foreground"
           >
             <Search className="size-4.5" aria-hidden="true" />
@@ -286,7 +360,7 @@ export function AppShell({
         </header>
 
         {drawerOpen ? (
-          <div className="fixed inset-0 z-[90] md:hidden" role="dialog" aria-modal="true" aria-label={t("navigation")}>
+          <div className="fixed inset-0 z-drawer md:hidden" role="dialog" aria-modal="true" aria-label={t("navigation")}>
             <button
               type="button"
               aria-label={t("close")}
@@ -303,7 +377,7 @@ export function AppShell({
                 type="button"
                 onClick={() => setDrawerOpen(false)}
                 aria-label={t("close")}
-                className="absolute right-2 top-[calc(env(safe-area-inset-top)+4px)] z-10 flex size-10 items-center justify-center rounded-control text-muted-foreground hover:bg-hover hover:text-foreground"
+                className="absolute right-2 top-[calc(env(safe-area-inset-top)+4px)] z-raised flex size-10 items-center justify-center rounded-control text-muted-foreground hover:bg-hover hover:text-foreground"
               >
                 <X className="size-4" aria-hidden="true" />
               </button>
@@ -324,7 +398,12 @@ export function AppShell({
           </div>
         </main>
       </div>
-      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} commands={paletteCommands} />
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        commands={paletteCommands}
+        search={search}
+      />
     </ShellContext.Provider>
   )
 }
@@ -335,6 +414,7 @@ function SidebarContent({
   footer,
   account,
   pathname,
+  searchable,
   onNavigate,
   onToggle,
 }: {
@@ -343,68 +423,64 @@ function SidebarContent({
   footer: NavItem[]
   account: React.ReactNode
   pathname: string
+  searchable: boolean
   onNavigate?: () => void
   onToggle?: () => void
 }) {
   const t = useTranslations("nav")
   const { openPalette } = useShell()
+  const paletteLabel = searchable ? t("searchLabel") : t("commandsLabel")
 
   return (
     <>
       <div className={cn("flex h-12 items-center gap-1 px-2", CENTER_IN_RAIL)}>
-        <div
-          className={cn(
-            "min-w-0 flex-1 group-data-[drawer=true]/sidebar:pr-10",
-            onToggle && "lg:group-data-[collapsed=true]/sidebar:hidden",
-          )}
-        >
-          {brand}
-        </div>
+        {/* The brand stays in the rail as a glyph — initials or the logo mark —
+            so switching workspace never needs the sidebar expanded. */}
+        <div className="min-w-0 flex-1 group-data-[drawer=true]/sidebar:pr-10">{brand}</div>
         {onToggle ? (
-          <>
+          <Tooltip content={<ShortcutHint label={t("collapse")} keys="[" />} side="right">
             <button
               type="button"
               onClick={onToggle}
               aria-label={t("collapse")}
-              title={`${t("collapse")}  [`}
+              aria-keyshortcuts="["
               className="hidden size-7 shrink-0 items-center justify-center rounded-control text-faint-foreground transition-colors hover:bg-hover hover:text-foreground lg:inline-flex lg:group-data-[collapsed=true]/sidebar:hidden"
             >
               <PanelLeftClose className="size-4" aria-hidden="true" />
             </button>
-            <button
-              type="button"
-              onClick={onToggle}
-              aria-label={t("expand")}
-              title={`${t("expand")}  [`}
-              className="hidden size-8 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-hover hover:text-foreground lg:group-data-[collapsed=true]/sidebar:inline-flex"
-            >
-              <PanelLeftOpen className="size-4" aria-hidden="true" />
-            </button>
-          </>
+          </Tooltip>
         ) : null}
       </div>
 
       <div className="px-2 pb-2">
-        <button
-          type="button"
-          onClick={() => {
-            onNavigate?.()
-            openPalette()
-          }}
-          title={t("searchLabel")}
-          aria-label={t("searchLabel")}
-          className={cn(
-            "flex h-8 w-full items-center gap-2.5 rounded-control border border-border bg-fill-subtle px-2 text-caption text-faint-foreground",
-            "transition-colors hover:border-border-strong hover:text-muted-foreground touch:h-10",
-            CENTER_IN_RAIL,
-          )}
-        >
-          <Search className="size-3.5 shrink-0" aria-hidden="true" />
-          <span className={cn(LABEL, "flex-1 text-left")}>{t("search")}</span>
-          <Kbd className={cn(LABEL, "group-data-[drawer=true]/sidebar:hidden")}>
-            <ModKey />K
-          </Kbd>
-        </button>
+        <RailTooltip label={paletteLabel}>
+          <button
+            type="button"
+            onClick={() => {
+              onNavigate?.()
+              openPalette()
+            }}
+            aria-label={paletteLabel}
+            aria-keyshortcuts="Meta+K Control+K"
+            className={cn(
+              "flex h-8 w-full items-center gap-2.5 rounded-control border border-border bg-fill-subtle px-2 text-caption text-faint-foreground",
+              "transition-colors hover:border-border-strong hover:text-muted-foreground touch:h-10",
+              CENTER_IN_RAIL,
+            )}
+          >
+            {searchable ? (
+              <Search className="size-3.5 shrink-0" aria-hidden="true" />
+            ) : (
+              <CommandIcon className="size-3.5 shrink-0" aria-hidden="true" />
+            )}
+            <span className={cn(LABEL, "flex-1 text-left")}>
+              {searchable ? t("search") : t("commands")}
+            </span>
+            <Kbd className={cn(LABEL, "group-data-[drawer=true]/sidebar:hidden")}>
+              <ModKey />K
+            </Kbd>
+          </button>
+        </RailTooltip>
       </div>
 
       <nav aria-label={t("main")} className="flex flex-1 flex-col gap-5 overflow-y-auto px-2 pt-2">
@@ -421,6 +497,19 @@ function SidebarContent({
       </nav>
 
       <div className="flex flex-col gap-px border-t border-border-faint px-2 py-2">
+        {onToggle ? (
+          <Tooltip content={<ShortcutHint label={t("expand")} keys="[" />} side="right">
+            <button
+              type="button"
+              onClick={onToggle}
+              aria-label={t("expand")}
+              aria-keyshortcuts="["
+              className="hidden h-8 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-hover hover:text-foreground lg:group-data-[collapsed=true]/sidebar:flex"
+            >
+              <PanelLeftOpen className="size-4" aria-hidden="true" />
+            </button>
+          </Tooltip>
+        ) : null}
         {footer.map((item) => (
           <NavLink key={item.key} item={item} pathname={pathname} onNavigate={onNavigate} />
         ))}
@@ -442,22 +531,33 @@ function NavLink({
   const active = pathname === item.path || pathname.startsWith(`${item.path}/`)
   const Icon = item.icon
   return (
-    <Link
-      href={item.href}
-      title={item.label}
-      onClick={onNavigate}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        "flex h-8 items-center gap-2.5 rounded-control px-2 text-caption font-medium transition-colors duration-[120ms] touch:h-10",
-        CENTER_IN_RAIL,
-        active
-          ? "bg-selected text-foreground"
-          : "text-muted-foreground hover:bg-hover hover:text-foreground",
-      )}
-    >
-      <Icon className="size-4 shrink-0" aria-hidden="true" />
-      <span className={cn(LABEL, "flex-1 truncate")}>{item.label}</span>
-    </Link>
+    <RailTooltip label={item.label}>
+      <Link
+        href={item.href}
+        onClick={onNavigate}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "flex h-8 items-center gap-2.5 rounded-control px-2 text-caption font-medium transition-colors duration-[120ms] touch:h-10",
+          CENTER_IN_RAIL,
+          active
+            ? "bg-selected text-foreground"
+            : "text-muted-foreground hover:bg-hover hover:text-foreground",
+        )}
+      >
+        <Icon className="size-4 shrink-0" aria-hidden="true" />
+        <span className={cn(LABEL, "flex-1 truncate")}>{item.label}</span>
+      </Link>
+    </RailTooltip>
+  )
+}
+
+/** An icon-only control's name plus the key that does the same thing. */
+function ShortcutHint({ label, keys }: { label: string; keys: string }) {
+  return (
+    <span className="flex items-center gap-2">
+      {label}
+      <Kbd>{keys}</Kbd>
+    </span>
   )
 }
 

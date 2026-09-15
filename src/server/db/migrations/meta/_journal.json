@@ -43,6 +43,27 @@
       "when": 1789421430835,
       "tag": "0005_bent_bullseye",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789433433477,
+      "tag": "0006_graceful_colossus",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789434903228,
+      "tag": "0007_new_switch",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789435653391,
+      "tag": "0008_claim_pending_invites",
+      "breakpoints": true
     }
   ]
 }

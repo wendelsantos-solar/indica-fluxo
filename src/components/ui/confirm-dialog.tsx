@@ -24,6 +24,10 @@ import {
  *
  * `action` is a server action (or form action) bound to a hidden-field form;
  * pass the fields as `children`. The dialog closes when the action settles.
+ *
+ * Without a `trigger`, the dialog is controlled (`open` / `onOpenChange`): a
+ * form that must confirm a consequential change before submitting opens it
+ * itself, and its `action` resumes the submission.
  */
 export function ConfirmDialog({
   trigger,
@@ -35,9 +39,11 @@ export function ConfirmDialog({
   tone = "danger",
   triggerVariant = "danger",
   triggerSize = "sm",
+  open: controlledOpen,
+  onOpenChange,
 }: {
-  /** Label (and optional icon) of the button that opens the dialog. */
-  trigger: React.ReactNode
+  /** Label (and optional icon) of the button that opens the dialog. Omit for a controlled dialog. */
+  trigger?: React.ReactNode
   title: string
   /** State the consequence in plain language. */
   description: string
@@ -48,18 +54,27 @@ export function ConfirmDialog({
   tone?: "danger" | "primary"
   triggerVariant?: ButtonProps["variant"]
   triggerSize?: ButtonProps["size"]
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }) {
   const t = useTranslations("common.actions")
-  const [open, setOpen] = React.useState(false)
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false)
   const [pending, startTransition] = React.useTransition()
+  const open = controlledOpen ?? uncontrolledOpen
+  const setOpen = (next: boolean) => {
+    if (controlledOpen === undefined) setUncontrolledOpen(next)
+    onOpenChange?.(next)
+  }
 
   return (
     <Dialog open={open} onOpenChange={(next) => !pending && setOpen(next)}>
-      <DialogTrigger asChild>
-        <Button type="button" variant={triggerVariant} size={triggerSize}>
-          {trigger}
-        </Button>
-      </DialogTrigger>
+      {trigger !== undefined ? (
+        <DialogTrigger asChild>
+          <Button type="button" variant={triggerVariant} size={triggerSize}>
+            {trigger}
+          </Button>
+        </DialogTrigger>
+      ) : null}
       <DialogContent>
         <form
           action={(formData) =>

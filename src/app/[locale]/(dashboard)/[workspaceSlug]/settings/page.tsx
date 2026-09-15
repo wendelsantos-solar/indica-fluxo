@@ -1,17 +1,18 @@
 import type { Metadata } from "next"
 import { getLocale, getTranslations } from "next-intl/server"
 
-import { PageHeader, SectionHeader } from "@/components/layout/page-header"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
+import { PageHeader } from "@/components/layout/page-header"
+import { AuditLogPanel } from "@/features/plans/audit-log-panel"
+import { PlanPanel } from "@/features/plans/plan-panel"
 import { currencyOptions, timezoneOptions } from "@/features/workspaces/options"
-import { InviteMemberForm, WorkspaceSettingsForm } from "@/features/workspaces/settings-forms"
-import { getFormatters } from "@/i18n/format"
+import { WorkspaceSettingsForm } from "@/features/workspaces/settings-forms"
+import { TeamPanel } from "@/features/workspaces/team-panel"
 import { BCP47, type Locale } from "@/i18n/routing"
+import { fitsPlan, hasPlanFeature } from "@/lib/plans"
 import { requireUser } from "@/server/auth/session"
-import { withUser } from "@/server/db"
-import { listMembers, listPendingInvites } from "@/server/repositories/workspaces"
-import { getWorkspaceForUser } from "@/server/services/workspaces"
+import { listAuditLog } from "@/server/services/audit"
+import { getPlanOverview } from "@/server/services/plans"
+import { getTeam, getWorkspaceForUser } from "@/server/services/workspaces"
 
 export const dynamic = "force-dynamic"
 
@@ -25,19 +26,29 @@ export async function generateMetadata({
 
 export default async function SettingsPage({ params }: PageProps<"/[locale]/[workspaceSlug]/settings">) {
   const t = await getTranslations("dashboard.settings")
-  const tc = await getTranslations("common.table")
   const tr = await getTranslations("common.roles")
-  const f = await getFormatters()
+  const te = await getTranslations("errors")
   const locale = BCP47[(await getLocale()) as Locale] ?? "pt-BR"
   const { workspaceSlug } = await params
   const user = await requireUser()
   const workspace = await getWorkspaceForUser(user.id, workspaceSlug)
 
-  const [members, invites] = await withUser(user.id, (tx) =>
-    Promise.all([listMembers(tx, workspace.id), listPendingInvites(tx, workspace.id)]),
-  )
-
   const canManage = workspace.role === "owner" || workspace.role === "admin"
+
+  const [team, overview] = await Promise.all([
+    getTeam(user, workspace.id),
+    getPlanOverview(user.id, workspace.id),
+  ])
+  const auditEntries =
+    canManage && hasPlanFeature(overview.plan, "auditLog") ? await listAuditLog(user.id, workspace.id) : []
+
+  // The team panel replaces its invite form with the reason it is closed, so
+  // the founder learns about the plan before filling anything in.
+  const inviteDisabledReason = !hasPlanFeature(overview.plan, "teamInvites")
+    ? te("planFeature.teamInvites")
+    : !fitsPlan(overview.plan, "members", overview.usage.members)
+      ? te("planLimit.members")
+      : undefined
 
   return (
     <>
@@ -59,77 +70,24 @@ export default async function SettingsPage({ params }: PageProps<"/[locale]/[wor
             disabledReason={canManage ? undefined : t("readOnly", { role: tr(workspace.role) })}
           />
 
-          <section>
-            <SectionHeader
-              title={t("team.title")}
-              count={f.number(members.length + invites.length)}
-              description={t("team.description")}
-              className="mb-3"
-            />
+          <div id="plano" className="scroll-mt-20">
+            <PlanPanel overview={overview} workspaceId={workspace.id} canManage={canManage} />
+          </div>
 
-            <TableContainer>
-              <Table>
-                <THead>
-                  <tr>
-                    <TH>{t("team.member")}</TH>
-                    <TH>{t("team.role")}</TH>
-                    <TH className="max-sm:hidden">{tc("joined")}</TH>
-                  </tr>
-                </THead>
-                <TBody>
-                  {members.map((member) => (
-                    <TR key={member.id}>
-                      <TD className="max-sm:py-2.5">
-                        <span className="block truncate text-foreground">
-                          {member.fullName ?? t("team.pendingProfile")}
-                          {member.userId === user.id ? (
-                            <span className="ml-2 text-meta text-muted-foreground">{t("team.you")}</span>
-                          ) : null}
-                        </span>
-                        {member.fullName ? null : (
-                          // The member read carries no e-mail; a short account
-                          // id keeps two unnamed members apart.
-                          <span className="block text-meta text-muted-foreground">
-                            {t("team.pendingProfileHint")}{" "}
-                            <span className="font-mono">{member.userId.slice(0, 8)}</span>
-                          </span>
-                        )}
-                        <span className="block text-meta text-muted-foreground sm:hidden">
-                          {t("team.joinedOn", { date: f.date(member.createdAt) })}
-                        </span>
-                      </TD>
-                      <TD>
-                        <Badge dot={false}>{tr(member.role)}</Badge>
-                      </TD>
-                      <TD className="whitespace-nowrap text-muted-foreground max-sm:hidden">
-                        {f.date(member.createdAt)}
-                      </TD>
-                    </TR>
-                  ))}
-                  {invites.map((invite) => (
-                    <TR key={invite.id}>
-                      <TD className="max-w-0 max-sm:py-2.5 sm:max-w-none">
-                        <span className="block truncate text-foreground-secondary">{invite.email}</span>
-                        <span className="block text-meta text-muted-foreground">
-                          {t("team.invitedOn", { date: f.date(invite.createdAt) })}
-                        </span>
-                      </TD>
-                      <TD>
-                        <Badge tone="warning">{t("team.invitedRole", { role: tr(invite.role) })}</Badge>
-                      </TD>
-                      <TD className="whitespace-nowrap text-muted-foreground max-sm:hidden">—</TD>
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            </TableContainer>
+          <div id="equipe" className="scroll-mt-20">
+            <TeamPanel workspaceId={workspace.id} team={team} inviteDisabledReason={inviteDisabledReason} />
+          </div>
 
-            {canManage ? (
-              <div className="pt-4">
-                <InviteMemberForm workspaceId={workspace.id} />
-              </div>
-            ) : null}
-          </section>
+          {canManage ? (
+            <div id="auditoria" className="scroll-mt-20">
+              <AuditLogPanel
+                plan={overview.plan}
+                entries={auditEntries}
+                currentUserId={user.id}
+                timeZone={workspace.timezone}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
     </>

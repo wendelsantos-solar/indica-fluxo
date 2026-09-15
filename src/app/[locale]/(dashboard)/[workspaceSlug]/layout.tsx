@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation"
 
 import { DashboardShell } from "@/components/layout/dashboard-shell"
+import { WorkspaceTimeZone } from "@/components/layout/workspace-time-zone"
+import { resolveTimeZone } from "@/lib/time-zone"
 import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
 import { listParticipationsForUser } from "@/server/repositories/affiliates"
@@ -21,20 +23,24 @@ export default async function DashboardLayout({
 
   // Touch the workspace through the RLS-scoped path so a stale sidebar entry
   // can never keep a revoked member inside the shell.
-  await getWorkspaceForUser(user.id, workspaceSlug)
+  const workspace = await getWorkspaceForUser(user.id, workspaceSlug)
 
   // The account menu only offers the affiliate portal to someone who has one.
   const participations = await withUser(user.id, (tx) => listParticipationsForUser(tx, user.id))
 
+  // Dates inside a workspace are its calendar facts: every client component
+  // below formats in the workspace's zone, like the pages do on the server.
   return (
-    <DashboardShell
-      workspaces={workspaces}
-      current={current}
-      email={user.email}
-      name={user.name}
-      isAffiliate={participations.length > 0}
-    >
-      {children}
-    </DashboardShell>
+    <WorkspaceTimeZone timeZone={resolveTimeZone(workspace.timezone)}>
+      <DashboardShell
+        workspaces={workspaces}
+        current={current}
+        email={user.email}
+        name={user.name}
+        isAffiliate={participations.length > 0}
+      >
+        {children}
+      </DashboardShell>
+    </WorkspaceTimeZone>
   )
 }

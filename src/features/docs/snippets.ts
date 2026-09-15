@@ -1,4 +1,5 @@
 import type { IdentifyBody } from "@/lib/api/contract"
+import { stripeWebhookPath } from "@/lib/billing/stripe/events"
 import { applyBasisPoints } from "@/lib/money"
 import { REF_QUERY_PARAMS, TRACKER_PATH, VISITOR_COOKIE, VISITOR_COOKIE_MAX_AGE_DAYS } from "@/lib/tracking/constants"
 
@@ -70,8 +71,12 @@ export const IDENTIFY_RESPONSE = `{
   "attributionsBound": 1
 }`
 
-export function webhookUrl(appUrl: string): string {
-  return `${appUrl}/api/webhooks/stripe`
+/**
+ * A workspace's own Stripe endpoint. The guide cannot know the integration id,
+ * so it passes a visible placeholder; Integrations shows the real URL.
+ */
+export function webhookUrl(appUrl: string, integrationId: string): string {
+  return `${appUrl}${stripeWebhookPath(integrationId)}`
 }
 
 /** The worked commission example: a 49.00 payment on a 30% program. */

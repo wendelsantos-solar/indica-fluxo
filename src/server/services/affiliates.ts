@@ -2,6 +2,7 @@ import "server-only"
 
 import { and, eq, sql } from "drizzle-orm"
 
+import type { Locale } from "@/i18n/routing"
 import { slugify } from "@/lib/utils"
 import { withUser } from "@/server/db"
 import { affiliates, programAffiliates, programs, referralLinks } from "@/server/db/schema"
@@ -9,8 +10,11 @@ import { canTransitionParticipation, type ParticipationTarget } from "@/server/d
 import { ConflictError, NotFoundError, ValidationError } from "@/server/policies/errors"
 import { requireMembership } from "@/server/policies/workspace"
 import { findParticipationInWorkspace } from "@/server/repositories/affiliates"
+import { findWorkspaceName } from "@/server/repositories/workspaces"
 
 import { recordAudit } from "./audit"
+import { inviteLinksFor, sendInviteEmail, type InviteDelivery } from "./invite-mail"
+import { assertPlanFeature, assertWithinPlan } from "./plans"
 
 export interface InviteAffiliateInput {
   programId: string
@@ -24,17 +28,33 @@ export interface InviteAffiliateInput {
   autoApprove?: boolean
 }
 
+export interface InviteAffiliateResult {
+  affiliateId: string
+  participationId: string
+  code: string
+  invite: InviteDelivery
+}
+
 /**
- * Creates (or reuses) the affiliate record and enrols them in a program.
- * The affiliate does not need an account yet: the row is claimed by e-mail on
- * their first sign-in, by the `handle_new_user` trigger.
+ * Creates (or reuses) the affiliate record and enrols them in a program, then
+ * e-mails an invitation once that is committed.
+ *
+ * The affiliate does not need an account yet: the row is claimed by e-mail
+ * when an account is created for that address, by the `handle_new_user`
+ * trigger. An affiliate record already tied to an account needs no e-mail —
+ * the new program appears in their portal.
+ *
+ * Known gap: an address that already has an account but whose affiliate row
+ * is not yet linked is never claimed, because the trigger only runs when an
+ * auth user is created. The result reports `accountExists` for that case.
  */
 export async function inviteAffiliate(
   userId: string,
   workspaceId: string,
   input: InviteAffiliateInput,
-): Promise<{ affiliateId: string; participationId: string; code: string }> {
-  return withUser(userId, async (tx) => {
+  locale: Locale,
+): Promise<InviteAffiliateResult> {
+  const created = await withUser(userId, async (tx) => {
     await requireMembership(tx, workspaceId, userId, "admin")
 
     const [program] = await tx
@@ -48,12 +68,16 @@ export async function inviteAffiliate(
     const email = input.email.trim().toLowerCase()
 
     const [existing] = await tx
-      .select({ id: affiliates.id })
+      .select({ id: affiliates.id, userId: affiliates.userId })
       .from(affiliates)
       .where(
         and(eq(affiliates.workspaceId, workspaceId), sql`lower(${affiliates.email}) = ${email}`),
       )
       .limit(1)
+
+    // Plan usage counts affiliate records, so only a new record takes a seat;
+    // enrolling an existing affiliate in another program does not.
+    if (!existing) await assertWithinPlan(tx, workspaceId, "affiliates")
 
     const affiliateId =
       existing?.id ??
@@ -93,6 +117,8 @@ export async function inviteAffiliate(
       throw new ValidationError("A custom rate needs both a type and a value.", {}, "customRateIncomplete")
     }
 
+    if (input.customCommissionType != null) await assertPlanFeature(tx, workspaceId, "customRates")
+
     const approve = input.autoApprove ?? true
 
     const [participation] = await tx
@@ -117,8 +143,64 @@ export async function inviteAffiliate(
       metadata: { programId: input.programId, code, autoApproved: approve },
     })
 
-    return { affiliateId, participationId: participation!.id, code }
+    return {
+      affiliateId,
+      participationId: participation!.id,
+      code,
+      email,
+      linked: Boolean(existing?.userId),
+      workspaceName: (await findWorkspaceName(tx, workspaceId)) ?? "",
+    }
   })
+
+  const { email, linked, workspaceName, ...ids } = created
+
+  const invite: InviteDelivery = linked
+    ? { ...inviteLinksFor(email, locale), emailSent: false, skipped: "alreadyLinked" }
+    : await sendInviteEmail({
+        email,
+        locale,
+        audience: "affiliate",
+        workspaceName,
+        fullName: input.name.trim(),
+      })
+
+  return { ...ids, invite }
+}
+
+/**
+ * Sends the invitation e-mail again, for an affiliate who has not found it.
+ * Supabase re-sends to an address whose account was never confirmed and
+ * refuses a confirmed one (`accountExists`), so this is safe to offer on any
+ * affiliate row.
+ */
+export async function resendAffiliateInvite(
+  userId: string,
+  workspaceId: string,
+  affiliateId: string,
+  locale: Locale,
+): Promise<InviteDelivery & { email: string; name: string }> {
+  const affiliate = await withUser(userId, async (tx) => {
+    await requireMembership(tx, workspaceId, userId, "admin")
+
+    const [row] = await tx
+      .select({ email: affiliates.email, name: affiliates.name })
+      .from(affiliates)
+      .where(and(eq(affiliates.id, affiliateId), eq(affiliates.workspaceId, workspaceId)))
+      .limit(1)
+
+    if (!row) throw new NotFoundError("Affiliate not found.", "affiliateNotFound")
+    return { ...row, workspaceName: (await findWorkspaceName(tx, workspaceId)) ?? "" }
+  })
+
+  const delivery = await sendInviteEmail({
+    email: affiliate.email,
+    locale,
+    audience: "affiliate",
+    workspaceName: affiliate.workspaceName,
+    fullName: affiliate.name,
+  })
+  return { ...delivery, email: affiliate.email, name: affiliate.name }
 }
 
 async function uniqueCode(
@@ -221,6 +303,9 @@ export async function setCustomRate(
 
   return withUser(userId, async (tx) => {
     await requireMembership(tx, workspaceId, userId, "admin")
+    // Clearing stays allowed on any plan, so a downgraded workspace can undo
+    // the rates it no longer pays for.
+    if (rate) await assertPlanFeature(tx, workspaceId, "customRates")
 
     const participation = await findParticipationInWorkspace(tx, workspaceId, participationId)
     if (!participation) {

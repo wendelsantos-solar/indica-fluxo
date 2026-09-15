@@ -1,28 +1,36 @@
 "use server"
 
 import { actionError, fieldErrorsFrom, successMessage, translateFieldErrors } from "@/i18n/errors"
-import { getTranslations } from "next-intl/server"
+import { getLocale, getTranslations } from "next-intl/server"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
+import type { Locale } from "@/i18n/routing"
 import { requireUser } from "@/server/auth/session"
 import {
   createReferralLink,
   type CustomRate,
   inviteAffiliate,
+  resendAffiliateInvite,
   setCustomRate,
   setParticipationStatus,
 } from "@/server/services/affiliates"
+import type { InviteDelivery } from "@/server/services/invite-mail"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
 import { AFFILIATE_LAYOUT, DASHBOARD_LAYOUT } from "@/lib/revalidate"
 
 import { parseCustomRate } from "./custom-rate"
 
+/** What the invite dialog shows after success: whether an e-mail went out, and the links. */
+export type AffiliateInviteOutcome = InviteDelivery & { email: string; name: string }
+
 export interface AffiliateFormState {
   error?: string
   fieldErrors?: Record<string, string[]>
   success?: string
+  /** Set by the invite and resend actions. */
+  invite?: AffiliateInviteOutcome
 }
 
 // Messages are catalogue keys under `errors.fields`, translated on the way out.
@@ -70,25 +78,83 @@ export async function inviteAffiliateAction(
       fieldErrors: await fieldErrorsFrom(parsed.error),
     }
 
+  let invite: InviteDelivery
   try {
     const workspace = await getWorkspaceForUser(user.id, parsed.data.workspaceSlug)
-    await inviteAffiliate(user.id, workspace.id, {
-      programId: parsed.data.programId,
-      name: parsed.data.name,
-      email: parsed.data.email,
-      companyName: parsed.data.companyName ?? null,
-      code: parsed.data.code || null,
-      customCommissionType: parsed.data.customRate !== undefined ? "percentage" : null,
-      customCommissionValue:
-        parsed.data.customRate !== undefined ? Math.round(parsed.data.customRate * 100) : null,
-    })
+    const result = await inviteAffiliate(
+      user.id,
+      workspace.id,
+      {
+        programId: parsed.data.programId,
+        name: parsed.data.name,
+        email: parsed.data.email,
+        companyName: parsed.data.companyName ?? null,
+        code: parsed.data.code || null,
+        customCommissionType: parsed.data.customRate !== undefined ? "percentage" : null,
+        customCommissionValue:
+          parsed.data.customRate !== undefined ? Math.round(parsed.data.customRate * 100) : null,
+      },
+      (await getLocale()) as Locale,
+    )
+    invite = result.invite
   } catch (error) {
     return { error: await actionError(error, "affiliateNotAdded") }
   }
 
   revalidateAffiliateViews()
   const t = await getTranslations("success")
-  return { success: t("affiliateAdded", { name: parsed.data.name, email: parsed.data.email }) }
+  const email = parsed.data.email.trim().toLowerCase()
+  return {
+    success: invite.emailSent
+      ? t("inviteSent", { email })
+      : invite.skipped === "alreadyLinked"
+        ? t("affiliateEnrolled", { name: parsed.data.name })
+        : t("inviteCreated"),
+    invite: { ...invite, email, name: parsed.data.name },
+  }
+}
+
+const resendSchema = z.object({
+  workspaceSlug: z.string().min(1),
+  affiliateId: z.string().uuid(),
+})
+
+/**
+ * Sends an affiliate's invitation e-mail again. Hidden fields `workspaceSlug`
+ * and `affiliateId`; the result carries the links to forward either way.
+ */
+export async function resendAffiliateInviteAction(
+  _prev: AffiliateFormState,
+  formData: FormData,
+): Promise<AffiliateFormState> {
+  const user = await requireUser()
+  const parsed = resendSchema.safeParse({
+    workspaceSlug: formData.get("workspaceSlug"),
+    affiliateId: formData.get("affiliateId"),
+  })
+  if (!parsed.success) return { error: await actionError(null, "invalidRequest") }
+
+  let invite: InviteDelivery
+  let name: string
+  let email: string
+  try {
+    const workspace = await getWorkspaceForUser(user.id, parsed.data.workspaceSlug)
+    ;({ name, email, ...invite } = await resendAffiliateInvite(
+      user.id,
+      workspace.id,
+      parsed.data.affiliateId,
+      (await getLocale()) as Locale,
+    ))
+  } catch (error) {
+    return { error: await actionError(error, "inviteNotResent") }
+  }
+
+  revalidateAffiliateViews()
+  const t = await getTranslations("success")
+  return {
+    success: invite.emailSent ? t("inviteResent", { email }) : t("inviteNotEmailed"),
+    invite: { ...invite, email, name },
+  }
 }
 
 /** The route patterns that show a participation's status and rate. */

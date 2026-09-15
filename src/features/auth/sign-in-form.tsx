@@ -14,9 +14,17 @@ import { PasswordInput } from "./password-input"
 
 const INITIAL: SignInState = { status: "idle" }
 
-export function SignInForm({ next, linkExpired }: { next?: string; linkExpired?: boolean }) {
+export function SignInForm({
+  next,
+  linkExpired,
+  defaultEmail,
+}: {
+  next?: string
+  linkExpired?: boolean
+  /** From an invitation link for an address that already has an account (`?email=`). */
+  defaultEmail?: string
+}) {
   const t = useTranslations("auth")
-  const tErrors = useTranslations("errors")
   const [state, dispatch, pending] = useActionState(signIn, INITIAL)
   const onSubmit = useSubmit(dispatch, pending)
 
@@ -28,7 +36,15 @@ export function SignInForm({ next, linkExpired }: { next?: string; linkExpired?:
       <AuthHeading title={t("signin.title")} description={t("signin.subtitle")} />
 
       {linkExpired && state.status === "idle" ? (
-        <FormNotice className="mb-6">{tErrors("linkExpired")}</FormNotice>
+        <FormNotice className="mb-6">
+          {t.rich("signin.linkExpired", {
+            link: (chunks) => (
+              <Link href="/forgot-password" className={AUTH_LINK}>
+                {chunks}
+              </Link>
+            ),
+          })}
+        </FormNotice>
       ) : null}
 
       <form action={dispatch} onSubmit={onSubmit} className="space-y-4" noValidate>
@@ -45,6 +61,7 @@ export function SignInForm({ next, linkExpired }: { next?: string; linkExpired?:
             autoCapitalize="none"
             spellCheck={false}
             required
+            defaultValue={defaultEmail}
             invalid={Boolean(fieldErrors?.email)}
             aria-describedby={errorId("email", fieldErrors?.email)}
           />

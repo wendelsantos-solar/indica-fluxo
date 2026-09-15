@@ -15,6 +15,7 @@ import {
   payableCommissionFilter,
   promoteEligibleCommissions,
 } from "@/server/repositories/commissions"
+import { findPayoutBatch, listBatchItems } from "@/server/repositories/payouts"
 
 import { recordAudit } from "./audit"
 
@@ -335,5 +336,26 @@ export async function cancelPayoutBatch(
       entityId: batchId,
       action: "payout.cancelled",
     })
+  })
+}
+
+/** More affiliates than any single transfer run; a hard cap all the same. */
+export const EXPORT_ITEM_LIMIT = 10_000
+
+/**
+ * What a payout export needs: the batch and every affiliate in it, with e-mail.
+ * Owners and admins only — the export is the list the money is sent from, and
+ * the same role is required to create, cancel or mark a batch paid. Members
+ * still read the batch page under RLS.
+ */
+export async function getPayoutBatchExport(userId: string, workspaceId: string, batchId: string) {
+  return withUser(userId, async (tx) => {
+    await requireMembership(tx, workspaceId, userId, "admin")
+
+    const batch = await findPayoutBatch(tx, workspaceId, batchId)
+    if (!batch) throw new NotFoundError("Payout batch not found.", "batchNotFound")
+
+    const items = await listBatchItems(tx, batch.id, EXPORT_ITEM_LIMIT)
+    return { batch, items }
   })
 }

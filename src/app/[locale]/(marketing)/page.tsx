@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button"
 import { localeAlternates, siteUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
-import { PLANS, PRICE_MINOR } from "./_lib/plans"
+import { MARKETING_PLANS, PRICE_MINOR } from "./_lib/plans"
 import {
   AffiliateVisual,
   AttributionVisual,
@@ -109,7 +109,7 @@ export default async function MarketingHomePage({ params }: PageProps<"/[locale]
         <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
           <div className="lg:col-span-5">
             <Eyebrow>{t("problem.eyebrow")}</Eyebrow>
-            <Heading>{t("problem.title")}</Heading>
+            <Heading className="sm:text-heading-sm">{t("problem.title")}</Heading>
             <p className="mt-6 max-w-md text-pretty text-body text-muted-foreground">{t("problem.body")}</p>
           </div>
           <div className="lg:col-span-7">
@@ -411,12 +411,12 @@ async function Principles() {
         <Eyebrow>{t("eyebrow")}</Eyebrow>
         <Heading>{t("title")}</Heading>
       </div>
-      <ul className="mt-14 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+      <ul className="mt-14 grid gap-x-12 gap-y-10 sm:grid-cols-2">
         {items.map((item) => (
           <li key={item.key} className="border-t border-border pt-5">
-            <item.icon className="size-4.5 text-muted-foreground" aria-hidden="true" />
-            <p className="mt-4 text-ui font-medium text-foreground">{t(`${item.key}.title`)}</p>
-            <p className="mt-1.5 text-pretty text-caption text-muted-foreground">{t(`${item.key}.body`)}</p>
+            <item.icon className="size-5 text-muted-foreground" aria-hidden="true" />
+            <p className="mt-4 text-body font-medium text-foreground">{t(`${item.key}.title`)}</p>
+            <p className="mt-2 max-w-md text-pretty text-body-sm text-muted-foreground">{t(`${item.key}.body`)}</p>
           </li>
         ))}
       </ul>
@@ -444,8 +444,8 @@ async function PricingPreview() {
           </Link>
         </Button>
       </div>
-      <ul className="mt-12 grid gap-px overflow-hidden rounded-panel border border-border bg-border md:grid-cols-3">
-        {PLANS.map((plan) => {
+      <ul className="mt-12 grid gap-px overflow-hidden rounded-panel border border-border bg-border md:grid-cols-2">
+        {MARKETING_PLANS.map((plan) => {
           const price = PRICE_MINOR[locale][plan.key]
           return (
             <li key={plan.key} className="bg-surface-1 p-6">
@@ -453,7 +453,7 @@ async function PricingPreview() {
                 {tp(`plans.${plan.key}.name`)}
                 {plan.featured ? (
                   <span className="rounded-badge border border-primary/40 px-1.5 text-meta text-primary-text">
-                    {tp("mostPopular")}
+                    {tp("onRequest")}
                   </span>
                 ) : null}
               </p>
@@ -470,6 +470,7 @@ async function PricingPreview() {
           )
         })}
       </ul>
+      <p className="mt-4 max-w-2xl text-pretty text-caption text-muted-foreground">{t("note")}</p>
     </Section>
   )
 }

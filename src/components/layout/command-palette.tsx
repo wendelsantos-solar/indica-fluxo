@@ -9,7 +9,13 @@ import * as React from "react"
 import { Kbd } from "@/components/ui/kbd"
 import { cn } from "@/lib/utils"
 
-export type CommandGroup = "navigation" | "actions" | "workspaces"
+export type CommandGroup =
+  | "programs"
+  | "affiliates"
+  | "batches"
+  | "navigation"
+  | "actions"
+  | "workspaces"
 
 export interface Command {
   id: string
@@ -24,7 +30,19 @@ export interface Command {
   run: () => void
 }
 
-const ORDER: CommandGroup[] = ["navigation", "actions", "workspaces"]
+/** Records the reader searched for come first; then pages, actions, workspaces. */
+const ORDER: CommandGroup[] = ["programs", "affiliates", "batches", "navigation", "actions", "workspaces"]
+
+/** Remote results are fetched once the reader pauses, and only for real queries. */
+const SEARCH_DELAY_MS = 200
+export const SEARCH_MIN_LENGTH = 2
+
+/**
+ * Looks up records for a query. Resolves to commands already matched on the
+ * server — they skip the local filter. May reject; the palette then keeps
+ * showing its local commands.
+ */
+export type PaletteSearch = (query: string) => Promise<Command[]>
 
 /**
  * ⌘K — DESIGN.md §9. A combobox over grouped commands: the input keeps focus,
@@ -35,28 +53,30 @@ export function CommandPalette({
   open,
   onOpenChange,
   commands,
+  search,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   commands: Command[]
+  search?: PaletteSearch
 }) {
   const t = useTranslations("palette")
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-[100] animate-[overlay-in_140ms_ease-out] bg-scrim" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-modal animate-[overlay-in_140ms_ease-out] bg-scrim" />
         <DialogPrimitive.Content
           aria-describedby={undefined}
           className={cn(
-            "fixed left-1/2 top-[max(12px,env(safe-area-inset-top))] z-[100] w-[min(640px,calc(100vw-24px))] -translate-x-1/2",
+            "fixed left-1/2 top-[max(12px,env(safe-area-inset-top))] z-modal w-[min(640px,calc(100vw-24px))] -translate-x-1/2",
             "overflow-hidden rounded-panel bg-surface-3 shadow-overlay outline-none sm:top-[12vh]",
             "data-[state=open]:animate-pop-in",
           )}
         >
           <DialogPrimitive.Title className="sr-only">{t("dialog")}</DialogPrimitive.Title>
           {open ? (
-            <PaletteBody commands={commands} onClose={() => onOpenChange(false)} />
+            <PaletteBody commands={commands} search={search} onClose={() => onOpenChange(false)} />
           ) : null}
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
@@ -64,13 +84,48 @@ export function CommandPalette({
   )
 }
 
-function PaletteBody({ commands, onClose }: { commands: Command[]; onClose: () => void }) {
+function PaletteBody({
+  commands,
+  search,
+  onClose,
+}: {
+  commands: Command[]
+  search?: PaletteSearch
+  onClose: () => void
+}) {
   const t = useTranslations("palette")
   const ta = useTranslations("common.actions")
   const id = React.useId()
   const [query, setQuery] = React.useState("")
   const [active, setActive] = React.useState(0)
+  // Results are keyed by the query they answer, so a slow response for an
+  // older query can never be shown under a newer one.
+  const [remote, setRemote] = React.useState<{ query: string; commands: Command[] } | null>(null)
   const listRef = React.useRef<HTMLDivElement>(null)
+
+  const needle = query.trim()
+  const searching = Boolean(search) && needle.length >= SEARCH_MIN_LENGTH
+
+  React.useEffect(() => {
+    if (!search || needle.length < SEARCH_MIN_LENGTH) return
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      search(needle)
+        .then((found) => {
+          if (!cancelled) setRemote({ query: needle, commands: found })
+        })
+        .catch(() => {
+          if (!cancelled) setRemote({ query: needle, commands: [] })
+        })
+    }, SEARCH_DELAY_MS)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [search, needle])
+
+  const remoteCommands = searching && remote?.query === needle ? remote.commands : []
+  const loading = searching && remote?.query !== needle
 
   const filtered = React.useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -88,9 +143,10 @@ function PaletteBody({ commands, onClose }: { commands: Command[]; onClose: () =
   }, [commands, query])
 
   // Grouped for display; arrow keys follow the flattened visual order.
+  const all = [...remoteCommands, ...filtered]
   const groups = ORDER.map((group) => ({
     group,
-    items: filtered.filter((command) => command.group === group),
+    items: all.filter((command) => command.group === group),
   })).filter((entry) => entry.items.length > 0)
   const flat = groups.flatMap((entry) => entry.items)
   const activeIndex = Math.min(active, Math.max(0, flat.length - 1))
@@ -157,7 +213,7 @@ function PaletteBody({ commands, onClose }: { commands: Command[]; onClose: () =
       >
         {flat.length === 0 ? (
           <p className="px-3 py-8 text-center text-caption text-muted-foreground">
-            {t("noMatch", { query })}
+            {loading ? t("searching") : t("noMatch", { query })}
           </p>
         ) : (
           groups.map((entry) => (
@@ -202,7 +258,16 @@ function PaletteBody({ commands, onClose }: { commands: Command[]; onClose: () =
             </div>
           ))
         )}
+        {loading && flat.length > 0 ? (
+          <p aria-hidden="true" className="px-2.5 pb-1 pt-2 text-meta text-faint-foreground">
+            {t("searching")}
+          </p>
+        ) : null}
       </div>
+
+      <p aria-live="polite" className="sr-only">
+        {loading ? t("searching") : searching ? t("resultCount", { count: flat.length }) : ""}
+      </p>
 
       <div className="hidden h-9 items-center gap-4 border-t border-border px-4 text-meta text-faint-foreground sm:flex">
         <span className="flex items-center gap-1.5">

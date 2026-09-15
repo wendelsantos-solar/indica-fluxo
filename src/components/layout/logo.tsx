@@ -5,7 +5,16 @@ import { cn } from "@/lib/utils"
  * becoming a flow. The amber stroke is identity, not a call to action, which
  * is why it may appear beside the one primary button without competing.
  */
-export function Logo({ className, compact = false }: { className?: string; compact?: boolean }) {
+export function Logo({
+  className,
+  labelClassName,
+  compact = false,
+}: {
+  className?: string
+  /** E.g. `SIDEBAR_LABEL`, so the icon rail keeps only the mark. */
+  labelClassName?: string
+  compact?: boolean
+}) {
   return (
     <span className={cn("flex items-center gap-2", className)}>
       <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" className="shrink-0">
@@ -19,7 +28,10 @@ export function Logo({ className, compact = false }: { className?: string; compa
         <path d="M9 8h4.5" fill="none" stroke="var(--primary)" strokeWidth="2.25" strokeLinecap="round" />
       </svg>
       {!compact ? (
-        <span className="truncate text-caption font-semibold text-foreground">IndicaFluxo</span>
+        // 510, not 590: the brand names the frame, it is not the loudest text on screen.
+        <span className={cn("truncate text-caption font-medium text-foreground", labelClassName)}>
+          IndicaFluxo
+        </span>
       ) : null}
     </span>
   )

@@ -202,12 +202,14 @@ alternates the face is Inter, but it is not this system's Inter.
 Strict **4px grid**. Allowed steps:
 
 ```
-4  8  12  16  24  32  48  64  96
+4  8  12  16  24  32  40  48  64  96
 ```
 
 - Inside a control: 8 / 12.
-- Between related elements: 12 / 16.
-- Between sections of a page: 32 / 48.
+- Between related elements: 12 / 16; a section's heading to its content 12 / 20.
+- Between sections of a page: **40** (`space-y-10`), everywhere in the product —
+  dashboard and portal alike. One rhythm, so pages do not drift between 32 and
+  48. 24 (`space-y-6`) only inside a section that groups several blocks.
 - Page gutter: 24 desktop, 16 mobile (owned by the shell, not by pages).
 - Table cells: 12px horizontal, the first and last cell 4px so text aligns with
   the page gutter; rows are 48px.
@@ -250,6 +252,28 @@ Depth is expressed by **surface contrast plus a hairline**, not by shadow.
 - Only floating layers (menu, popover, tooltip, dialog, palette, toast) use
   `shadow-overlay`. The amber button alone carries `shadow-control`.
 - Scrim: `bg-scrim`. No backdrop blur beyond 2px (sticky bars only).
+
+### Stacking (z-index)
+
+The scale in `src/design/theme.css` (`--z-index-*`) is the whole vocabulary;
+`z-[90]` and friends are banned the same way `text-[13px]` is.
+
+| Token | Value | Layer |
+| --- | --- | --- |
+| `z-base` | 0 | the page |
+| `z-raised` | 10 | an in-flow lift: a control above a full-row link, a chart's hover card |
+| `z-sticky` | 20 | the page header bar and other sticky bars inside the panel |
+| `z-header` | 30 | the phone app bar, marketing and docs headers |
+| `z-drawer` | 40 | the mobile navigation drawer and its scrim |
+| `z-modal` | 50 | dialogs, the command palette, their scrims |
+| `z-popover` | 60 | dropdowns, tooltips, popovers |
+| `z-toast` | 70 | toasts |
+| `z-skip` | 80 | the skip link while focused |
+
+Floating layers sit **above** the drawer and the modal because they are
+always opened from inside one: the account menu opened from the phone drawer,
+a tooltip inside a dialog. A menu that renders behind the surface that opened
+it is the bug this order exists to prevent.
 
 ---
 

@@ -160,6 +160,49 @@ export function AffiliateRowActions(props: AffiliateRowActionsProps) {
 }
 
 /**
+ * The inline "Approve" on a pending row, so a waiting affiliate is one click
+ * away instead of behind the row menu. Same action and toast as the menu item;
+ * approving is not destructive, so there is no dialog.
+ */
+export function ApproveParticipationButton({
+  workspaceSlug,
+  participationId,
+  affiliateName,
+}: {
+  workspaceSlug: string
+  participationId: string
+  affiliateName: string
+}) {
+  const t = useTranslations("forms.affiliateActions")
+  const [state, setState] = useState<AffiliateFormState>({})
+  const [pending, startTransition] = useTransition()
+
+  useActionResult(state)
+
+  return (
+    <Button
+      type="button"
+      variant="secondary"
+      size="xs"
+      loading={pending}
+      aria-label={t("approveLabel", { name: affiliateName })}
+      onClick={() =>
+        startTransition(async () => {
+          const formData = new FormData()
+          formData.set("workspaceSlug", workspaceSlug)
+          formData.set("participationId", participationId)
+          formData.set("status", "approved")
+          setState(await setParticipationStatusAction({}, formData))
+        })
+      }
+    >
+      <Check aria-hidden="true" />
+      {t("approve")}
+    </Button>
+  )
+}
+
+/**
  * Mounted only while its dialog is open, so every opening starts from a clean
  * action state instead of showing the previous attempt's error.
  */

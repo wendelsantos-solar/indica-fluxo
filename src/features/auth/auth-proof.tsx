@@ -60,7 +60,7 @@ export function AuthProof({ className }: { className?: string }) {
       aside: (
         <span className="flex items-center gap-2">
           <span className="text-caption font-medium tabular-nums text-foreground">{commission}</span>
-          <StatusBadge status="approved" />
+          <StatusBadge status="hold" />
         </span>
       ),
     },

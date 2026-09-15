@@ -345,7 +345,7 @@ export default async function DocsPage({ params }: PageProps<"/[locale]/docs">) 
             </SectionHeading>
             <Prose>{t("connectStripe.lead")}</Prose>
             <ol className="space-y-2">
-              {(["account", "webhook"] as const).map((key, index) => (
+              {(["account", "webhook", "secret"] as const).map((key, index) => (
                 <li key={key} className="flex gap-3 text-body-sm text-foreground-secondary">
                   <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-border font-mono text-meta text-muted-foreground">
                     {index + 1}
@@ -363,7 +363,12 @@ export default async function DocsPage({ params }: PageProps<"/[locale]/docs">) 
                 </li>
               ))}
             </ol>
-            <CodeBlock code={webhookUrl(app)} language="text" filename={t("connectStripe.urlLabel")} />
+            <CodeBlock
+              code={webhookUrl(app, t("connectStripe.urlPlaceholder"))}
+              language="text"
+              filename={t("connectStripe.urlLabel")}
+            />
+            <Prose>{t.rich("connectStripe.verify", rich)}</Prose>
             <div className="grid gap-3 md:grid-cols-2">
               <Callout tone="info" title={t("connectStripe.idempotentTitle")}>
                 {t("connectStripe.idempotentBody")}

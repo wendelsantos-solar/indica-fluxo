@@ -14,12 +14,25 @@ import { PasswordInput } from "./password-input"
 
 const INITIAL: ResetPasswordState = { status: "idle" }
 
+/** Where an accepted invitation continues once a password is chosen. */
+const INVITE_DESTINATION = { affiliate: "/affiliate/overview", member: "/app" } as const
+
 /**
  * The recovery session is already in the cookie when this renders: the
  * callback exchanged the e-mailed code for it. Choosing a password is the
  * whole screen.
+ *
+ * `invite` is set when the session came from an invitation e-mail
+ * (`?invite=affiliate|member`): the same form, worded as choosing a first
+ * password, continuing to the portal or the workspace.
  */
-export function ResetPasswordForm({ email }: { email: string }) {
+export function ResetPasswordForm({
+  email,
+  invite,
+}: {
+  email: string
+  invite?: keyof typeof INVITE_DESTINATION
+}) {
   const t = useTranslations("auth.reset")
   const tFields = useTranslations("auth.fields")
   const [state, dispatch, pending] = useActionState(updatePassword, INITIAL)
@@ -31,11 +44,17 @@ export function ResetPasswordForm({ email }: { email: string }) {
         <AuthHeading
           icon={CircleCheck}
           focusOnMount
-          title={t("doneTitle")}
-          description={t("doneBody")}
+          title={invite ? t("inviteDoneTitle") : t("doneTitle")}
+          description={invite ? t("inviteDoneBody") : t("doneBody")}
         />
         <Button asChild variant="primary" size="lg" className="w-full max-sm:h-10">
-          <Link href="/app">{t("doneAction")}</Link>
+          <Link href={invite ? INVITE_DESTINATION[invite] : "/app"}>
+            {invite === "affiliate"
+              ? t("inviteDoneActionAffiliate")
+              : invite === "member"
+                ? t("inviteDoneActionMember")
+                : t("doneAction")}
+          </Link>
         </Button>
       </>
     )
@@ -49,7 +68,11 @@ export function ResetPasswordForm({ email }: { email: string }) {
 
   return (
     <>
-      <AuthHeading title={t("title")} description={t("subtitle")} />
+      {invite ? (
+        <AuthHeading title={t("inviteTitle")} description={t("inviteSubtitle", { email })} />
+      ) : (
+        <AuthHeading title={t("title")} description={t("subtitle")} />
+      )}
 
       <form action={dispatch} onSubmit={onSubmit} className="space-y-4" noValidate>
         {/* Lets a password manager file the new password under the right

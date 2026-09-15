@@ -132,6 +132,36 @@ export const transactions = pgTable(
   ],
 )
 
+/**
+ * Every provider id that names the same payment. Stripe stores a subscription
+ * payment as an invoice (`in_…`) while a refund or dispute only carries the
+ * PaymentIntent (`pi_…`) and charge (`ch_…`); this maps each of those ids to
+ * the `provider_transaction_id` the payment was recorded under.
+ *
+ * Keyed by provider id rather than by `transactions.id` on purpose: Stripe does
+ * not order its events, and the link between an invoice and its PaymentIntent
+ * (`invoice_payment.paid`) can arrive before the invoice payment itself.
+ * Written only by the webhook ingest path.
+ */
+export const transactionReferences = pgTable(
+  "transaction_references",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    provider: billingProviderEnum("provider").notNull(),
+    /** `pi_…`, `ch_…`, `in_…` — any id a later refund or dispute may carry. */
+    referenceId: text("reference_id").notNull(),
+    /** The id the payment row is stored under (`transactions.provider_transaction_id`). */
+    providerTransactionId: text("provider_transaction_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("transaction_references_key").on(t.workspaceId, t.provider, t.referenceId),
+  ],
+)
+
 export const customersRelations = relations(customers, ({ one, many }) => ({
   workspace: one(workspaces, {
     fields: [customers.workspaceId],

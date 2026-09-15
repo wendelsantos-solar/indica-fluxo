@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { getTranslations, setRequestLocale } from "next-intl/server"
 
+import { parseInviteQuery } from "@/features/auth/invite-query"
 import { ResetLinkExpired, ResetPasswordForm } from "@/features/auth/reset-password-form"
 import { createClient } from "@/lib/supabase/server"
 
@@ -23,6 +24,7 @@ export async function generateMetadata({
  */
 export default async function ResetPasswordPage({
   params,
+  searchParams,
 }: PageProps<"/[locale]/reset-password">) {
   const { locale } = await params
   setRequestLocale(locale)
@@ -35,5 +37,7 @@ export default async function ResetPasswordPage({
   } = await supabase.auth.getUser()
   if (!user?.email) return <ResetLinkExpired />
 
-  return <ResetPasswordForm email={user.email} />
+  // After an invitation e-mail the same form sets a first password.
+  const invite = parseInviteQuery(await searchParams)
+  return <ResetPasswordForm email={user.email} invite={invite.audience} />
 }

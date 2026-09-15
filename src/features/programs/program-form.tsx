@@ -2,15 +2,18 @@
 
 import { useTranslations } from "next-intl"
 import type * as React from "react"
-import { useActionState, useState } from "react"
+import { useActionState, useRef, useState } from "react"
 
 import { InlineAlert } from "@/components/feedback/inline-alert"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Field } from "@/components/ui/field"
+import { FormSection } from "@/components/ui/form-section"
 import { Input, Select, Textarea } from "@/components/ui/input"
+import { Link } from "@/i18n/navigation"
 import { SettingsDisclosure } from "@/features/onboarding/settings-disclosure"
-import { CURRENCY_CODES } from "@/features/workspaces/options"
+import { CURRENCY_CODES, type SelectOption } from "@/features/workspaces/options"
 
 import { createProgramAction, updateProgramAction, type ProgramFormState } from "./actions"
 import { DURATION_MONTHS_MAX, DURATION_MONTHS_MIN, WEBSITE_URL_MAX_LENGTH } from "./limits"
@@ -63,20 +66,31 @@ const ADVANCED_FIELDS = {
  * so the action's schema receives exactly what it did before. The product site
  * is optional and sits in that disclosure too: affiliates are told where their
  * default link is missing, so onboarding does not have to insist.
+ *
+ * Editing a program into a non-active status, or to another currency, changes
+ * what every affiliate can earn, so saving asks first and says what happens
+ * (see `consequences` below — it describes what the services really do).
  */
 export function ProgramForm({
   workspaceSlug,
   defaultValues,
   mode,
   variant = "full",
+  currencyOptions,
 }: {
   workspaceSlug: string
   defaultValues: ProgramFormValues
   mode: "create" | "edit"
   variant?: "full" | "onboarding"
+  /**
+   * `BRL — Real brasileiro`, built on the server with `currencyOptions(locale)`
+   * so `Intl` names cannot differ at hydration. Bare codes without it.
+   */
+  currencyOptions?: SelectOption[]
 }) {
   const t = useTranslations("forms.program")
   const ts = useTranslations("status")
+  const ta = useTranslations("common.actions")
   const [state, action, pending] = useActionState(
     mode === "create" ? createProgramAction : updateProgramAction,
     INITIAL,
@@ -93,6 +107,11 @@ export function ProgramForm({
         ? defaultValues.durationMonths
         : "12",
   }))
+  const formRef = useRef<HTMLFormElement>(null)
+  /** Set by the confirmation, so the resumed submission is not intercepted again. */
+  const confirmed = useRef(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+
   const set =
     <K extends keyof ProgramFormValues>(key: K) =>
     (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -227,9 +246,9 @@ export function ProgramForm({
         aria-invalid={errors.currency ? true : undefined}
         aria-describedby={describedBy("currency")}
       >
-        {CURRENCY_CODES.map((code) => (
-          <option key={code} value={code}>
-            {code}
+        {(currencyOptions ?? CURRENCY_CODES.map((code) => ({ value: code, label: code }))).map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
           </option>
         ))}
       </Select>
@@ -418,99 +437,122 @@ export function ProgramForm({
     )
   }
 
+  // What saving really changes, stated before it happens. The rules live in
+  // the services: `tracking.ts` attributes a click only while the program is
+  // `active` (clicks are still recorded), and the commission engine skips any
+  // payment whose currency differs from the program's
+  // (`domain/commission.ts`, "currency_mismatch"). Neither rewrites a
+  // commission already on the ledger.
+  const stopsAttributing =
+    mode === "edit" && values.status !== "active" && values.status !== defaultValues.status
+  const changesCurrency = mode === "edit" && values.currency !== defaultValues.currency
+  const consequences = [
+    stopsAttributing ? t("confirm.statusBody", { status: ts(values.status) }) : null,
+    changesCurrency ? t("confirm.currencyBody", { from: defaultValues.currency, to: values.currency }) : null,
+  ].filter((line): line is string => line !== null)
+
+  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    if (confirmed.current) {
+      confirmed.current = false
+      return
+    }
+    if (consequences.length > 0) {
+      // Prevented outside a transition, React does not run the form action.
+      event.preventDefault()
+      setConfirmOpen(true)
+    }
+  }
+
   return (
-    <form action={action} noValidate>
-      {hiddenFields}
+    <>
+      <form ref={formRef} action={action} onSubmit={onSubmit} noValidate>
+        {hiddenFields}
 
-      {/* One container for the whole form; its sections are divided by
-          hairlines rather than stacked as separate cards. */}
-      <Card className="divide-y divide-border">
-        <FormSection title={t("basics.title")} description={t("basics.description")}>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="sm:col-span-2">{nameField}</div>
-            {statusField}
-          </div>
+        {/* One container for the whole form, its groups divided by hairlines —
+            the same `FormSection` grid as every other form in the product. */}
+        <Card>
+          <FormSection title={t("basics.title")} description={t("basics.description")}>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="sm:col-span-2">{nameField}</div>
+              {statusField}
+            </div>
 
-          <Field
-            label={t("description")}
-            htmlFor="description"
-            hint={t("descriptionHint")}
-            error={error("description")}
-          >
-            <Textarea
-              id="description"
-              name="description"
-              rows={3}
-              value={values.description}
-              onChange={set("description")}
-              aria-describedby={describedBy("description", true)}
-              invalid={Boolean(errors.description)}
-            />
-          </Field>
+            <Field
+              label={t("description")}
+              htmlFor="description"
+              hint={t("descriptionHint")}
+              error={error("description")}
+            >
+              <Textarea
+                id="description"
+                name="description"
+                rows={3}
+                value={values.description}
+                onChange={set("description")}
+                aria-describedby={describedBy("description", true)}
+                invalid={Boolean(errors.description)}
+              />
+            </Field>
 
-          {websiteField}
-        </FormSection>
+            {websiteField}
+          </FormSection>
 
-        <FormSection title={t("commission.title")} description={t("commission.description")}>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {typeField}
-            {amountField}
+          <FormSection title={t("commission.title")} description={t("commission.description")}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {typeField}
+              {amountField}
+            </div>
             {currencyField}
-          </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            {recurrenceField("sm:col-span-2")}
-            {durationField}
-          </div>
-        </FormSection>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {recurrenceField(durationField ? undefined : "sm:col-span-2")}
+              {durationField}
+            </div>
+          </FormSection>
 
-        <SettingsDisclosure
-          framed={false}
-          title={t("advanced.title")}
-          summary={settingsSummary}
-          defaultOpen={mode === "edit"}
-          forceOpen={advancedError}
-        >
-          <div className="grid gap-4 md:grid-cols-3 md:gap-8">
-            <p className="text-caption text-muted-foreground">{t("advanced.description")}</p>
-            <div className="space-y-4 md:col-span-2">
+          <FormSection title={t("attribution.title")} description={t("advanced.description")}>
+            <SettingsDisclosure
+              title={t("advanced.title")}
+              summary={settingsSummary}
+              defaultOpen={mode === "edit"}
+              forceOpen={advancedError}
+            >
               {modelField}
               <div className="grid gap-4 sm:grid-cols-2">
                 {windowField}
                 {holdField}
               </div>
-            </div>
+            </SettingsDisclosure>
+          </FormSection>
+
+          <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border px-4 py-3 sm:px-5">
+            {feedback ? <div className="mr-auto min-w-0">{feedback}</div> : null}
+            {mode === "create" ? (
+              <Button asChild variant="secondary">
+                <Link href={{ pathname: "/[workspaceSlug]/programs", params: { workspaceSlug } }}>
+                  {ta("cancel")}
+                </Link>
+              </Button>
+            ) : null}
+            <Button type="submit" variant="primary" loading={pending}>
+              {mode === "create" ? t("submitCreate") : t("submitSave")}
+            </Button>
           </div>
-        </SettingsDisclosure>
+        </Card>
+      </form>
 
-        <div className="flex flex-wrap items-center justify-end gap-3 px-4 py-3">
-          {feedback ? <div className="mr-auto">{feedback}</div> : null}
-          <Button type="submit" variant="primary" loading={pending}>
-            {mode === "create" ? t("submitCreate") : t("submitSave")}
-          </Button>
-        </div>
-      </Card>
-    </form>
-  )
-}
-
-/** A titled block of fields: heading on the left, controls on the right. */
-function FormSection({
-  title,
-  description,
-  children,
-}: {
-  title: string
-  description: string
-  children: React.ReactNode
-}) {
-  return (
-    <section className="grid gap-4 p-4 md:grid-cols-3 md:gap-8 md:py-6">
-      <div>
-        <h2 className="text-caption font-medium text-foreground">{title}</h2>
-        <p className="mt-0.5 text-caption text-muted-foreground">{description}</p>
-      </div>
-      <div className="space-y-4 md:col-span-2">{children}</div>
-    </section>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        tone={stopsAttributing ? "danger" : "primary"}
+        title={t("confirm.title")}
+        description={consequences.join(" ")}
+        confirmLabel={t("confirm.action")}
+        action={() => {
+          confirmed.current = true
+          formRef.current?.requestSubmit()
+        }}
+      />
+    </>
   )
 }

@@ -13,19 +13,17 @@ const LINK = "text-caption text-muted-foreground transition-colors duration-[120
 export async function SiteFooter() {
   const t = await getTranslations("marketing")
 
+  // Nav and footer use the same names for the same destinations.
   const groups = [
     {
-      title: t("footer.product"),
+      title: t("footer.explore"),
       links: [
-        { href: { pathname: "/" as const, hash: "produto" }, label: t("footer.features") },
+        { href: { pathname: "/" as const, hash: "produto" }, label: t("chrome.product") },
         { href: { pathname: "/" as const, hash: "como-funciona" }, label: t("chrome.howItWorks") },
         { href: { pathname: "/" as const, hash: "integracoes" }, label: t("footer.integrations") },
         { href: "/pricing" as const, label: t("chrome.pricing") },
+        { href: "/docs" as const, label: t("chrome.docs") },
       ],
-    },
-    {
-      title: t("footer.resources"),
-      links: [{ href: "/docs" as const, label: t("chrome.docs") }],
     },
     {
       title: t("footer.account"),
@@ -38,7 +36,7 @@ export async function SiteFooter() {
 
   return (
     <footer className="border-t border-border">
-      <div className="mx-auto grid w-full max-w-page gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.4fr_repeat(3,1fr)]">
+      <div className="mx-auto grid w-full max-w-page gap-10 px-4 py-14 sm:px-6 md:grid-cols-[2fr_repeat(2,1fr)]">
         <div className="max-w-xs space-y-3">
           <Logo />
           <p className="text-pretty text-caption text-muted-foreground">{t("chrome.footer")}</p>

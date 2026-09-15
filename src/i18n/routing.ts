@@ -76,9 +76,17 @@ export const routing = defineRouting({
       "pt-br": "/[workspaceSlug]/afiliados",
       en: "/[workspaceSlug]/affiliates",
     },
+    "/[workspaceSlug]/affiliates/[affiliateId]": {
+      "pt-br": "/[workspaceSlug]/afiliados/[affiliateId]",
+      en: "/[workspaceSlug]/affiliates/[affiliateId]",
+    },
     "/[workspaceSlug]/conversions": {
       "pt-br": "/[workspaceSlug]/conversoes",
       en: "/[workspaceSlug]/conversions",
+    },
+    "/[workspaceSlug]/conversions/[conversionId]": {
+      "pt-br": "/[workspaceSlug]/conversoes/[conversionId]",
+      en: "/[workspaceSlug]/conversions/[conversionId]",
     },
     "/[workspaceSlug]/commissions": {
       "pt-br": "/[workspaceSlug]/comissoes",

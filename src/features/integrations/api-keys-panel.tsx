@@ -33,21 +33,25 @@ export interface ApiKeyRow {
 /**
  * API keys and the tracking code that uses the public one.
  *
- * Only a key's prefix is stored, so the full tracking code can exist on this
- * page exactly once: right after a key is generated. Before that the code is
- * shown with its key visibly missing and no copy button — copying it would
- * install a snippet that silently records nothing — and generating a key is
- * the path offered instead.
+ * Only a key's prefix and hash are stored, so the full tracking code can exist
+ * on this page exactly once: right after a key is generated. Before that the
+ * code is shown with its key visibly missing and no copy button — copying it
+ * would install a snippet that silently records nothing. The copy says so
+ * plainly: the installed code keeps working, and generating a new key is the
+ * only way to see a full key again, at the cost of invalidating the current one.
  */
 export function ApiKeysPanel({
   workspaceSlug,
   keys,
   trackerUrl,
+  lastClickWhen,
 }: {
   workspaceSlug: string
   keys: ApiKeyRow[]
   /** Absolute URL of the tracker script. */
   trackerUrl: string
+  /** Pre-formatted on the server ("há 5 minutos"); `null` when no click was ever recorded. */
+  lastClickWhen: string | null
 }) {
   const t = useTranslations("forms.apiKeys")
   const tc = useTranslations("common.table")
@@ -152,7 +156,7 @@ export function ApiKeysPanel({
         )}
       </section>
 
-      <section id="tracking">
+      <section id="tracking" className="scroll-mt-16">
         <SectionHeader
           title={t("snippet")}
           description={t.rich("snippetHint", {
@@ -162,6 +166,11 @@ export function ApiKeysPanel({
           })}
           className="mb-3"
         />
+
+        {/* Evidence the installed code works, independent of whether a full key is on screen. */}
+        <p className="mb-3 text-meta text-muted-foreground">
+          {lastClickWhen ? t("lastClick", { when: lastClickWhen }) : t("noClicks")}
+        </p>
 
         {revealedPublishable ? (
           <div className="space-y-2">

@@ -21,7 +21,7 @@ export function DropdownContent({
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          "z-50 min-w-[200px] overflow-hidden rounded-panel bg-surface-3 p-1 shadow-overlay",
+          "z-popover min-w-[200px] overflow-hidden rounded-panel bg-surface-3 p-1 shadow-overlay",
           "data-[state=open]:animate-pop-in",
           className,
         )}

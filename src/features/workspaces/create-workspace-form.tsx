@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl"
 import { useActionState, useState, useSyncExternalStore } from "react"
 
+import { InlineAlert } from "@/components/feedback/inline-alert"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Field } from "@/components/ui/field"
@@ -10,7 +11,7 @@ import { Input, Select } from "@/components/ui/input"
 import { SettingsDisclosure } from "@/features/onboarding/settings-disclosure"
 
 import { createWorkspaceAction, type FormState } from "./actions"
-import { TIMEZONES } from "./options"
+import { TIMEZONES, type SelectOption } from "./options"
 
 const INITIAL: FormState = {}
 const FALLBACK_TIMEZONE = "UTC"
@@ -27,6 +28,12 @@ function browserTimezone(): string {
   }
 }
 
+/** "Horário de Brasília (GMT-3)" out of "Horário de Brasília (GMT-3) · America/Sao Paulo". */
+function shortTimezoneLabel(options: readonly SelectOption[], zone: string): string {
+  const label = options.find((option) => option.value === zone)?.label ?? zone
+  return label.split(" · ")[0] ?? label
+}
+
 /**
  * Step 1 of onboarding: one question. Currency and timezone have good
  * defaults — the locale's currency and the browser's zone — so they wait
@@ -35,10 +42,13 @@ function browserTimezone(): string {
 export function CreateWorkspaceForm({
   defaultCurrency,
   currencies,
+  timezones,
 }: {
   defaultCurrency: string
-  /** Labelled on the server, so the option text cannot differ at hydration. */
-  currencies: { code: string; label: string }[]
+  /** Labelled on the server (`currencyOptions`), so the text cannot differ at hydration. */
+  currencies: SelectOption[]
+  /** `timezoneOptions`: the same friendly names as workspace settings. */
+  timezones: SelectOption[]
 }) {
   const t = useTranslations("forms.createWorkspace")
   const [state, action, pending] = useActionState(createWorkspaceAction, INITIAL)
@@ -86,7 +96,7 @@ export function CreateWorkspaceForm({
 
         <SettingsDisclosure
           title={t("preferences")}
-          summary={`${currency} · ${timezone}`}
+          summary={`${currency} · ${shortTimezoneLabel(timezones, timezone)}`}
           forceOpen={Boolean(preferencesError)}
         >
           <Field
@@ -102,8 +112,8 @@ export function CreateWorkspaceForm({
               onChange={(event) => setCurrency(event.target.value)}
             >
               {currencies.map((option) => (
-                <option key={option.code} value={option.code}>
-                  {option.code} — {option.label}
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </Select>
@@ -116,23 +126,16 @@ export function CreateWorkspaceForm({
               value={timezone}
               onChange={(event) => setChosenTimezone(event.target.value)}
             >
-              {TIMEZONES.map((zone) => (
-                <option key={zone} value={zone}>
-                  {zone}
+              {timezones.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </Select>
           </Field>
         </SettingsDisclosure>
 
-        {state.error ? (
-          <p
-            role="alert"
-            className="rounded-control bg-danger-subtle px-3 py-2 text-meta text-danger-foreground"
-          >
-            {state.error}
-          </p>
-        ) : null}
+        {state.error ? <InlineAlert tone="danger">{state.error}</InlineAlert> : null}
 
         <Button
           type="submit"

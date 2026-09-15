@@ -97,6 +97,8 @@ export const webhookEvents = pgTable(
   (t) => [
     uniqueIndex("webhook_events_provider_event_key").on(t.provider, t.providerEventId),
     index("webhook_events_status_idx").on(t.status, t.receivedAt.desc()),
+    // Latest event per workspace — Integrations' "last event received".
+    index("webhook_events_workspace_time_idx").on(t.workspaceId, t.receivedAt.desc()),
   ],
 )
 

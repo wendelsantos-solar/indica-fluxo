@@ -1,15 +1,17 @@
 import type { Metadata } from "next"
-import { getTranslations } from "next-intl/server"
+import { getLocale, getTranslations } from "next-intl/server"
 
 import { InlineAlert } from "@/components/feedback/inline-alert"
 import { PageHeader, SectionHeader } from "@/components/layout/page-header"
+import { stripeWebhookPath } from "@/lib/billing/stripe/events"
 import { TRACKER_PATH } from "@/lib/tracking/constants"
 import { ApiKeysPanel } from "@/features/integrations/api-keys-panel"
 import { StripePanel } from "@/features/integrations/stripe-panel"
+import { deriveStripeState, formatRelativeTime } from "@/features/integrations/stripe-status"
 import { requireUser } from "@/server/auth/session"
-import { withUser } from "@/server/db"
 import { canManageApiKeys, listApiKeys } from "@/server/services/api-keys"
-import { listIntegrations } from "@/server/services/integrations"
+import { getIntegrationHealth } from "@/server/services/integration-health"
+import { getStripeSetup } from "@/server/services/integrations"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
 export const dynamic = "force-dynamic"
@@ -27,6 +29,7 @@ export default async function IntegrationsPage({
 }: PageProps<"/[locale]/[workspaceSlug]/integrations">) {
   const t = await getTranslations("dashboard.integrations")
   const tk = await getTranslations("forms.apiKeys")
+  const locale = await getLocale()
   const { workspaceSlug } = await params
   const user = await requireUser()
   const workspace = await getWorkspaceForUser(user.id, workspaceSlug)
@@ -35,13 +38,23 @@ export default async function IntegrationsPage({
   // integration status read-only, and the admin-only reads are never called.
   const isAdmin = canManageApiKeys(workspace.role)
 
-  const [integrations, keys] = await Promise.all([
-    withUser(user.id, (tx) => listIntegrations(tx, workspace.id)),
+  const [setup, health, keys] = await Promise.all([
+    getStripeSetup(user.id, workspace.id),
+    getIntegrationHealth(user.id, workspace.id),
     isAdmin ? listApiKeys(user.id, workspace.id) : Promise.resolve(null),
   ])
 
-  const stripe = integrations.find((integration) => integration.provider === "stripe") ?? null
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+  const now = new Date()
+  const relative = (value: Date | null) => (value ? formatRelativeTime(locale, value, now) : null)
+
+  const state = deriveStripeState({
+    integration: setup,
+    lastEventAt: health.stripe.lastEventAt,
+    lastEventFailed: health.stripe.lastEventFailed,
+  })
+  const lastEventWhen = relative(health.stripe.lastEventAt)
+  const lastClickWhen = relative(health.tracking.lastClickAt)
 
   return (
     <>
@@ -53,9 +66,16 @@ export default async function IntegrationsPage({
         <div className="max-w-detail space-y-10">
           <StripePanel
             workspaceSlug={workspaceSlug}
-            status={stripe?.status ?? null}
-            providerAccountId={stripe?.providerAccountId ?? null}
-            webhookUrl={`${appUrl}/api/webhooks/stripe`}
+            state={state}
+            providerAccountId={setup?.providerAccountId ?? null}
+            secretSaved={setup?.secretSaved ?? false}
+            webhookUrl={setup ? `${appUrl}${stripeWebhookPath(setup.integrationId)}` : null}
+            lastEvent={
+              lastEventWhen && health.stripe.lastEventType
+                ? { when: lastEventWhen, type: health.stripe.lastEventType }
+                : null
+            }
+            lastRejectedWhen={relative(setup?.lastRejectedAt ?? null)}
             readOnly={!isAdmin}
           />
 
@@ -66,12 +86,21 @@ export default async function IntegrationsPage({
               workspaceSlug={workspaceSlug}
               keys={keys}
               trackerUrl={`${appUrl}${TRACKER_PATH}`}
+              lastClickWhen={lastClickWhen}
             />
           ) : (
-            <section>
-              <SectionHeader title={tk("title")} className="mb-3" />
-              <InlineAlert>{tk("adminOnly")}</InlineAlert>
-            </section>
+            <>
+              <section>
+                <SectionHeader title={tk("title")} className="mb-3" />
+                <InlineAlert>{tk("adminOnly")}</InlineAlert>
+              </section>
+              <section id="tracking" className="scroll-mt-16">
+                <SectionHeader title={tk("snippet")} className="mb-3" />
+                <p className="text-meta text-muted-foreground">
+                  {lastClickWhen ? tk("lastClick", { when: lastClickWhen }) : tk("noClicks")}
+                </p>
+              </section>
+            </>
           )}
         </div>
       </div>

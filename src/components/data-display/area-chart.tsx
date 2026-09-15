@@ -162,7 +162,7 @@ export function AreaChart({
         {hover !== null ? (
           <div
             className={cn(
-              "pointer-events-none absolute top-0 z-10 min-w-36 rounded-control bg-surface-3 px-2.5 py-2 shadow-overlay",
+              "pointer-events-none absolute top-0 z-raised min-w-36 rounded-control bg-surface-3 px-2.5 py-2 shadow-overlay",
               // Flip to the left of the cursor line near the right edge.
               hoverLeft > 65 ? "mr-3" : "ml-3",
             )}

@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server"
 import { Link } from "@/i18n/navigation"
 
 import { EmptyState } from "@/components/feedback/empty-state"
+import { InlineAlert } from "@/components/feedback/inline-alert"
 import { getFormatters } from "@/i18n/format"
 import { PageHeader } from "@/components/layout/page-header"
 import { StatusBadge } from "@/components/ui/badge"
@@ -14,6 +15,7 @@ import { formatMoneyTotals } from "@/lib/money-totals"
 import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
 import { listPrograms } from "@/server/repositories/programs"
+import { getPlanOverview } from "@/server/services/plans"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
 export const dynamic = "force-dynamic"
@@ -30,11 +32,20 @@ export default async function ProgramsPage({ params }: PageProps<"/[locale]/[wor
   const t = await getTranslations("dashboard.programs")
   const tc = await getTranslations("common.table")
   const tm = await getTranslations("common.money")
-  const f = await getFormatters()
   const { workspaceSlug } = await params
   const user = await requireUser()
   const workspace = await getWorkspaceForUser(user.id, workspaceSlug)
-  const programs = await withUser(user.id, (tx) => listPrograms(tx, workspace.id))
+  const f = await getFormatters(workspace.timezone)
+  const [programs, plan] = await Promise.all([
+    withUser(user.id, (tx) => listPrograms(tx, workspace.id)),
+    getPlanOverview(user.id, workspace.id),
+  ])
+
+  // `createProgram` refuses a program past the plan's limit; say so here,
+  // before the founder fills in a form that cannot be saved.
+  const programLimit = plan.limits.programs
+  const atProgramLimit = programLimit !== null && plan.usage.programs >= programLimit
+  const limitNoticeId = "program-plan-limit"
 
   const newProgramHref = {
     pathname: "/[workspaceSlug]/programs/new",
@@ -49,16 +60,39 @@ export default async function ProgramsPage({ params }: PageProps<"/[locale]/[wor
         description={t("description")}
         actions={
           // On a first run the empty state carries the one primary action.
-          programs.length > 0 ? (
+          programs.length === 0 ? null : atProgramLimit ? (
+            // Disabled, and described by the notice below that explains why.
+            <Button variant="secondary" size="sm" disabled aria-describedby={limitNoticeId}>
+              <Plus aria-hidden="true" />
+              {t("create")}
+            </Button>
+          ) : (
             <Button asChild variant="primary" size="sm">
               <Link href={newProgramHref}>
                 <Plus aria-hidden="true" />
                 {t("create")}
               </Link>
             </Button>
-          ) : null
+          )
         }
       />
+
+      {atProgramLimit && programLimit !== null ? (
+        <div id={limitNoticeId} className="mb-6">
+          <InlineAlert
+            title={t("planLimit.title", { limit: programLimit })}
+            action={
+              <Button asChild variant="ghost" size="sm">
+                <Link href={{ pathname: "/[workspaceSlug]/settings", params: { workspaceSlug } }}>
+                  {t("planLimit.action")}
+                </Link>
+              </Button>
+            }
+          >
+            {t("planLimit.description")}
+          </InlineAlert>
+        </div>
+      ) : null}
 
       {programs.length === 0 ? (
         <EmptyState

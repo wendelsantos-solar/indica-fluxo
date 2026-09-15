@@ -13,6 +13,7 @@ import type {
 } from "@/lib/billing/types"
 
 import { stripe } from "./client"
+import { verifyStripeWebhook } from "./webhook"
 
 const INTERVAL_MAP: Record<string, ProviderSubscription["interval"]> = {
   day: "day",
@@ -36,27 +37,47 @@ function seconds(value: number | null | undefined): Date | null {
   return typeof value === "number" ? new Date(value * 1000) : null
 }
 
-function idOf(value: string | { id: string } | null | undefined): string | null {
+function idOf(value: string | { id?: string } | null | undefined): string | null {
   if (!value) return null
-  return typeof value === "string" ? value : value.id
+  return typeof value === "string" ? value : (value.id ?? null)
+}
+
+function compact(values: Array<string | null>): string[] {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))]
+}
+
+/**
+ * The PaymentIntents and charges that paid an invoice, when the payload holds
+ * them: `payments` is only present if expanded, and pre-basil invoices carried
+ * `payment_intent` / `charge` directly. Otherwise `invoice_payment.paid`
+ * supplies the link.
+ */
+function invoicePaymentReferences(invoice: Stripe.Invoice): string[] {
+  const legacy = invoice as unknown as { payment_intent?: string | { id: string }; charge?: string | { id: string } }
+  const fromPayments = (invoice.payments?.data ?? []).flatMap((payment) => [
+    idOf(payment.payment?.payment_intent),
+    idOf(payment.payment?.charge),
+  ])
+  return compact([idOf(legacy.payment_intent), idOf(legacy.charge), ...fromPayments])
+}
+
+function subscriptionOfInvoice(invoice: Stripe.Invoice): string | null {
+  const legacy = (invoice as unknown as { subscription?: string | { id: string } }).subscription
+  return idOf(legacy) ?? idOf(invoice.parent?.subscription_details?.subscription)
 }
 
 export class StripeAdapter implements BillingProvider {
   readonly id = "stripe" as const
 
-  /** Verifies before parsing. An unverified body is never handed to JSON.parse. */
+  /**
+   * Legacy platform endpoint: verifies with the one platform-wide secret.
+   * Per-workspace endpoints call `verifyStripeWebhook` with their own secret.
+   * Verifies before parsing. An unverified body is never handed to JSON.parse.
+   */
   async verifyWebhook(rawBody: string, signature: string): Promise<VerifiedWebhook> {
     const secret = env().STRIPE_WEBHOOK_SECRET
     if (!secret) throw new Error("STRIPE_WEBHOOK_SECRET is not configured.")
-
-    const event = await stripe().webhooks.constructEventAsync(rawBody, signature, secret)
-
-    return {
-      providerEventId: event.id,
-      rawType: event.type,
-      providerAccountId: event.account ?? null,
-      payload: event,
-    }
+    return verifyStripeWebhook(rawBody, signature, secret)
   }
 
   normalizeEvent(webhook: VerifiedWebhook): NormalizedBillingEvent | null {
@@ -78,26 +99,42 @@ export class StripeAdapter implements BillingProvider {
           ...base,
           type: "payment.succeeded",
           providerTransactionId: invoice.id ?? `invoice_${event.id}`,
+          providerReferences: invoicePaymentReferences(invoice),
           providerCustomerId: idOf(invoice.customer),
-          providerSubscriptionId: idOf(
-            (invoice as unknown as { subscription?: string | { id: string } }).subscription,
-          ),
+          providerSubscriptionId: subscriptionOfInvoice(invoice),
           customerEmail: invoice.customer_email ?? null,
           currency: invoice.currency.toUpperCase(),
           amountMinor: invoice.amount_paid,
         }
       }
 
+      case "invoice_payment.paid": {
+        // Since API 2025-03-31.basil an invoice no longer names its
+        // PaymentIntent or charge; this object is the link. It carries no money.
+        const payment = event.data.object as Stripe.InvoicePayment
+        const invoiceId = idOf(payment.invoice)
+        const references = compact([idOf(payment.payment.payment_intent), idOf(payment.payment.charge)])
+        if (!invoiceId || references.length === 0) return null
+        return {
+          ...base,
+          type: "payment.referenced",
+          providerTransactionId: invoiceId,
+          providerReferences: references,
+        }
+      }
+
       case "payment_intent.succeeded": {
         const intent = event.data.object as Stripe.PaymentIntent
         // Subscription revenue arrives as an invoice; this is the one-off path.
-        // `invoice` is not on the current typings but is present on the wire.
+        // `invoice` is only on the wire for API versions before basil; on later
+        // versions the service drops a PaymentIntent already linked to an invoice.
         const linkedInvoice = (intent as unknown as { invoice?: string | { id: string } }).invoice
         if (linkedInvoice) return null
         return {
           ...base,
           type: "payment.succeeded",
           providerTransactionId: intent.id,
+          providerReferences: compact([idOf(intent.latest_charge)]),
           providerCustomerId: idOf(intent.customer),
           providerSubscriptionId: null,
           customerEmail: intent.receipt_email ?? null,
@@ -106,20 +143,26 @@ export class StripeAdapter implements BillingProvider {
         }
       }
 
-      case "charge.refunded": {
-        const charge = event.data.object as Stripe.Charge
-        if (!charge.amount_refunded) return null
+      case "refund.created": {
+        // One event per refund, partial ones included, with the refund's own
+        // amount — `charge.refunded` only carries the charge's running total.
+        const refund = event.data.object as Stripe.Refund
+        if (!refund.amount || refund.status === "failed" || refund.status === "canceled") return null
+        const references = compact([
+          idOf(refund.payment_intent),
+          idOf(refund.charge),
+          // Pre-basil charges still name their invoice.
+          idOf((refund.charge as unknown as { invoice?: string | { id: string } } | null)?.invoice),
+        ])
+        if (references.length === 0) return null
         return {
           ...base,
           type: "payment.refunded",
-          providerTransactionId: `${charge.id}_refund`,
-          providerParentTransactionId:
-            idOf((charge as unknown as { invoice?: string | { id: string } }).invoice) ??
-            idOf(charge.payment_intent) ??
-            charge.id,
-          providerCustomerId: idOf(charge.customer),
-          currency: charge.currency.toUpperCase(),
-          amountMinor: charge.amount_refunded,
+          providerTransactionId: refund.id,
+          paymentReferences: references,
+          providerCustomerId: idOf(refund.customer),
+          currency: refund.currency.toUpperCase(),
+          amountMinor: refund.amount,
           isChargeback: false,
         }
       }
@@ -129,8 +172,8 @@ export class StripeAdapter implements BillingProvider {
         return {
           ...base,
           type: "payment.refunded",
-          providerTransactionId: `${dispute.id}_dispute`,
-          providerParentTransactionId: idOf(dispute.charge),
+          providerTransactionId: dispute.id,
+          paymentReferences: compact([idOf(dispute.payment_intent), idOf(dispute.charge)]),
           providerCustomerId: null,
           currency: dispute.currency.toUpperCase(),
           amountMinor: dispute.amount,

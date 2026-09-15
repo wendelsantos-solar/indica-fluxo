@@ -17,7 +17,7 @@ export function DialogContent({
   size = "default",
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
-  /** `form` widens to 560px for dialogs holding a multi-field form. */
+  /** 480px by default; `form` widens to 560px for a multi-field form — DESIGN.md §9 Dialog. */
   size?: "default" | "form"
 }) {
   const t = useTranslations("common.actions")
@@ -26,14 +26,14 @@ export function DialogContent({
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay
         className={cn(
-          "fixed inset-0 z-50 bg-scrim",
+          "fixed inset-0 z-modal bg-scrim",
           "data-[state=open]:animate-[overlay-in_140ms_ease-out]",
         )}
       />
       <DialogPrimitive.Content
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-1rem)] flex-col outline-none",
-          size === "form" ? "max-w-xl" : "max-w-md",
+          "fixed left-1/2 top-1/2 z-modal flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-1rem)] flex-col outline-none",
+          size === "form" ? "max-w-140" : "max-w-120",
           "-translate-x-1/2 -translate-y-1/2",
           "rounded-panel bg-surface-3 shadow-overlay",
           "data-[state=open]:animate-[dialog-in_180ms_var(--ease-out-quint)]",

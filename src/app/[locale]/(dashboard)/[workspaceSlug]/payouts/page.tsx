@@ -1,18 +1,21 @@
 import { CreditCard } from "lucide-react"
 import type { Metadata } from "next"
-import { getTranslations } from "next-intl/server"
+import { getLocale, getTranslations } from "next-intl/server"
 
 import { Link } from "@/i18n/navigation"
 
 import { Metric, MetricCell, MetricGrid } from "@/components/data-display/metric"
 import { getFormatters } from "@/i18n/format"
 import { EmptyState } from "@/components/feedback/empty-state"
+import { InlineAlert } from "@/components/feedback/inline-alert"
 import { PageHeader, SectionHeader } from "@/components/layout/page-header"
 import { StatusBadge } from "@/components/ui/badge"
 import { TabLink } from "@/components/ui/tabs"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
 import { CancelBatchButton, MarkPaidDialog } from "@/features/payouts/batch-actions"
+import { formatBatchLabel } from "@/features/payouts/batch-label"
 import { PayableList } from "@/features/payouts/payable-list"
+import { formatDate } from "@/lib/money"
 import { formatMoneyTotals, orderMoneyTotals, pickPrimaryCurrency, toMoneyTotals } from "@/lib/money-totals"
 import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
@@ -45,11 +48,12 @@ export default async function PayoutsPage({
 }: PageProps<"/[locale]/[workspaceSlug]/payouts">) {
   const t = await getTranslations("dashboard.payouts")
   const tc = await getTranslations("common.table")
-  const f = await getFormatters()
+  const locale = await getLocale()
   const { workspaceSlug } = await params
   const query = await searchParams
   const user = await requireUser()
   const workspace = await getWorkspaceForUser(user.id, workspaceSlug)
+  const f = await getFormatters(workspace.timezone)
 
   // Read-only: `listPayableByAffiliate` already counts matured `pending`
   // commissions as payable, so rendering this page never writes to the ledger.
@@ -71,6 +75,10 @@ export default async function PayoutsPage({
   const clearedAffiliates = new Set(payable.map((row) => row.participationId)).size
 
   const awaitingPayment = batches.filter((batch) => batch.status === "approved").length
+  // Creating, cancelling and paying a batch are owner/admin actions in the
+  // service. Members keep the read-only totals and history (RLS lets every
+  // member read the ledger) but never see the selection list they could not
+  // submit, nor each affiliate's e-mail in it (UI_UX_FUNCTIONAL_FINDINGS O2).
   const canManage = workspace.role !== "member"
 
   // "approved" reads "Aprovada" for a commission; a batch in that state is
@@ -111,16 +119,20 @@ export default async function PayoutsPage({
         <section>
           <SectionHeader
             title={t("readyToPay")}
-            count={payableRows.length > 0 ? f.number(payableRows.length) : undefined}
+            count={canManage && payableRows.length > 0 ? f.number(payableRows.length) : undefined}
             description={
-              currencies.length > 1
-                ? t("readyToPayByCurrency")
-                : payableRows.length > 0
-                  ? t("readyToPayDescription")
-                  : undefined
+              !canManage
+                ? undefined
+                : currencies.length > 1
+                  ? t("readyToPayByCurrency")
+                  : payableRows.length > 0
+                    ? t("readyToPayDescription")
+                    : undefined
             }
           />
-          {currencies.length > 1 ? (
+          {!canManage ? (
+            <InlineAlert>{t("memberReadOnly")}</InlineAlert>
+          ) : currencies.length > 1 ? (
             <nav
               aria-label={t("currencyTabs")}
               className="-mx-4 mb-3 flex items-center gap-5 overflow-x-auto border-b border-border px-4 md:mx-0 md:px-0"
@@ -140,7 +152,7 @@ export default async function PayoutsPage({
               ))}
             </nav>
           ) : null}
-          {payableRows.length === 0 ? (
+          {!canManage ? null : payableRows.length === 0 ? (
             <EmptyState
               icon={CreditCard}
               title={t("emptyPayable.title")}
@@ -180,27 +192,29 @@ export default async function PayoutsPage({
                 </THead>
                 <TBody>
                   {batches.map((batch) => {
-                    const period = `${f.date(batch.periodStart)} → ${f.date(batch.periodEnd)}`
+                    // UTC calendar dates, as the service writes them.
+                    const period = `${formatDate(f.locale, batch.periodStart, "short", "UTC")} → ${formatDate(f.locale, batch.periodEnd, "short", "UTC")}`
+                    const name = formatBatchLabel(locale, batch.periodEnd, batch.reference)
                     const total = f.money(batch.totalAmountMinor, batch.currency)
                     const label = batchLabel(batch.status)
                     const paidOn = batch.paidAt ? t("paidOn", { date: f.date(batch.paidAt) }) : null
                     // Rendered twice: in its own column on wide screens and
                     // under the stacked row on phones. Only one is visible.
                     // The irreversible "cancel" sits apart from "mark as paid".
-                    // `relative z-10` keeps them clickable above the row link.
+                    // `relative z-raised` keeps them clickable above the row link.
                     const actions =
                       canManage && batch.status === "approved" ? (
                         <>
                           <CancelBatchButton
                             workspaceSlug={workspaceSlug}
                             batchId={batch.id}
-                            reference={batch.reference}
+                            batchLabel={name}
                           />
                           <span aria-hidden="true" className="mx-1 h-4 w-px bg-border" />
                           <MarkPaidDialog
                             workspaceSlug={workspaceSlug}
                             batchId={batch.id}
-                            reference={batch.reference}
+                            batchLabel={name}
                             affiliateCount={batch.affiliateCount}
                             totalAmountMinor={batch.totalAmountMinor}
                             currency={batch.currency}
@@ -216,9 +230,9 @@ export default async function PayoutsPage({
                                 pathname: "/[workspaceSlug]/payouts/[batchId]",
                                 params: { workspaceSlug, batchId: batch.id },
                               }}
-                              className={`truncate font-mono text-meta text-foreground ${STRETCHED_LINK}`}
+                              className={`truncate text-foreground ${STRETCHED_LINK}`}
                             >
-                              {batch.reference}
+                              {name}
                             </Link>
                             <StatusBadge status={batch.status} label={label} className="md:hidden" />
                           </div>
@@ -227,7 +241,7 @@ export default async function PayoutsPage({
                             <span className="ml-auto shrink-0 tabular-nums text-foreground">{total}</span>
                           </span>
                           {actions ? (
-                            <div className="relative z-10 mt-2 flex items-center justify-end gap-1 md:hidden">
+                            <div className="relative z-raised mt-2 flex items-center justify-end gap-1 md:hidden">
                               {actions}
                             </div>
                           ) : null}
@@ -251,7 +265,7 @@ export default async function PayoutsPage({
                         </TD>
                         {canManage && awaitingPayment > 0 ? (
                           <TD className="max-md:hidden">
-                            <div className="relative z-10 flex items-center justify-end gap-1">{actions}</div>
+                            <div className="relative z-raised flex items-center justify-end gap-1">{actions}</div>
                           </TD>
                         ) : null}
                       </TR>

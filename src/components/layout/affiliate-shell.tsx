@@ -1,15 +1,17 @@
 "use client"
 
-import { ChartNoAxesColumn, Coins, CreditCard, Link2, Receipt, Settings2 } from "lucide-react"
+import { ChartNoAxesColumn, Coins, CreditCard, Link2, Plus, Receipt, Settings2 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import * as React from "react"
 
-import { Link } from "@/i18n/navigation"
+import { Link, useRouter } from "@/i18n/navigation"
 
 import { AccountMenu } from "@/components/layout/account-menu"
-import { AppShell, type NavItem, type NavSection } from "@/components/layout/app-shell"
+import { AppShell, SIDEBAR_CENTER_IN_RAIL, SIDEBAR_LABEL, type NavItem, type NavSection } from "@/components/layout/app-shell"
+import type { Command } from "@/components/layout/command-palette"
 import { Logo } from "@/components/layout/logo"
 import { useShellCommands } from "@/components/layout/shell-commands"
+import { cn } from "@/lib/utils"
 
 type AffiliatePage = "overview" | "links" | "conversions" | "commissions" | "payouts" | "settings"
 
@@ -31,6 +33,8 @@ export function AffiliateShell({
   children: React.ReactNode
 }) {
   const t = useTranslations("nav")
+  const tp = useTranslations("palette")
+  const router = useRouter()
 
   const { sections, footer } = React.useMemo(() => {
     const item = (key: AffiliatePage, icon: NavItem["icon"], chord: string): NavItem => ({
@@ -56,7 +60,23 @@ export function AffiliateShell({
     return { sections, footer: [item("settings", Settings2, "s")] }
   }, [t])
 
-  const commands = useShellCommands({ portal: hasWorkspace ? "dashboard" : null })
+  const shared = useShellCommands({ portal: hasWorkspace ? "dashboard" : null })
+  // Navigation to links, commissions and payouts comes from the nav items; the
+  // one portal action is the one affiliates come back for.
+  const commands = React.useMemo<Command[]>(
+    () => [
+      {
+        id: "new-link",
+        group: "actions",
+        label: tp("newLink"),
+        icon: Plus,
+        keywords: "link criar create",
+        run: () => router.push("/affiliate/links"),
+      },
+      ...shared,
+    ],
+    [tp, router, shared],
+  )
 
   return (
     <AppShell
@@ -64,9 +84,9 @@ export function AffiliateShell({
         <Link
           href="/affiliate/overview"
           aria-label={t("portalHome")}
-          className="flex h-8 items-center rounded-control px-1.5"
+          className={cn("flex h-8 items-center rounded-control px-1.5", SIDEBAR_CENTER_IN_RAIL)}
         >
-          <Logo />
+          <Logo labelClassName={SIDEBAR_LABEL} />
         </Link>
       }
       sections={sections}

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 
 import { describe, expect, it } from "vitest"
@@ -61,8 +61,11 @@ describe("identify examples", () => {
 })
 
 describe("webhook", () => {
-  it("points at the Stripe webhook route", () => {
-    expect(webhookUrl(APP)).toBe(`${APP}/api/webhooks/stripe`)
+  it("points at the per-integration Stripe webhook route", () => {
+    expect(webhookUrl(APP, "INTEGRATION_ID")).toBe(`${APP}/api/webhooks/stripe/INTEGRATION_ID`)
+    expect(
+      existsSync(join(process.cwd(), "src/app/api/webhooks/stripe/[integrationId]/route.ts")),
+    ).toBe(true)
   })
 
   it("lists exactly the event types the adapter handles", () => {

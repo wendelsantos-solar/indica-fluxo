@@ -1,7 +1,8 @@
 import "server-only"
 
-import { and, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm"
+import { and, asc, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm"
 
+import { orderMoneyTotals, toMoneyTotals, type MoneyTotal } from "@/lib/money-totals"
 import { type DbClient } from "@/server/db"
 import { qualified } from "@/server/db/qualify"
 import {
@@ -48,11 +49,15 @@ export interface AffiliateListRow {
   joinedAt: Date
 }
 
+export type AffiliateSortField = "name" | "joined" | "revenue" | "commission"
+
 export interface AffiliateListParams {
   workspaceId: string
   programId?: string
   search?: string
   status?: "pending" | "approved" | "rejected" | "suspended"
+  /** Defaults to the newest affiliate first. */
+  sort?: { field: AffiliateSortField; dir: "asc" | "desc" }
   limit?: number
   offset?: number
 }
@@ -65,7 +70,7 @@ export async function listAffiliates(
   tx: DbClient,
   params: AffiliateListParams,
 ): Promise<{ rows: AffiliateListRow[]; total: number }> {
-  const { workspaceId, programId, search, status, limit = 25, offset = 0 } = params
+  const { workspaceId, programId, search, status, sort, limit = 25, offset = 0 } = params
 
   const filters: SQL[] = [eq(affiliates.workspaceId, workspaceId)]
   if (programId) filters.push(eq(programAffiliates.programId, programId))
@@ -82,6 +87,32 @@ export async function listAffiliates(
   }
 
   const where = and(...filters)
+
+  // Sums in the program's own currency only (see `hasOtherCurrencies`).
+  const revenueSum = sql<number>`coalesce((
+        select sum(${commissions.baseAmountMinor}) from ${commissions}
+         where ${commissions.programAffiliateId} = ${programAffiliates.id}
+           and ${commissions.currency} = ${programs.currency}
+           and ${commissions.status} <> 'rejected'), 0)::bigint`
+  const commissionSum = sql<number>`coalesce((
+        select sum(${commissions.commissionAmountMinor}) from ${commissions}
+         where ${commissions.programAffiliateId} = ${programAffiliates.id}
+           and ${commissions.currency} = ${programs.currency}
+           and ${commissions.status} <> 'rejected'), 0)::bigint`
+
+  // Whitelisted columns only. Money is ordered by minor units, grouped by
+  // currency first so a BRL row is never ranked against a USD one.
+  const by = sort?.dir === "asc" ? asc : desc
+  const order: SQL[] =
+    sort?.field === "name"
+      ? [by(sql`lower(${affiliates.name})`), desc(affiliates.createdAt)]
+      : sort?.field === "revenue"
+        ? [asc(programs.currency), by(revenueSum), asc(affiliates.name)]
+        : sort?.field === "commission"
+          ? [asc(programs.currency), by(commissionSum), asc(affiliates.name)]
+          : sort?.field === "joined"
+            ? [by(affiliates.createdAt), by(programAffiliates.createdAt)]
+            : [desc(affiliates.createdAt), desc(programAffiliates.createdAt)]
 
   const rows = await tx
     .select({
@@ -112,16 +143,8 @@ export async function listAffiliates(
       // Money sums stay `bigint` (an `int` cast overflows past 2^31 minor
       // units) and are read back as a JS number, and only ever add up
       // commissions in the program's own currency.
-      revenueMinor: sql<number>`coalesce((
-        select sum(${commissions.baseAmountMinor}) from ${commissions}
-         where ${commissions.programAffiliateId} = ${programAffiliates.id}
-           and ${commissions.currency} = ${programs.currency}
-           and ${commissions.status} <> 'rejected'), 0)::bigint`.mapWith(Number),
-      commissionMinor: sql<number>`coalesce((
-        select sum(${commissions.commissionAmountMinor}) from ${commissions}
-         where ${commissions.programAffiliateId} = ${programAffiliates.id}
-           and ${commissions.currency} = ${programs.currency}
-           and ${commissions.status} <> 'rejected'), 0)::bigint`.mapWith(Number),
+      revenueMinor: revenueSum.mapWith(Number),
+      commissionMinor: commissionSum.mapWith(Number),
       hasOtherCurrencies: sql<boolean>`exists (
         select 1 from ${commissions}
          where ${commissions.programAffiliateId} = ${programAffiliates.id}
@@ -132,7 +155,7 @@ export async function listAffiliates(
     .leftJoin(programAffiliates, eq(programAffiliates.affiliateId, affiliates.id))
     .leftJoin(programs, eq(programs.id, programAffiliates.programId))
     .where(where)
-    .orderBy(desc(affiliates.createdAt), desc(programAffiliates.createdAt), programAffiliates.id)
+    .orderBy(...order, programAffiliates.id)
     .limit(limit)
     .offset(offset)
 
@@ -334,4 +357,176 @@ export async function participationStats(tx: DbClient, participationId: string) 
       pendingMinor: 0,
     }
   )
+}
+
+/** Participations waiting for the founder's decision, across the workspace. */
+export async function countPendingParticipations(tx: DbClient, workspaceId: string): Promise<number> {
+  const [row] = await tx
+    .select({ value: sql<number>`count(*)::int` })
+    .from(programAffiliates)
+    .innerJoin(programs, eq(programs.id, programAffiliates.programId))
+    .where(and(eq(programs.workspaceId, workspaceId), eq(programAffiliates.status, "pending")))
+  return Number(row?.value ?? 0)
+}
+
+export interface AffiliateOption {
+  id: string
+  name: string
+}
+
+/**
+ * Names for an affiliate filter select, bounded like every list read. `include`
+ * is always returned (first) so a filtered page can show the selected name even
+ * when that affiliate falls outside the first `limit` alphabetically.
+ */
+export async function listAffiliateOptions(
+  tx: DbClient,
+  workspaceId: string,
+  options: { include?: string; limit?: number } = {},
+): Promise<AffiliateOption[]> {
+  const { include, limit = 500 } = options
+  return tx
+    .select({ id: affiliates.id, name: affiliates.name })
+    .from(affiliates)
+    .where(eq(affiliates.workspaceId, workspaceId))
+    .orderBy(
+      ...(include ? [desc(sql`${affiliates.id} = ${include}`)] : []),
+      asc(sql`lower(${affiliates.name})`),
+      asc(affiliates.id),
+    )
+    .limit(limit)
+}
+
+export interface AffiliateDetailParticipation {
+  participationId: string
+  programId: string
+  programName: string
+  programSlug: string
+  status: "pending" | "approved" | "rejected" | "suspended"
+  code: string
+  currency: string
+  programCommissionType: "percentage" | "fixed"
+  programCommissionValue: number
+  customCommissionType: "percentage" | "fixed" | null
+  customCommissionValue: number | null
+  clicks: number
+  customers: number
+  joinedAt: Date
+}
+
+export interface AffiliateDetail {
+  id: string
+  name: string
+  email: string
+  companyName: string | null
+  country: string | null
+  status: "invited" | "active" | "suspended"
+  createdAt: Date
+  participations: AffiliateDetailParticipation[]
+  /** Base amounts of the commissions that earned (positive, not rejected), per currency. */
+  revenue: MoneyTotal[]
+}
+
+/**
+ * One affiliate of `workspaceId` with every participation and its counts, or
+ * null. Scoped by workspace explicitly, on top of RLS, so an admin of two
+ * workspaces cannot open one workspace's affiliate under the other's slug.
+ */
+export async function getAffiliateDetail(
+  tx: DbClient,
+  workspaceId: string,
+  affiliateId: string,
+): Promise<AffiliateDetail | null> {
+  const [affiliate] = await tx
+    .select({
+      id: affiliates.id,
+      name: affiliates.name,
+      email: affiliates.email,
+      companyName: affiliates.companyName,
+      country: affiliates.country,
+      status: affiliates.status,
+      createdAt: affiliates.createdAt,
+    })
+    .from(affiliates)
+    .where(and(eq(affiliates.id, affiliateId), eq(affiliates.workspaceId, workspaceId)))
+    .limit(1)
+  if (!affiliate) return null
+
+  const participations = await tx
+    .select({
+      participationId: programAffiliates.id,
+      programId: programs.id,
+      programName: programs.name,
+      programSlug: programs.slug,
+      status: programAffiliates.status,
+      code: programAffiliates.code,
+      currency: programs.currency,
+      programCommissionType: programs.commissionType,
+      programCommissionValue: programs.commissionValue,
+      customCommissionType: programAffiliates.customCommissionType,
+      customCommissionValue: programAffiliates.customCommissionValue,
+      joinedAt: programAffiliates.createdAt,
+      clicks: sql<number>`coalesce((
+        select count(*)::int from ${referralClicks}
+         where ${referralClicks.programAffiliateId} = ${programAffiliates.id}), 0)`.mapWith(Number),
+      customers: sql<number>`coalesce((
+        select count(distinct ${commissions.customerId})::int from ${commissions}
+         where ${commissions.programAffiliateId} = ${programAffiliates.id}
+           and ${commissions.commissionAmountMinor} > 0), 0)`.mapWith(Number),
+    })
+    .from(programAffiliates)
+    .innerJoin(programs, eq(programs.id, programAffiliates.programId))
+    .where(and(eq(programAffiliates.affiliateId, affiliateId), eq(programs.workspaceId, workspaceId)))
+    .orderBy(desc(programAffiliates.createdAt))
+
+  const revenueRows = await tx
+    .select({
+      currency: commissions.currency,
+      amountMinor: sql<number>`coalesce(sum(${commissions.baseAmountMinor}), 0)::bigint`.mapWith(Number),
+    })
+    .from(commissions)
+    .innerJoin(programAffiliates, eq(programAffiliates.id, commissions.programAffiliateId))
+    .where(
+      and(
+        eq(commissions.workspaceId, workspaceId),
+        eq(programAffiliates.affiliateId, affiliateId),
+        sql`${commissions.commissionAmountMinor} > 0`,
+        sql`${commissions.status} <> 'rejected'`,
+      ),
+    )
+    .groupBy(commissions.currency)
+
+  return {
+    ...affiliate,
+    participations: participations.map((row) => ({ ...row, currency: row.currency.trim() })),
+    revenue: orderMoneyTotals(toMoneyTotals(revenueRows)),
+  }
+}
+
+/** Every referral link of one affiliate's participations, newest first, bounded. */
+export async function listLinksForAffiliate(
+  tx: DbClient,
+  workspaceId: string,
+  affiliateId: string,
+  limit = 50,
+) {
+  return tx
+    .select({
+      id: referralLinks.id,
+      name: referralLinks.name,
+      code: referralLinks.code,
+      destinationUrl: referralLinks.destinationUrl,
+      campaign: referralLinks.campaign,
+      createdAt: referralLinks.createdAt,
+      programName: programs.name,
+      clicks: sql<number>`coalesce((
+        select count(*)::int from ${referralClicks}
+         where ${referralClicks.referralLinkId} = ${qualified(referralLinks.id)}), 0)`.mapWith(Number),
+    })
+    .from(referralLinks)
+    .innerJoin(programAffiliates, eq(programAffiliates.id, referralLinks.programAffiliateId))
+    .innerJoin(programs, eq(programs.id, programAffiliates.programId))
+    .where(and(eq(programAffiliates.affiliateId, affiliateId), eq(programs.workspaceId, workspaceId)))
+    .orderBy(desc(referralLinks.createdAt))
+    .limit(limit)
 }

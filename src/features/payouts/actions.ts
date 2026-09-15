@@ -1,10 +1,13 @@
 "use server"
 
 import { actionError, successMessage } from "@/i18n/errors"
-import { getTranslations } from "next-intl/server"
+import { getLocale } from "next-intl/server"
 import { revalidatePath } from "next/cache"
+
+import { redirect } from "@/i18n/navigation"
 import { z } from "zod"
 
+import { localMonthPeriod, resolveTimeZone } from "@/lib/time-zone"
 import { requireUser } from "@/server/auth/session"
 import {
   cancelPayoutBatch,
@@ -52,25 +55,38 @@ export async function createPayoutBatchAction(
     return { error: await actionError(null, emptySelection ? "selectAffiliate" : "invalidRequest") }
   }
 
-  const now = new Date()
-  const periodStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
-  const periodEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0))
-
+  let batchId: string
   try {
     const workspace = await getWorkspaceForUser(user.id, parsed.data.workspaceSlug)
+    // The batch month is the workspace's current month — a batch created on
+    // 31 August at 22:00 in São Paulo is August's, not UTC's September. The
+    // bounds are stored as calendar dates (00:00 UTC), so every label keeps
+    // rendering them, and the reference built from them, in UTC.
+    const { periodStart, periodEnd } = localMonthPeriod(new Date(), resolveTimeZone(workspace.timezone))
     const batch = await createPayoutBatch(user.id, workspace.id, {
       currency: parsed.data.currency,
       participationIds: parsed.data.participationIds,
       periodStart,
       periodEnd,
     })
-
-    revalidatePayoutViews()
-    const t = await getTranslations("success")
-    return { success: t("batchCreated", { reference: batch.reference }) }
+    batchId = batch.id
   } catch (error) {
     return { error: await actionError(error, "batchNotCreated") }
   }
+
+  revalidatePayoutViews()
+
+  // The next step is paying the people in the batch, so the founder lands on
+  // it — export and "mark as paid" live there. `created` shows the confirmation
+  // on that page. `redirect` throws, so it stays outside the try.
+  return redirect({
+    href: {
+      pathname: "/[workspaceSlug]/payouts/[batchId]",
+      params: { workspaceSlug: parsed.data.workspaceSlug, batchId },
+      query: { created: "1" },
+    },
+    locale: await getLocale(),
+  })
 }
 
 const batchSchema = z.object({

@@ -9,7 +9,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core"
 
-import { workspaceRoleEnum } from "./enums"
+import { workspacePlanEnum, workspaceRoleEnum } from "./enums"
 
 /** `id` references `auth.users(id)`; the FK is added in migration 0001. */
 export const profiles = pgTable("profiles", {
@@ -31,6 +31,12 @@ export const workspaces = pgTable(
     logoUrl: text("logo_url"),
     defaultCurrency: char("default_currency", { length: 3 }).notNull().default("USD"),
     timezone: text("timezone").notNull().default("UTC"),
+    /**
+     * Not writable by `authenticated`: migration 0006 narrows the UPDATE grant
+     * on this table to the editable columns, so a workspace admin cannot
+     * upgrade themselves through the Supabase API. Changed by the operator.
+     */
+    plan: workspacePlanEnum("plan").notNull().default("starter"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -75,6 +81,31 @@ export const workspaceInvites = pgTable(
     uniqueIndex("workspace_invites_pending_key")
       .on(t.workspaceId, sql`lower(${t.email})`)
       .where(sql`accepted_at is null`),
+  ],
+)
+
+/**
+ * A founder asking to move to another plan. There is no self-serve checkout:
+ * the operator reviews the request and changes `workspaces.plan`, then stamps
+ * `handled_at`. Members read; owners/admins insert (migration 0006).
+ */
+export const planUpgradeRequests = pgTable(
+  "plan_upgrade_requests",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    requestedPlan: workspacePlanEnum("requested_plan").notNull(),
+    requestedBy: uuid("requested_by").notNull(),
+    handledAt: timestamp("handled_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("plan_upgrade_requests_workspace_idx").on(t.workspaceId, t.createdAt.desc()),
+    uniqueIndex("plan_upgrade_requests_open_key")
+      .on(t.workspaceId, t.requestedPlan)
+      .where(sql`handled_at is null`),
   ],
 )
 

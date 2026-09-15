@@ -164,7 +164,9 @@ export async function HeroPreview() {
   ] as const
 
   return (
-    <div aria-hidden="true" className="relative select-none">
+    // The bottom margin is the room the notice hangs into, so it overlaps the
+    // frame's edge without covering the preview or reaching the next section.
+    <div aria-hidden="true" className="relative select-none sm:mb-12">
       <div className="flex overflow-hidden rounded-panel border border-border bg-background p-1.5 sm:p-2">
         <div className="hidden w-52 shrink-0 flex-col pr-2 md:flex">
           <div className="flex h-11 items-center gap-2 px-1.5">
@@ -265,7 +267,7 @@ export async function HeroPreview() {
         </div>
       </div>
 
-      <NewConversionNotice className="absolute -bottom-8 right-6 hidden w-72 sm:block lg:right-10" />
+      <NewConversionNotice className="absolute -bottom-10 right-6 hidden w-72 sm:block lg:right-10" />
     </div>
   )
 }
@@ -422,7 +424,7 @@ export async function AttributionVisual() {
       <ol className="px-4 pt-2">
         {events.map((event) => (
           <li key={event.day} className="relative flex gap-3 py-2.5">
-            <span className="relative z-10 flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-surface-1 text-muted-foreground">
+            <span className="relative z-raised flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-surface-1 text-muted-foreground">
               <event.icon className="size-3.5" />
             </span>
             <div className="min-w-0 pt-0.5">

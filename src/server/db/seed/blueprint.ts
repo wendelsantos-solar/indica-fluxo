@@ -20,6 +20,7 @@ export const DEMO_WORKSPACE = {
   slug: "acme",
   currency: "BRL",
   timezone: "America/Sao_Paulo",
+  plan: "growth",
 } as const
 
 export const DEMO_FOUNDER = {

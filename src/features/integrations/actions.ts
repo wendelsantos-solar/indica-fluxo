@@ -5,9 +5,11 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { requireUser } from "@/server/auth/session"
+import { STRIPE_WEBHOOK_SECRET_PREFIX } from "@/lib/billing/stripe/events"
 import {
-  connectIntegration,
   disconnectIntegration,
+  saveStripeWebhookSecret,
+  startStripeIntegration,
 } from "@/server/services/integrations"
 import { rotateApiKey } from "@/server/services/api-keys"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
@@ -20,24 +22,25 @@ export interface IntegrationFormState {
   revealedKey?: string
 }
 
-const connectSchema = z.object({
+const startSchema = z.object({
   workspaceSlug: z.string().min(1),
   providerAccountId: z
     .string()
+    .trim()
     .regex(/^acct_[A-Za-z0-9]{8,}$/, "stripeAccountInvalid"),
 })
 
 /**
- * Manual connect path, used when Stripe Connect OAuth is not configured (local
- * development, or a founder on a single Stripe account). We store the account
- * id only — never a secret key.
+ * Step 1 of the Stripe setup: the account id. Creates the integration so its
+ * own webhook URL can be shown. We store the account id only — never a secret
+ * key.
  */
-export async function connectStripeAction(
+export async function startStripeAction(
   _prev: IntegrationFormState,
   formData: FormData,
 ): Promise<IntegrationFormState> {
   const user = await requireUser()
-  const parsed = connectSchema.safeParse({
+  const parsed = startSchema.safeParse({
     workspaceSlug: formData.get("workspaceSlug"),
     providerAccountId: formData.get("providerAccountId"),
   })
@@ -49,15 +52,53 @@ export async function connectStripeAction(
 
   try {
     const workspace = await getWorkspaceForUser(user.id, parsed.data.workspaceSlug)
-    await connectIntegration(user.id, workspace.id, "stripe", parsed.data.providerAccountId, {
-      mode: "manual",
-    })
+    await startStripeIntegration(user.id, workspace.id, parsed.data.providerAccountId)
   } catch (error) {
     return { error: await actionError(error, "stripeNotConnected") }
   }
 
   revalidatePath(DASHBOARD_LAYOUT, "layout")
-  return { success: await successMessage("stripeConnected") }
+  return { success: await successMessage("stripeAccountSaved") }
+}
+
+const secretSchema = z.object({
+  workspaceSlug: z.string().min(1),
+  // Stripe endpoint signing secrets are `whsec_` plus an opaque token.
+  webhookSecret: z
+    .string()
+    .trim()
+    .startsWith(STRIPE_WEBHOOK_SECRET_PREFIX, "stripeSecretInvalid")
+    .regex(/^whsec_[A-Za-z0-9+/=_-]{16,}$/, "stripeSecretInvalid"),
+})
+
+/**
+ * Step 3: the endpoint's signing secret. Stored encrypted and never returned —
+ * not in this result, not on the page.
+ */
+export async function saveStripeSecretAction(
+  _prev: IntegrationFormState,
+  formData: FormData,
+): Promise<IntegrationFormState> {
+  const user = await requireUser()
+  const parsed = secretSchema.safeParse({
+    workspaceSlug: formData.get("workspaceSlug"),
+    webhookSecret: formData.get("webhookSecret"),
+  })
+
+  if (!parsed.success) {
+    const secretInvalid = Boolean(z.flattenError(parsed.error).fieldErrors.webhookSecret)
+    return { error: await actionError(null, secretInvalid ? "stripeSecretInvalid" : "invalidRequest") }
+  }
+
+  try {
+    const workspace = await getWorkspaceForUser(user.id, parsed.data.workspaceSlug)
+    await saveStripeWebhookSecret(user.id, workspace.id, parsed.data.webhookSecret)
+  } catch (error) {
+    return { error: await actionError(error, "stripeSecretNotSaved") }
+  }
+
+  revalidatePath(DASHBOARD_LAYOUT, "layout")
+  return { success: await successMessage("stripeSecretSaved") }
 }
 
 const disconnectSchema = z.object({ workspaceSlug: z.string().min(1) })

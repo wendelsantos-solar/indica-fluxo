@@ -58,7 +58,7 @@ export function DocsHeader({ groups }: { groups: DocsNavGroup[] }) {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-[2px]">
+      <header className="sticky top-0 z-header border-b border-border bg-background/95 backdrop-blur-[2px]">
         <div className="mx-auto flex h-14 w-full max-w-docs items-center gap-3 px-4 sm:px-6">
           <button
             ref={buttonRef}
@@ -97,7 +97,7 @@ export function DocsHeader({ groups }: { groups: DocsNavGroup[] }) {
       </header>
 
       {open ? (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label={t("nav.label")}>
+        <div className="fixed inset-0 z-drawer lg:hidden" role="dialog" aria-modal="true" aria-label={t("nav.label")}>
           <button
             type="button"
             tabIndex={-1}

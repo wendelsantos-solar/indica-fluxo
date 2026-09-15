@@ -35,7 +35,7 @@ export function PageHeader({
       <div
         data-page-header
         className={cn(
-          "sticky top-12 z-20 -mx-4 flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 border-b border-border",
+          "sticky top-12 z-sticky -mx-4 flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 border-b border-border",
           "bg-surface-1/90 px-4 py-2 backdrop-blur-[2px] md:top-0 md:-mx-6 md:px-6",
           description ? "mb-5" : "mb-6",
           className,

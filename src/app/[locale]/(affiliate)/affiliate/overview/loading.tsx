@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 import { PortalHeaderSkeleton } from "../_components/skeletons"
 
-/** Shaped like the overview: greeting, the earnings strip, then the referral link. */
+/** Shaped like the overview: greeting, the earnings strip with its breakdown, then the referral link. */
 export default function AffiliateOverviewLoading() {
   return (
     <>
@@ -14,6 +14,10 @@ export default function AffiliateOverviewLoading() {
             <div className="space-y-2 py-4">
               <Skeleton className="h-3 w-20" />
               <Skeleton className="h-8 w-40" />
+              <div className="mt-3 space-y-3 border-t border-border-faint pt-3">
+                <Skeleton className="h-3.5 w-full" />
+                <Skeleton className="h-3.5 w-full" />
+              </div>
             </div>
             <div className="space-y-2 border-t border-border-faint py-4 sm:border-t-0">
               <Skeleton className="h-3 w-24" />

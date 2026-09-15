@@ -31,7 +31,9 @@
     "skip": "Skip to content",
     "breadcrumb": "Breadcrumb",
     "navigation": "Navigation",
-    "home": "Home"
+    "home": "Home",
+    "commands": "Commands",
+    "commandsLabel": "Open commands"
   },
   "palette": {
     "dialog": "Command menu",
@@ -44,7 +46,10 @@
     "groups": {
       "navigation": "Go to",
       "actions": "Actions",
-      "workspaces": "Workspaces"
+      "workspaces": "Workspaces",
+      "programs": "Programs",
+      "affiliates": "Affiliates",
+      "batches": "Payout batches"
     },
     "newProgram": "Create program",
     "switchWorkspace": "Switch to {name}",
@@ -57,7 +62,12 @@
     "toggleSidebar": "Toggle sidebar",
     "affiliatePortal": "Open affiliate portal",
     "dashboard": "Open founder dashboard",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "searching": "Searching…",
+    "resultCount": "{count, plural, =0 {No results} one {# result} other {# results}}",
+    "inviteAffiliate": "Invite affiliate",
+    "newBatch": "Create payout batch",
+    "newLink": "Create named link"
   },
   "marketing": {
     "home": {
@@ -96,7 +106,7 @@
         "body": "A referral program looks simple until someone has to pay the right commission. Behind every link sits infrastructure nobody on your team wants to maintain.",
         "listLabel": "What you would have to build",
         "items": {
-          "tracking": "Click tracking and cookies",
+          "tracking": "Click and cookie tracking",
           "attribution": "Attribution when two affiliates refer the same customer",
           "webhooks": "Stripe webhooks without duplicate commissions",
           "recurring": "Recurring commission for months or for life",
@@ -112,7 +122,7 @@
         "subtitle": "No migration, no contract, no change to your checkout.",
         "connect": {
           "title": "Connect billing",
-          "body": "Add your Stripe account and point its webhook at IndicaFluxo. We read payment events — we never store your secret key."
+          "body": "Enter your Stripe account, add the webhook endpoint we generate for your workspace and paste its signing secret. We read payment events — we never ask for your API secret key."
         },
         "commission": {
           "title": "Set the commission",
@@ -120,7 +130,7 @@
         },
         "invite": {
           "title": "Invite affiliates",
-          "body": "Every affiliate gets a referral link and their own portal to follow clicks, customers and earnings."
+          "body": "Each affiliate gets an e-mail invite — or a link you copy and send — and their own portal to follow clicks, customers and earnings."
         },
         "track": {
           "title": "Track revenue",
@@ -132,7 +142,7 @@
         "title": "Built for the hard part: getting the amount right.",
         "attribution": {
           "title": "Know where every customer came from.",
-          "body": "First or last click, with a configurable window. When two affiliates bring the same visitor, the program rule decides — and the decision is recorded."
+          "body": "First or last click, with a configurable window. When two affiliates bring the same visitor, the program's rule decides — and you can see each conversion's path, from click to commission."
         },
         "recurring": {
           "title": "Recurring commissions, no spreadsheet maths.",
@@ -183,7 +193,7 @@
           "body": "Your backend links a visitor to a customer with one call."
         },
         "available": "Available",
-        "more": "More billing providers are on the way."
+        "more": "Stripe is the billing provider integrated today."
       },
       "principles": {
         "eyebrow": "Transparency",
@@ -209,7 +219,8 @@
         "eyebrow": "Pricing",
         "title": "Start free. Grow when the channel proves itself.",
         "cta": "See all plans",
-        "free": "Free"
+        "free": "Free",
+        "note": "Every workspace starts on Starter. Growth is enabled on request, with no automatic billing."
       },
       "closing": {
         "title": "Ready to turn referrals into revenue?",
@@ -231,9 +242,9 @@
       "topAffiliates": "Top affiliates",
       "invite": "Invite affiliate",
       "notice": {
-        "title": "New conversion",
-        "detail": "{name} referred a customer on the Pro plan",
-        "commission": "{amount} commission"
+        "title": "Conversion recorded",
+        "detail": "{name} referred a Pro plan customer",
+        "commission": "{amount} commission on hold"
       },
       "rules": {
         "commission": "Commission",
@@ -298,13 +309,11 @@
       "tagline": "Affiliate infrastructure for SaaS."
     },
     "footer": {
-      "product": "Product",
-      "features": "Features",
       "integrations": "Integrations",
-      "resources": "Resources",
       "account": "Account",
       "createAccount": "Create account",
-      "rights": "© {year} IndicaFluxo"
+      "rights": "© {year} IndicaFluxo",
+      "explore": "Explore"
     }
   },
   "common": {
@@ -369,8 +378,9 @@
       "link": "Link",
       "name": "Name",
       "actions": "Actions",
-      "baseAmount": "Base amount",
-      "releasedOn": "Payable from"
+      "baseAmount": "Sale amount",
+      "releasedOn": "Payable from",
+      "conversionRate": "Conversion rate"
     },
     "roles": {
       "owner": "Owner",
@@ -379,6 +389,39 @@
     },
     "money": {
       "otherCurrencies": "+ {amounts}"
+    },
+    "pagination": {
+      "pastEndTitle": "No results on this page",
+      "pastEndDescription": "{pages, plural, one {The list only has # page now.} other {The list has # pages now.}}",
+      "pastEndAction": "Go to page {page}"
+    },
+    "period": {
+      "all": "All time",
+      "7d": "Last 7 days",
+      "30d": "Last 30 days",
+      "90d": "Last 90 days",
+      "12m": "Last 12 months"
+    },
+    "rule": {
+      "summary": "{rate} · {duration} · {source}",
+      "duration": {
+        "lifetime": "lifetime",
+        "firstPayment": "first payment only",
+        "months": "{count, plural, one {for # month} other {for # months}}"
+      },
+      "source": {
+        "program": "program rule",
+        "affiliate": "affiliate's special rate"
+      },
+      "cause": {
+        "refund": "Refund",
+        "chargeback": "Dispute"
+      },
+      "reversal": {
+        "full": "{cause} of the whole payment",
+        "partial": "{cause}, partial: {refunded} of {base} returned",
+        "final": "{cause}, final: {refunded} of {base} returned"
+      }
     }
   },
   "auth": {
@@ -394,14 +437,20 @@
       "submit": "Sign in",
       "switchPrompt": "No account yet?",
       "switchAction": "Create account",
-      "forgot": "Forgot password?"
+      "forgot": "Forgot password?",
+      "linkExpired": "That link has expired or was already used. <link>Request a new one</link>."
     },
     "signup": {
       "title": "Start your affiliate program",
       "subtitle": "Free to start. No credit card required.",
       "submit": "Create account",
       "switchPrompt": "Already have an account?",
-      "switchAction": "Sign in"
+      "switchAction": "Sign in",
+      "inviteTitle": "Accept your invitation",
+      "inviteSubtitle": "Create your account with the e-mail address that was invited.",
+      "inviteHint": "Got the invitation e-mail? You can also open its link to choose your password.",
+      "inviteLocked": "The invitation is for this e-mail address.",
+      "inviteUseAnother": "Use another e-mail"
     },
     "password": {
       "show": "Show password",
@@ -455,51 +504,48 @@
       "expiredTitle": "Link expired",
       "expiredBody": "This password reset link has expired or was already used. Request a new one to continue.",
       "expiredAction": "Request a new link",
-      "backToLogin": "Back to sign in"
+      "backToLogin": "Back to sign in",
+      "inviteTitle": "Choose your password",
+      "inviteSubtitle": "Invitation accepted. Set a password to sign in with {email} next time.",
+      "inviteDoneTitle": "All set",
+      "inviteDoneBody": "Your password is set. Next time, sign in with your e-mail and this password.",
+      "inviteDoneActionAffiliate": "Go to the portal",
+      "inviteDoneActionMember": "Go to the workspace"
     }
   },
   "pricing": {
     "metaTitle": "Pricing",
     "title": "Priced like a tool, not a tax.",
     "subtitle": "We do not take a percentage of your affiliate revenue, because we never touch the money. You pay for the infrastructure and keep the upside.",
-    "mostPopular": "Most popular",
-    "cta": "Start free",
     "plans": {
       "starter": {
         "name": "Starter",
         "cadence": "while you validate",
         "description": "Everything you need to run one program and prove the channel works.",
-        "features": {
-          "programs": "1 program",
-          "affiliates": "Up to 10 affiliates",
-          "tracking": "Click tracking and attribution",
-          "ledger": "Commission ledger",
-          "payouts": "Manual payouts"
-        }
+        "cta": "Start free"
       },
       "growth": {
         "name": "Growth",
-        "cadence": "per month",
-        "description": "For a program that is already producing revenue you care about.",
-        "features": {
-          "programs": "Unlimited programs",
-          "affiliates": "Unlimited affiliates",
-          "rates": "Custom affiliate rates",
-          "batches": "Payout batches and history",
-          "team": "Team members and audit log"
-        }
+        "cadence": "per month, arranged with our team",
+        "description": "For a program that already earns revenue: no cap on programs or affiliates, plus a team and an audit log.",
+        "cta": "Sign up and request Growth"
+      }
+    },
+    "onRequest": "On request",
+    "startsOnStarter": "Every workspace starts on Starter. Request Growth in Settings → Plan; there is no automatic billing — we arrange payment with you.",
+    "next": {
+      "title": "What happens next",
+      "signup": {
+        "title": "You create an account",
+        "body": "Your workspace starts on Starter, free and without a card. You can connect Stripe and invite affiliates the same day."
       },
-      "scale": {
-        "name": "Scale",
-        "cadence": "per month",
-        "description": "Multiple products, a partnerships hire, and reporting people rely on.",
-        "features": {
-          "everything": "Everything in Growth",
-          "workspaces": "Multiple workspaces",
-          "support": "Priority support",
-          "retention": "Extended data retention",
-          "onboarding": "Onboarding help"
-        }
+      "request": {
+        "title": "You request Growth when you need it",
+        "body": "Settings → Plan shows usage against each limit and sends the request in one click."
+      },
+      "contact": {
+        "title": "We get in touch",
+        "body": "We arrange payment with you and switch the plan on. Nothing is charged automatically."
       }
     }
   },
@@ -638,8 +684,8 @@
       "response": "Response",
       "responseBody": "<code>attributionsBound</code> is how many open attributions for this visitor were linked to the customer. <code>0</code> means the visitor did not arrive through an active affiliate link.",
       "fieldsTitle": "Fields",
-      "stripeIdTitle": "Send providerCustomerId",
-      "stripeIdBody": "A Stripe payment finds the affiliate through the Stripe customer id. Without <code>providerCustomerId</code>, the payment is recorded with no commission. If the Stripe customer does not exist yet at sign-up, call identify again when you create it, with the same <code>externalId</code>."
+      "stripeIdTitle": "Send providerCustomerId or the e-mail",
+      "stripeIdBody": "A Stripe payment finds the affiliate through the Stripe customer id. Without it, the <strong>e-mail</strong> sent to identify is compared with the payment's e-mail: invoices carry the Stripe customer's e-mail; one-off payments only when they have a <code>receipt_email</code>. The first payment matched by e-mail stores the Stripe id, and later payments match by it. With neither, the payment is recorded with no commission."
     },
     "fields": {
       "name": "Field",
@@ -649,22 +695,25 @@
       "optional": "optional",
       "visitorId": "Visitor id: <code>v_</code> followed by 16 to 48 lowercase letters or digits.",
       "externalId": "Your user's id (up to 200 characters). Repeated calls with the same value update the same customer.",
-      "providerCustomerId": "The Stripe customer id (<code>cus_…</code>). Required to earn a commission.",
-      "email": "The customer's e-mail. Stored only as a hash.",
+      "providerCustomerId": "The Stripe customer id (<code>cus_…</code>). Recommended: the most direct way to link payments to the affiliate.",
+      "email": "The customer's e-mail, stored only as a hash. Without <code>providerCustomerId</code>, it is how a Stripe payment finds the customer — send the same address Stripe has.",
       "provider": "Billing provider. Defaults to <code>stripe</code>, the only one integrated today."
     },
     "connectStripe": {
       "title": "Connect Stripe and receive payments",
-      "lead": "The Stripe webhook is how IndicaFluxo learns that a customer paid. Under Integrations:",
+      "lead": "The Stripe webhook is how IndicaFluxo learns that a customer paid. Each workspace has its own webhook URL and its own signing secret. Under Integrations:",
       "steps": {
-        "account": "Enter your <strong>Stripe account ID</strong> (<code>acct_…</code>) and connect.",
-        "webhook": "In Stripe, add the webhook URL below and subscribe to the events listed in <a>Stripe events</a>."
+        "account": "Enter your <strong>Stripe account ID</strong> (<code>acct_…</code>) and continue.",
+        "webhook": "Copy the <strong>webhook URL</strong> shown — it ends in your integration's ID. In your Stripe dashboard, under Developers → Webhooks, add an endpoint with that URL and select the events listed in <a>Stripe events</a>.",
+        "secret": "On the endpoint's page, reveal the <strong>Signing secret</strong> (<code>whsec_…</code>) and paste it into Integrations. It is stored encrypted and never shown again."
       },
       "urlLabel": "Webhook URL",
       "idempotentTitle": "Redeliveries never duplicate a commission",
       "idempotentBody": "Every event is verified by its signature and recorded exactly once. If Stripe sends it again, it is acknowledged and ignored.",
       "currencyTitle": "Same currency as the program",
-      "currencyBody": "A payment only earns a commission in the program's currency. A BRL program ignores USD payments."
+      "currencyBody": "A payment only earns a commission in the program's currency. A BRL program ignores USD payments.",
+      "urlPlaceholder": "INTEGRATION_ID",
+      "verify": "To confirm, send a test event from Stripe. Integrations shows <strong>Receiving events</strong> with the time of the last event; if the signature does not match, it shows <strong>invalid signature</strong> — almost always a secret from a different endpoint."
     },
     "commission": {
       "title": "How the commission is calculated",
@@ -685,7 +734,7 @@
       "lifecycle": {
         "pending": "<strong>Pending</strong> — during the program's hold period.",
         "available": "<strong>Available</strong> — can go into a payout batch.",
-        "approved": "<strong>Approved</strong> — in a batch awaiting payment.",
+        "approved": "<strong>In a batch</strong> — in a batch awaiting payment.",
         "paid": "<strong>Paid</strong> — the batch was marked as paid.",
         "reversed": "<strong>Reversed</strong> — a refund created a negative reversal. Nothing is deleted."
       }
@@ -759,10 +808,11 @@
       "types": {
         "payment": "Invoice payment → may earn a commission",
         "oneOffPayment": "One-off payment (no invoice) → may earn a commission",
-        "refund": "Refund → commission reversal",
-        "chargeback": "Dispute → commission reversal",
+        "refund": "Refund, partial included → proportional commission reversal",
+        "chargeback": "Dispute → reversal proportional to the disputed amount",
         "subscription": "Subscription created or changed",
-        "subscriptionCancelled": "Subscription cancelled"
+        "subscriptionCancelled": "Subscription cancelled",
+        "paymentLink": "Links the invoice to the payment that paid it → refunds and disputes find the commission"
       }
     },
     "errors": {
@@ -820,20 +870,21 @@
       "legendCommission": "Commission",
       "metrics": {
         "revenue": "Affiliate revenue",
-        "comparison": "vs. previous 30 days",
+        "comparison": "vs. previous {days} days",
         "commissions": "Commissions",
         "activeAffiliates": "Active affiliates",
         "customers": "Customers acquired",
         "netRevenueAfter": "{amount} net revenue",
         "conversionOfClicks": "{rate} of {clicks, plural, one {# click} other {# clicks}}",
-        "comparisonInCurrency": "In {currency}, vs. previous 30 days"
+        "comparisonInCurrency": "In {currency}, vs. previous {days} days",
+        "ofApproved": "{count, plural, one {with a click or sale in the period · # approved} other {with a click or sale in the period · # approved}}"
       },
       "revenueOverTime": "Revenue over time",
       "conversionFunnel": "Conversion funnel",
       "topAffiliates": "Top affiliates",
       "recentConversions": "Recent conversions",
-      "noCommissions": "No commissions yet.",
-      "noConversions": "No conversions yet.",
+      "noCommissions": "No commissions yet",
+      "noConversions": "No conversions yet",
       "readyToPay": "{amount} ready to pay",
       "stillOnHold": "{amount} still inside the hold period.",
       "reviewPayouts": "Review payouts",
@@ -864,23 +915,26 @@
           },
           "stripe": {
             "title": "Connect Stripe",
-            "titleDone": "Stripe connected",
+            "titleDone": "Stripe sending events",
             "description": "Payments from referred customers turn into commissions automatically.",
             "action": "Connect Stripe",
-            "actionDone": "View integration"
+            "actionDone": "View integration",
+            "titleWaiting": "Waiting for the first Stripe event",
+            "descriptionWaiting": "Your credentials are saved. This step checks itself off when Stripe sends its first event — a test payment is enough.",
+            "actionWaiting": "View integration"
           },
           "affiliate": {
             "title": "Invite your first affiliate",
             "titleDone": "First affiliate invited",
-            "description": "The affiliate gets a referral code and link right away.",
+            "description": "Invite them by e-mail or forward the invitation link. Their referral code is ready right away.",
             "action": "Invite affiliate",
             "actionDone": "View affiliates"
           },
           "tracking": {
             "title": "Install tracking",
             "titleDone": "Tracking installed",
-            "description": "Paste the snippet on your site. This step checks itself off when the first referral click arrives.",
-            "action": "View snippet",
+            "description": "Paste the tracking code on your site. This step checks itself off when the first referral click arrives.",
+            "action": "View tracking code",
             "actionDone": "View integration"
           }
         }
@@ -888,12 +942,25 @@
       "viewAllAffiliates": "View all",
       "viewAllConversions": "View all",
       "chartSummary": "From {start} to {end}: {revenue} in affiliate revenue and {commission} in commissions. Highest revenue on {peakDay}, at {peakRevenue}.",
-      "chartCurrencyNote": "Amounts in {currency}. Activity in {others} is not included in this chart."
+      "chartCurrencyNote": "Amounts in {currency}. Activity in {others} is not included in this chart.",
+      "descriptionSetup": "The steps between this workspace and its first commission.",
+      "period": "Last {days} days",
+      "chartValues": "{count, plural, one {Show the values for # day with activity} other {Show the values for # days with activity}}",
+      "chartValuesCaption": "Revenue and commission per day, in {currency}",
+      "chartEmpty": {
+        "title": "No revenue in the last {days} days",
+        "description": "The chart comes back as soon as a referred customer pays."
+      },
+      "funnelSignupsHint": "Signups appear once your server identifies visitors through the API.",
+      "funnelEmpty": "No clicks in the last {days} days.",
+      "topAffiliatesScope": "By commission, all time.",
+      "noCommissionsDescription": "The affiliates who earn the most commission show up here.",
+      "noConversionsDescription": "Every payment by a referred customer shows up here, with the affiliate who brought them in."
     },
     "funnel": {
       "clicks": "Clicks",
       "signups": "Signups",
-      "trials": "Trials",
+      "trials": "Subscriptions",
       "customers": "Customers",
       "fromPrevious": "of the previous step",
       "ofClicks": "{rate} of clicks"
@@ -910,9 +977,9 @@
       "pageOf": "Page {page} of {pages} · {total} affiliates",
       "empty": {
         "title": "No affiliates yet",
-        "description": "Invite your first affiliate. They get a referral link straight away.",
+        "description": "Invite your first affiliate. We e-mail the invitation and give you a link to forward.",
         "filteredTitle": "No affiliates match those filters",
-        "filteredDescription": "Try a different search term, or clear the status filter."
+        "filteredDescription": "Try a different search term, or clear the filters."
       },
       "filterProgram": "Filter by program",
       "allPrograms": "All programs",
@@ -927,7 +994,9 @@
         "description": "Affiliates join through a program, which sets what each of them earns. Create the program, then invite your affiliates.",
         "action": "Create program"
       },
-      "otherCurrenciesExcluded": "+ commissions in another currency"
+      "otherCurrenciesExcluded": "+ commissions in another currency",
+      "filtersLabel": "Filter affiliates",
+      "pendingCount": "{count, plural, one {# awaiting approval} other {# awaiting approval}}"
     },
     "commissions": {
       "title": "Commissions",
@@ -945,14 +1014,26 @@
         "title": "No commissions yet",
         "description": "Commissions appear as soon as a referred customer pays and your billing notifies IndicaFluxo.",
         "filteredTitle": "No commissions match those filters",
-        "filteredDescription": "Try a different status or program.",
+        "filteredDescription": "Try a different affiliate, status or program.",
         "descriptionConnected": "Stripe is connected. The first commission shows up here when a referred customer pays."
       },
       "terms": {
-        "rate": "The percentage applied to the base amount: the program rate or the affiliate's custom rate. “Fixed” when the commission is a fixed amount per payment.",
-        "status": "Pending: still in the hold period. Available: can go into a payout batch. Approved: in a batch awaiting payment. Paid: the batch was paid. Reversed: the payment was refunded. Rejected: does not count.",
+        "rate": "The percentage applied to the sale amount: the program rate or the affiliate's special rate. “Fixed” when the commission is a fixed amount per payment.",
+        "status": "Pending: still in the hold period. Available: can go into a payout batch. In a batch: awaiting payment in a batch. Paid: the batch was paid. Reversed: the payment was refunded. Rejected: does not count.",
         "releasedOn": "The day the program's hold period ends. From then on the commission can be paid, unless the customer's payment is refunded."
-      }
+      },
+      "filtersLabel": "Filter commissions",
+      "filterAffiliate": "Filter by affiliate",
+      "allAffiliates": "All affiliates",
+      "statusLabel": {
+        "pending": "Pending",
+        "available": "Available",
+        "approved": "In a batch",
+        "paid": "Paid",
+        "reversed": "Reversed",
+        "rejected": "Rejected"
+      },
+      "openTrail": "See the path of the conversion that earned this commission"
     },
     "conversions": {
       "title": "Conversions",
@@ -960,16 +1041,27 @@
       "empty": {
         "title": "No conversions yet",
         "description": "Once a tracked visitor becomes a paying customer, the payment shows up here with the affiliate that earned it.",
-        "descriptionConnected": "Stripe is connected. Once a tracked visitor becomes a paying customer, the payment shows up here."
+        "descriptionConnected": "Stripe is connected. Once a tracked visitor becomes a paying customer, the payment shows up here.",
+        "filteredTitle": "No conversions match those filters",
+        "filteredDescription": "Try a different affiliate, program or period.",
+        "filteredAffiliateDescription": "{name} has no conversions with those filters. Try a different program or period."
       },
       "pagination": "Pagination",
-      "pageOf": "Page {page} of {pages} · {total} conversions"
+      "pageOf": "Page {page} of {pages} · {total} conversions",
+      "apply": "Apply",
+      "filtersLabel": "Filter conversions",
+      "filterAffiliate": "Filter by affiliate",
+      "allAffiliates": "All affiliates",
+      "filterProgram": "Filter by program",
+      "allPrograms": "All programs",
+      "filterPeriod": "Filter by period",
+      "openTrail": "See this conversion's path, from click to commission"
     },
     "payouts": {
       "title": "Payouts",
       "description": "IndicaFluxo is the source of truth for what you owe. You pay affiliates through your own rails and record it here.",
       "availableToPay": "Available to pay",
-      "readyToPay": "Ready to pay",
+      "readyToPay": "Available to pay",
       "history": "Payout history",
       "batch": "Batch",
       "affiliates": "Affiliates",
@@ -994,7 +1086,8 @@
       },
       "availableOtherCurrencies": "+ {amounts}",
       "readyToPayByCurrency": "A batch holds one currency. Choose the currency, then who goes into the batch; other currencies get a batch of their own.",
-      "currencyTabs": "Currencies to pay"
+      "currencyTabs": "Currencies to pay",
+      "memberReadOnly": "Only owners and admins choose who goes into a payout batch. Here you can follow the totals and the history."
     },
     "programs": {
       "title": "Programs",
@@ -1014,7 +1107,12 @@
         "description": "A program defines what affiliates earn and how conversions are attributed. Most SaaS companies start with a single one.",
         "action": "Create your first program"
       },
-      "attributionDefinition": "Who gets credit for a sale (first or last click) and for how many days after the click."
+      "attributionDefinition": "Who gets credit for a sale (first or last click) and for how many days after the click.",
+      "planLimit": {
+        "title": "Your plan includes {limit, plural, one {# program} other {# programs}}",
+        "description": "To create another program, request a plan change in Settings.",
+        "action": "View plan"
+      }
     },
     "newProgram": {
       "title": "New program",
@@ -1038,12 +1136,32 @@
         "description": "Members see everything in this workspace. Only owners and admins can change programs, payouts and keys.",
         "member": "Member",
         "role": "Role",
-        "pendingProfile": "Pending profile",
-        "you": "(you)",
-        "invitedRole": "invited · {role}",
-        "pendingProfileHint": "No name on the profile yet · account",
+        "you": "You",
         "joinedOn": "Joined {date}",
-        "invitedOn": "Invited {date}"
+        "invitedOn": "Invitation created {date}",
+        "unnamedMember": "Member",
+        "pendingRole": "Invitation pending · {role}",
+        "actions": "Actions",
+        "menuLabel": "Actions for {name}",
+        "makeAdmin": "Make admin",
+        "makeMember": "Make member",
+        "remove": "Remove from workspace",
+        "leave": "Leave workspace",
+        "resend": "Resend invitation",
+        "revoke": "Revoke invitation",
+        "removeTitle": "Remove {name}?",
+        "removeBody": "{name} loses access to this workspace immediately. To come back, they need a new invitation.",
+        "removeConfirm": "Remove",
+        "leaveTitle": "Leave this workspace?",
+        "leaveBody": "You lose access to this workspace immediately. To come back, an owner or admin has to invite you again.",
+        "leaveConfirm": "Leave workspace",
+        "revokeTitle": "Revoke the invitation for {email}?",
+        "revokeBody": "The invitation stops working: if they create an account with that e-mail, they won't join the workspace.",
+        "revokeConfirm": "Revoke invitation",
+        "resendTitle": "Resend invitation",
+        "resendBody": "We'll send the invitation e-mail to {email} again. You also get a link to forward.",
+        "resendConfirm": "Resend e-mail",
+        "done": "Done"
       },
       "readOnly": "Only owners and admins can change the workspace. Your role here is {role}."
     },
@@ -1066,7 +1184,7 @@
       },
       "emptyAffiliates": {
         "title": "No affiliates in this program",
-        "description": "Invite someone and they receive a referral code straight away."
+        "description": "Invite someone: their referral code is ready right away, and you get an invitation link to forward."
       },
       "emptyCommissions": {
         "title": "No commissions in this program yet",
@@ -1084,11 +1202,22 @@
       "affiliatesCapped": "Showing the {shown} most recent affiliates, out of {total}.",
       "commissionsCapped": "Showing the {shown} most recent commissions, out of {total}.",
       "viewAllAffiliates": "View all affiliates",
-      "viewAllCommissions": "View all commissions"
+      "viewAllCommissions": "View all commissions",
+      "configuration": "Program configuration",
+      "websiteMissing": {
+        "title": "Without the program's site, affiliates have no default link",
+        "description": "Add the product's site so every affiliate gets a link ready to share.",
+        "action": "Add site"
+      },
+      "affiliateActions": {
+        "menuLabel": "Actions for {name}",
+        "viewAffiliate": "View affiliate",
+        "viewCommissions": "View commissions"
+      }
     },
     "error": {
       "title": "This page could not be loaded",
-      "description": "It may be a temporary failure, or an area your role in this workspace cannot see. Try again; if it keeps happening, contact the workspace owner.",
+      "description": "It may be a temporary failure. Try again; if it keeps happening, contact support and share the error code.",
       "retry": "Try again",
       "backToOverview": "Back to overview",
       "reference": "Error code:"
@@ -1122,6 +1251,123 @@
       "emptyItems": {
         "title": "No affiliates in this batch",
         "description": "This batch has no items. Create a new batch from Payouts."
+      },
+      "created": {
+        "title": "Batch created",
+        "description": "Export the list or copy the table to make the transfers. Once you have paid, mark the batch as paid."
+      },
+      "export": {
+        "csv": "Export CSV",
+        "copyTable": "Copy table",
+        "filenamePrefix": "payouts",
+        "columns": {
+          "affiliate": "Affiliate",
+          "email": "Email",
+          "amount": "Amount",
+          "currency": "Currency",
+          "commissions": "Commissions",
+          "batch": "Batch"
+        }
+      }
+    },
+    "affiliate": {
+      "title": "Affiliate",
+      "since": "Affiliate since {date}",
+      "fixedRate": "{amount} per payment",
+      "viewAll": "View all",
+      "metrics": {
+        "title": "Performance",
+        "scope": "Since joining, across every program. Amounts in different currencies are never added together.",
+        "clicks": "Clicks",
+        "customers": "Customers",
+        "conversionRate": "{rate} of clicks",
+        "revenue": "Revenue generated",
+        "commissions": "Commissions",
+        "commissionsScope": "Pending, available, in a batch and paid"
+      },
+      "programs": {
+        "title": "Programs",
+        "empty": "This affiliate is not in any program.",
+        "customRate": "special rate"
+      },
+      "links": {
+        "title": "Referral links",
+        "emptyTitle": "No custom links",
+        "emptyDescription": "The affiliate still uses only the default link, with each program's code.",
+        "destination": "Destination"
+      },
+      "conversions": {
+        "title": "Recent conversions",
+        "emptyTitle": "No conversions yet",
+        "emptyDescription": "When a customer referred by this affiliate pays, the payment shows up here."
+      },
+      "commissions": {
+        "title": "Recent commissions",
+        "emptyTitle": "No commissions yet",
+        "emptyDescription": "This affiliate's commissions show up here as soon as a referred customer pays."
+      }
+    },
+    "conversion": {
+      "metaTitle": "Conversion path",
+      "title": "Conversion from {customer}",
+      "description": "From click to commission: how this customer arrived, which affiliate got the credit and what each payment earned.",
+      "timeline": "Timeline",
+      "thisConversion": "This conversion",
+      "truncated": "Showing this customer's first {count, plural, one {# transaction} other {# transactions}}.",
+      "clicksUnavailable": "The clicks behind this attribution are no longer available. The attribution, payments and commissions are still on record.",
+      "events": {
+        "firstClick": "First click",
+        "lastClick": "Last click",
+        "otherAffiliate": "Through {name}'s link, who did not get the credit for this conversion.",
+        "identified": "Customer identified",
+        "identifiedUndated": "The time of identification is not recorded",
+        "commission": "Commission",
+        "reversal": "Commission reversal"
+      },
+      "transactionType": {
+        "payment": "Payment",
+        "refund": "Refund",
+        "chargeback": "Dispute",
+        "adjustment": "Adjustment"
+      },
+      "transactionStatus": {
+        "pending": "Pending",
+        "failed": "Failed"
+      },
+      "fields": {
+        "link": "Link",
+        "landing": "Landing page",
+        "referrer": "Referrer",
+        "direct": "Direct visit",
+        "utm": "UTM",
+        "externalId": "ID in your system",
+        "providerCustomerId": "Billing ID",
+        "transaction": "Transaction",
+        "base": "Sale amount",
+        "rule": "Rule applied",
+        "releasedOn": "Released on",
+        "paidOn": "Paid on",
+        "batch": "Batch"
+      },
+      "missing": {
+        "title": "No attribution on record",
+        "description": "No tracked click is linked to this customer in this program. This happens with a conversion entered by hand, or when identification received a different customer ID. The payments and commissions below still stand."
+      },
+      "moved": {
+        "title": "The attribution changed after this conversion",
+        "description": "A later click moved this visitor's credit to another affiliate. The commissions below remain recorded for {name}."
+      },
+      "side": {
+        "title": "Attribution",
+        "affiliate": "Affiliate",
+        "program": "Program",
+        "model": "Model",
+        "window": "Window",
+        "attributedAt": "Attributed on",
+        "expiresAt": "Expires on",
+        "customer": "Customer",
+        "none": "—",
+        "timesIn": "Dates and times in the workspace's time zone ({zone})."
       }
     }
   },
@@ -1135,7 +1381,8 @@
       "program": "Program",
       "done": "Ready",
       "completed": "(completed)"
-    }
+    },
+    "header": "Getting started"
   },
   "portal": {
     "overview": {
@@ -1165,7 +1412,17 @@
         "description": "Clicks and customers show up here as soon as someone uses your link."
       },
       "otherCurrencies": "and {amounts}",
-      "chartCurrencyNote": "{currency} programs only"
+      "chartCurrencyNote": "{currency} programs only",
+      "helloNoName": "Hi.",
+      "balance": {
+        "available": "Available",
+        "onHold": "On hold",
+        "nextRelease": "Next release on {date}",
+        "inBatch": "In a payout batch",
+        "inBatchNote": "Already included in a payout the program owner is going to send."
+      },
+      "chartSummary": "{amount} in commissions over the last 30 days, {days, plural, =0 {with no day of commission} one {earned on # day} other {earned on # days}}.",
+      "chartDaysTitle": "Most recent days with commission"
     },
     "links": {
       "title": "Links",
@@ -1176,7 +1433,17 @@
       "namedLinksEmpty": "No named links yet. Create one per channel (YouTube, newsletter, Instagram) and compare the clicks.",
       "clicks": "{count, plural, =0 {no clicks} one {# click} other {# clicks}}",
       "campaignLabel": "Campaign: {campaign}",
-      "copyLink": "Copy link {name}"
+      "copyLink": "Copy link {name}",
+      "rename": "Rename",
+      "renameLabel": "Rename link {name}",
+      "renameTitle": "Rename link",
+      "renameDescription": "Only the name shown here changes. The link address stays the same, so anything you already shared keeps working.",
+      "renameSubmit": "Save name",
+      "delete": "Delete",
+      "deleteLabel": "Delete link {name}",
+      "deleteTitle": "Delete the link “{name}”?",
+      "deleteDescription": "The link leaves this list and its clicks are no longer counted on their own. The clicks and commissions it already brought still count, and anyone who opens the address is still credited to you through your code.",
+      "deleteConfirm": "Delete link"
     },
     "commissions": {
       "title": "Commissions",
@@ -1188,18 +1455,38 @@
         "description": "Share your referral link. Commissions appear here as soon as a referred customer pays."
       },
       "saleOf": "{amount} sale",
-      "releasesOn": "Available on {date}",
+      "releasesOn": "Payable from {date}",
       "reversal": "Reversal",
       "legendTitle": "What each status means",
       "statusHelp": {
-        "pending": "In its hold period. Becomes available on the date shown, unless the customer asks for a refund.",
-        "available": "Cleared for payout. It goes into the next payout the program owner makes.",
-        "approved": "Included in a payout the program owner has prepared and has yet to send.",
+        "pending": "Still in the program's hold period. It becomes payable on the date shown, unless the customer asks for a refund.",
+        "available": "Cleared for payout. It goes into the next payout batch the program owner puts together.",
+        "approved": "Included in a payout batch the program owner has put together and has yet to pay.",
         "paid": "The program owner marked it as paid.",
         "reversed": "Cancelled because the customer was refunded or disputed the charge. It is not paid.",
         "rejected": "Rejected by the program. It is not included in any payout."
       },
-      "pageOf": "Page {page} of {pages} · {count, plural, one {# commission} other {# commissions}}"
+      "pageOf": "Page {page} of {pages} · {count, plural, one {# commission} other {# commissions}}",
+      "status": {
+        "pending": "On hold",
+        "available": "Available",
+        "approved": "In a batch",
+        "paid": "Paid",
+        "reversed": "Reversed",
+        "rejected": "Rejected"
+      },
+      "filters": {
+        "label": "Filter commissions",
+        "status": "Status",
+        "program": "Program",
+        "allStatuses": "All statuses",
+        "allPrograms": "All programs"
+      },
+      "emptyFiltered": {
+        "title": "No commissions match these filters",
+        "description": "Change the status or the program to see other commissions.",
+        "clear": "Clear filters"
+      }
     },
     "conversions": {
       "title": "Conversions",
@@ -1226,7 +1513,13 @@
       "awaiting": "Awaiting payment",
       "paymentReference": "Payment reference",
       "paymentReferenceValue": "Reference: <mono>{reference}</mono>",
-      "capped": "Showing the {count} most recent payouts."
+      "capped": "Showing the {count} most recent payouts.",
+      "status": {
+        "pending": "Awaiting payment",
+        "paid": "Paid",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
+      }
     },
     "settings": {
       "title": "Settings",
@@ -1259,7 +1552,9 @@
     },
     "shared": {
       "viewLinks": "View my links",
-      "pagination": "Pagination"
+      "pagination": "Pagination",
+      "latest": "Latest {count}",
+      "cappedNote": "Showing the most recent only."
     },
     "error": {
       "title": "This page could not be loaded",
@@ -1291,19 +1586,25 @@
       "missingTitle": "Default link unavailable",
       "missingDescription": "The program owner has not set the product website yet. In the meantime, create a link with a destination.",
       "createLink": "Create link"
+    },
+    "participationStatus": {
+      "approved": "Approved",
+      "pending": "Pending",
+      "suspended": "Suspended",
+      "rejected": "Rejected"
     }
   },
   "forms": {
     "program": {
       "basics": {
         "title": "Basics",
-        "description": "What affiliates will see when they join."
+        "description": "Name, status and product site."
       },
       "name": "Program name",
       "namePlaceholder": "Partner program",
       "status": "Status",
       "description": "Description",
-      "descriptionHint": "Optional. Shown to affiliates in their portal.",
+      "descriptionHint": "Optional. A short description of the program.",
       "commission": {
         "title": "Commission",
         "description": "What an affiliate earns, and for how long after the first payment."
@@ -1345,7 +1646,13 @@
       "websiteUrl": "Product website",
       "websiteUrlHint": "Where the tracking script is installed. Affiliates' default link points here.",
       "websiteUrlPlaceholder": "https://yourproduct.com",
-      "durationMonthsHint": "2 to 120 months. To pay only once, choose “First payment only”."
+      "durationMonthsHint": "2 to 120 months. To pay only once, choose “First payment only”.",
+      "confirm": {
+        "title": "Save these changes?",
+        "statusBody": "With the status “{status}”, clicks on links are still recorded, but no new visitor is attributed to an affiliate — for every affiliate in the program. Customers already attributed keep generating commissions.",
+        "currencyBody": "Commissions already recorded stay in {from}. After saving, only payments in {to} earn commission in this program; payments in {from} stop earning.",
+        "action": "Save changes"
+      }
     },
     "workspace": {
       "title": "Workspace",
@@ -1359,7 +1666,7 @@
       "label": "Invite by e-mail",
       "placeholder": "teammate@company.com",
       "role": "Role",
-      "submit": "Send invite"
+      "submit": "Invite"
     },
     "createWorkspace": {
       "name": "Company or product name",
@@ -1388,7 +1695,7 @@
     },
     "inviteAffiliate": {
       "title": "Invite affiliate",
-      "description": "They don't need an account. When they sign in to IndicaFluxo with this e-mail address, their referral link is ready to use.",
+      "description": "They don't need an account. We e-mail them an invitation and show you a link to forward. Their referral code is ready right away.",
       "program": "Program",
       "name": "Name",
       "email": "E-mail",
@@ -1399,7 +1706,12 @@
       "customRateHint": "Optional. Overrides the program rate.",
       "company": "Company",
       "optional": "Optional.",
-      "submit": "Invite affiliate"
+      "submit": "Invite affiliate",
+      "sentTitle": "Invitation sent",
+      "createdTitle": "Invitation created",
+      "createdDescription": "{name} is in the program, with their referral code ready.",
+      "inviteAnother": "Invite another",
+      "done": "Done"
     },
     "apiKeys": {
       "title": "API keys",
@@ -1419,7 +1731,7 @@
       "generatePublishable": "Generate new public key",
       "noKey": "No active key",
       "keyPlaceholder": "YOUR_PUBLIC_KEY",
-      "snippetLocked": "The full key is only shown when it is generated. Generate a new key to install tracking.",
+      "snippetLocked": "The full public key is only shown when it is created; the code you already installed keeps working. Generating a new one invalidates the current key.",
       "snippetNoKey": "Generate a public key to complete the code and install tracking.",
       "snippetReady": "This code already contains the new key. Paste it on your site in place of any previous code.",
       "confirmTitle": "{type, select, secret {Generate a new secret key?} other {Generate a new public key?}}",
@@ -1432,7 +1744,9 @@
         "action": "Generate public key"
       },
       "adminOnly": "Only admins can view and generate API keys.",
-      "snippetFirstStep": "Generate the public key above to complete this code."
+      "snippetFirstStep": "Generate the public key above to complete this code.",
+      "lastClick": "Last click recorded {when}.",
+      "noClicks": "No clicks recorded yet. After installing the code, open a referral link to test it."
     },
     "payable": {
       "selectAll": "Select all affiliates",
@@ -1446,7 +1760,7 @@
     "batch": {
       "markPaid": "Mark as paid",
       "confirmTitle": "Mark {reference} as paid?",
-      "confirmBody": "This records that you paid {count, plural, one {# affiliate} other {# affiliates}} a total of {amount} outside the platform. The commissions in this batch become <strong>paid</strong> and this cannot be undone.",
+      "confirmBody": "This records that you paid {amount} to {count, plural, one {# affiliate} other {# affiliates}} outside the platform. The commissions in this batch become <strong>paid</strong> and this cannot be undone.",
       "reference": "Payment reference",
       "referenceHint": "Optional. A transfer ID, bank reference or invoice number.",
       "confirmAction": "Yes, mark as paid",
@@ -1456,7 +1770,7 @@
       "cancelConfirm": "Yes, cancel batch"
     },
     "stripe": {
-      "description": "IndicaFluxo reads payment events to calculate commissions. It never moves money and never stores your Stripe secret key.",
+      "description": "IndicaFluxo receives payment events through a Stripe webhook to calculate commissions. It never moves money and never stores your Stripe secret key.",
       "accountId": "Stripe account ID",
       "accountIdHint": "In your Stripe dashboard, under Settings → Account details.",
       "accountIdPlaceholder": "acct_1A2b3C4d5E",
@@ -1469,11 +1783,61 @@
       "title": "Stripe",
       "disconnectHint": "Disconnecting stops new commissions from being recorded.",
       "disconnectTitle": "Disconnect Stripe?",
-      "disconnectBody": "New payments from your customers stop creating commissions until you connect again. Commissions already recorded stay as they are.",
+      "disconnectBody": "Events sent to this workspace's URL are rejected from then on, and new payments stop creating commissions. The signing secret is deleted. Commissions already recorded stay as they are.",
       "disconnectConfirm": "Disconnect",
       "errorTitle": "The Stripe connection has an error",
       "errorBody": "New commissions may not be recorded. Check the webhook URL in your Stripe dashboard and connect the account again below.",
-      "adminOnly": "Only admins can connect or disconnect Stripe."
+      "adminOnly": "Only admins can connect or disconnect Stripe.",
+      "secret": "Signing secret",
+      "secretHint": "Starts with whsec_. Stored encrypted and never shown again.",
+      "secretPlaceholder": "whsec_…",
+      "secretSaved": "Secret saved",
+      "secretMissing": "No secret saved — events sent to this URL are rejected.",
+      "saveSecret": "Save secret",
+      "replaceSecret": "Replace secret",
+      "cancel": "Cancel",
+      "memberSetupPending": "Stripe setup is not finished yet. Only admins can finish it.",
+      "badge": {
+        "notStarted": "Not set up",
+        "awaitingSecret": "Setup pending",
+        "awaitingFirstEvent": "Waiting for an event",
+        "receiving": "Receiving events",
+        "lastEventFailed": "Last event failed",
+        "signatureRejected": "Signature rejected",
+        "error": "Error"
+      },
+      "steps": {
+        "label": "Stripe setup in 3 steps",
+        "status": "Step {index}, {status, select, done {done} current {current} other {up next}}:",
+        "locked": "Available after step 1.",
+        "account": {
+          "title": "Enter your Stripe account",
+          "submit": "Continue",
+          "save": "Save account",
+          "edit": "Change"
+        },
+        "webhook": {
+          "title": "Add the webhook in Stripe",
+          "description": "In your Stripe dashboard, under <strong>Developers → Webhooks</strong>, add an endpoint with this URL — it is unique to this workspace — and select the events below.",
+          "events": "Events to select"
+        },
+        "secret": {
+          "title": "Paste the signing secret",
+          "description": "On the endpoint you created, reveal the <strong>Signing secret</strong> and paste it here. It is how we confirm each event really came from your Stripe account."
+        }
+      },
+      "health": {
+        "awaitingTitle": "Waiting for the first event",
+        "awaitingBody": "The secret is saved. To confirm, send a test event from the endpoint in your Stripe dashboard — it shows up here as soon as it arrives.",
+        "receivingTitle": "Receiving events · last {when}",
+        "receivingBody": "Last event received: <code>{type}</code>.",
+        "failedTitle": "Last event failed: we could not record it",
+        "failedBody": "<code>{type}</code> arrived {when}, but recording it failed on our side. Stripe retries the event automatically; if it keeps failing, contact support.",
+        "rejectedTitle": "Last event failed: invalid signature",
+        "rejectedBody": "A delivery arrived {when} with a signature that does not match the saved secret. Check that you copied this endpoint's secret and replace it below.",
+        "errorTitle": "The Stripe connection has an error",
+        "errorBody": "New commissions may not be recorded. Check the endpoint in your Stripe dashboard and replace the signing secret."
+      }
     },
     "affiliateActions": {
       "menuLabel": "Actions for {name}",
@@ -1486,7 +1850,8 @@
       "suspendConfirm": "Yes, suspend",
       "rejectTitle": "Reject {name}?",
       "rejectBody": "{name} does not join {program}: their links earn no commissions. You can approve them later if you change your mind.",
-      "rejectConfirm": "Yes, reject"
+      "rejectConfirm": "Yes, reject",
+      "approveLabel": "Approve {name}"
     },
     "customRate": {
       "title": "Special rate for {name}",
@@ -1502,17 +1867,31 @@
       "current": "Current special rate: {rate}.",
       "save": "Save rate",
       "remove": "Remove special rate"
+    },
+    "inviteOutcome": {
+      "sent": "Invitation sent to {email}.",
+      "alreadyLinked": "{name} already has access to the affiliate portal. The new program shows up there, no new invitation needed.",
+      "accountExists": "{email} already has an IndicaFluxo account, so no e-mail was sent. The next time they sign in with that address, the invitation is accepted. Send them the sign-in link below.",
+      "notConfigured": "E-mail sending is not configured in this environment, so no e-mail was sent. Send them the link below.",
+      "rateLimited": "The e-mail sending limit was reached, so no e-mail was sent. Send the link below, or try resending later.",
+      "failed": "We couldn't send the e-mail. The invitation is saved: send them the link below.",
+      "linkLabel": "Invitation link",
+      "loginLinkLabel": "Sign-in link",
+      "copyLink": "Copy link",
+      "hintSent": "Send this link if the e-mail doesn't arrive.",
+      "hintNotSent": "With this link they create an account with {email}, and the invitation is accepted once they confirm the e-mail.",
+      "hintLogin": "They sign in with their existing account and the invitation is accepted."
     }
   },
   "errors": {
     "generic": "Something went wrong. Try again.",
     "unauthorized": "You must be signed in to do that.",
     "forbidden": "You do not have access to this workspace.",
-    "notFound": "Not found.",
+    "notFound": "We could not find what you were looking for.",
     "validation": "Check the highlighted fields.",
-    "conflict": "That conflicts with the current state.",
-    "rateLimited": "Too many requests. Give it a moment.",
-    "invalidRequest": "Invalid request.",
+    "conflict": "Something changed while you were doing this. Refresh the page and try again.",
+    "rateLimited": "Too many attempts in a short time. Wait a moment and try again.",
+    "invalidRequest": "We could not process that request. Refresh the page and try again.",
     "badCredentials": "Incorrect email or password.",
     "missingProgram": "Missing program reference.",
     "participationNotFound": "Affiliate participation not found.",
@@ -1540,7 +1919,7 @@
     "workspaceNotCreated": "Could not create the workspace.",
     "workspaceNotFound": "Workspace not found, or you do not have access to it.",
     "workspaceNotSaved": "Could not save the workspace.",
-    "inviteNotSent": "Could not send the invitation.",
+    "inviteNotSent": "Couldn't create the invitation.",
     "stripeNotConnected": "Could not connect Stripe.",
     "stripeNotDisconnected": "Could not disconnect Stripe.",
     "keyNotRotated": "Could not generate a new key.",
@@ -1605,7 +1984,35 @@
     "customRateCurrencyChanged": "The program's currency changed. Refresh the page and enter the amount again.",
     "payableChanged": "What is payable has changed: a selected affiliate no longer has payable commissions in this currency. Refresh the page and select again.",
     "batchNotPaid": "Could not mark the batch as paid.",
-    "batchNotCancelled": "Could not cancel the batch."
+    "batchNotCancelled": "Could not cancel the batch.",
+    "inviteNotResent": "Couldn't resend the invitation.",
+    "inviteNotFound": "That invitation no longer exists or was already accepted. Refresh the page.",
+    "inviteNotRevoked": "Couldn't revoke the invitation.",
+    "memberNotFound": "That person is no longer in the workspace. Refresh the page.",
+    "memberNotUpdated": "Couldn't change the role.",
+    "memberNotRemoved": "Couldn't remove that person.",
+    "lastOwner": "A workspace needs at least one owner.",
+    "ownerProtected": "Only an owner can change or remove another owner.",
+    "memberChangeForbidden": "Only owners and admins can manage the team.",
+    "affiliateNotFound": "Affiliate not found.",
+    "linkNotFound": "That link no longer exists. Refresh the page.",
+    "linkNotSaved": "Could not rename the link.",
+    "linkNotDeleted": "Could not delete the link.",
+    "planLimit": {
+      "programs": "You have reached your plan's program limit. See usage and request Growth in Settings → Plan.",
+      "affiliates": "You have reached your plan's affiliate limit. See usage and request Growth in Settings → Plan.",
+      "members": "You have reached your plan's team member limit (pending invitations count). See usage in Settings → Plan."
+    },
+    "planFeature": {
+      "customRates": "Custom rates per affiliate are part of Growth. Request the change in Settings → Plan.",
+      "teamInvites": "Inviting team members is part of Growth. Request the change in Settings → Plan.",
+      "auditLog": "The audit log is part of Growth. Request the change in Settings → Plan."
+    },
+    "planAlreadyIncluded": "This workspace is already on that plan or a higher one.",
+    "planUpgradeNotRequested": "The plan change request could not be sent. Please try again.",
+    "stripeSecretInvalid": "Paste the endpoint's signing secret, which starts with whsec_.",
+    "stripeSecretNotSaved": "Could not save the signing secret.",
+    "stripeSetupMissing": "Enter the Stripe account (step 1) before saving the secret."
   },
   "success": {
     "programSaved": "Program saved.",
@@ -1617,20 +2024,155 @@
     "keyRotated": "New key generated.",
     "batchPaid": "Batch marked as paid.",
     "batchCancelled": "Batch cancelled. Its commissions are available again.",
-    "inviteSent": "Invitation sent to {email}. They join the workspace when they sign in with that address.",
-    "affiliateAdded": "{name} joined the program. When they sign in to IndicaFluxo with {email}, their referral link is waiting.",
+    "inviteSent": "Invitation sent to {email}.",
     "affiliateUpdated": "Affiliate updated.",
-    "batchCreated": "Batch {reference} created. Mark it as paid once you have transferred the money.",
     "confirmationResent": "Email sent again.",
     "affiliateApproved": "Affiliate approved. New sales through their links earn commissions straight away.",
     "affiliateSuspended": "Affiliate suspended. Their links stop earning commissions.",
     "affiliateRejected": "Affiliate rejected.",
-    "rateRemoved": "Special rate removed. The program's rate applies again."
+    "rateRemoved": "Special rate removed. The program's rate applies again.",
+    "inviteCreated": "Invitation created.",
+    "inviteResent": "Invitation resent to {email}.",
+    "inviteNotEmailed": "The invitation still stands, but no e-mail was sent.",
+    "affiliateEnrolled": "{name} joined the program.",
+    "memberRoleChanged": "Role updated.",
+    "memberRemoved": "Removed from the workspace.",
+    "inviteRevoked": "Invitation revoked.",
+    "linkRenamed": "Link name updated.",
+    "linkDeleted": "Link deleted. Its clicks and commissions still count.",
+    "planUpgradeRequested": "Request sent. Our team will get in touch to arrange payment.",
+    "stripeAccountSaved": "Account saved. Now add the webhook URL in Stripe.",
+    "stripeSecretSaved": "Secret saved. Send a test event from Stripe to confirm everything works."
   },
   "notFound": {
     "title": "Page not found",
     "description": "The address may have changed, or you don't have access to it.",
     "dashboard": "Go to dashboard",
     "home": "Home page"
+  },
+  "plans": {
+    "names": {
+      "starter": "Starter",
+      "growth": "Growth"
+    },
+    "lines": {
+      "limit": {
+        "programs": "{count, plural, one {# program} other {Up to # programs}}",
+        "affiliates": "Up to {count, plural, one {# affiliate} other {# affiliates}}",
+        "members": "{count, plural, one {Just you in the workspace} other {Up to # team members}}"
+      },
+      "unlimited": {
+        "programs": "Unlimited programs",
+        "affiliates": "Unlimited affiliates",
+        "members": "Unlimited team members"
+      },
+      "feature": {
+        "customRates": "Custom rates per affiliate",
+        "teamInvites": "Team invitations",
+        "auditLog": "Audit log"
+      },
+      "base": {
+        "stripe": "Stripe integration",
+        "tracking": "Click tracking and attribution",
+        "ledger": "Commission ledger with hold periods and reversals",
+        "payouts": "Payout batches with CSV export",
+        "portal": "Affiliate portal"
+      },
+      "notIncluded": "not included"
+    },
+    "panel": {
+      "title": "Plan",
+      "description": "What this workspace includes and how much of it is in use.",
+      "current": "Current plan",
+      "summary": {
+        "starter": "Free. For running one program and proving the channel works.",
+        "growth": "For a program that already earns revenue: more programs, affiliates and team members."
+      },
+      "usageTitle": "Usage",
+      "resources": {
+        "programs": "Programs",
+        "affiliates": "Affiliates",
+        "members": "Team members"
+      },
+      "usageOf": "{used} of {limit}",
+      "usageUnlimited": "{used} · unlimited",
+      "atLimit": "At limit",
+      "membersHint": "Counts people already in the workspace and pending invitations.",
+      "upgradeTitle": "What {plan} adds",
+      "noBilling": "There is no automatic billing and no card on file. When you request {plan}, our team gets in touch to arrange payment and switches your workspace over.",
+      "request": "Request {plan}",
+      "requested": "{plan} requested on {date} — we will be in touch.",
+      "readOnly": "Only owners and admins can request a plan change.",
+      "highest": "This workspace is already on the most complete plan."
+    },
+    "audit": {
+      "title": "Audit log",
+      "description": "{count, plural, one {The latest change made in this workspace.} other {The # most recent changes made in this workspace.}}",
+      "columns": {
+        "action": "What happened",
+        "actor": "Who",
+        "when": "When"
+      },
+      "mobileMeta": "{actor} · {when}",
+      "actor": {
+        "system": "System",
+        "you": "You",
+        "member": "Member {id}"
+      },
+      "empty": {
+        "title": "Nothing recorded yet",
+        "description": "Changes to programs, rates, payouts and integrations show up here, with who made them and when."
+      },
+      "locked": {
+        "title": "The audit log is part of {plan}",
+        "description": "See who changed rates, payouts and integrations, and when. Request {plan} in the Plan section above."
+      },
+      "actions": {
+        "workspace": {
+          "created": "Workspace created",
+          "updated": "Workspace updated"
+        },
+        "member": {
+          "invited": "Team member invited",
+          "role_changed": "Member role changed",
+          "removed": "Member removed from the team",
+          "invite_revoked": "Team invitation revoked"
+        },
+        "program": {
+          "created": "Program created",
+          "updated": "Program updated"
+        },
+        "affiliate": {
+          "created": "Affiliate added",
+          "approved": "Affiliate approved",
+          "rejected": "Affiliate rejected",
+          "suspended": "Affiliate suspended",
+          "rate_changed": "Affiliate rate changed"
+        },
+        "link": {
+          "created": "Referral link created"
+        },
+        "commission": {
+          "approved": "Commission added to a batch",
+          "reversed": "Commission reversed"
+        },
+        "payout": {
+          "created": "Payout batch created",
+          "marked_paid": "Batch marked as paid",
+          "cancelled": "Payout batch cancelled"
+        },
+        "integration": {
+          "connected": "Integration connected",
+          "disconnected": "Integration disconnected"
+        },
+        "api_key": {
+          "created": "API key generated",
+          "revoked": "API key revoked"
+        },
+        "plan": {
+          "upgrade_requested": "Plan change requested"
+        }
+      }
+    }
   }
 }

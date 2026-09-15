@@ -6,6 +6,7 @@ import * as React from "react"
 
 import { Link, useRouter } from "@/i18n/navigation"
 
+import { RailTooltip, SIDEBAR_CENTER_IN_RAIL, SIDEBAR_LABEL } from "@/components/layout/app-shell"
 import {
   Dropdown,
   DropdownContent,
@@ -14,7 +15,7 @@ import {
   DropdownSeparator,
   DropdownTrigger,
 } from "@/components/ui/dropdown"
-import { initials } from "@/lib/utils"
+import { cn, initials } from "@/lib/utils"
 
 export interface WorkspaceOption {
   id: string
@@ -23,6 +24,11 @@ export interface WorkspaceOption {
   role: string
 }
 
+/**
+ * The sidebar's top-left control. In the icon rail it is the workspace's
+ * initials alone — still a real trigger, named by its `aria-label` and by a
+ * tooltip — so switching workspace never requires expanding the sidebar.
+ */
 export function WorkspaceSwitcher({
   workspaces,
   current,
@@ -35,21 +41,31 @@ export function WorkspaceSwitcher({
 
   return (
     <Dropdown>
-      <DropdownTrigger asChild>
-        <button
-          type="button"
-          className="flex h-8 w-full min-w-0 items-center gap-2 rounded-control px-1.5 text-left transition-colors duration-[120ms] hover:bg-hover touch:h-10"
-          aria-label={t("switchLabel", { name: current.name })}
-        >
-          <span className="flex size-5 shrink-0 items-center justify-center rounded-badge bg-inverse text-micro text-inverse-foreground">
-            {initials(current.name)}
-          </span>
-          <span className="min-w-0 flex-1 truncate text-caption font-semibold text-foreground">
-            {current.name}
-          </span>
-          <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-        </button>
-      </DropdownTrigger>
+      <RailTooltip label={current.name}>
+        <DropdownTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              "flex h-8 w-full min-w-0 items-center gap-2 rounded-control px-1.5 text-left transition-colors duration-[120ms] hover:bg-hover touch:h-10",
+              SIDEBAR_CENTER_IN_RAIL,
+            )}
+            aria-label={t("switchLabel", { name: current.name })}
+          >
+            <span className="flex size-5 shrink-0 items-center justify-center rounded-badge bg-inverse text-micro text-inverse-foreground">
+              {initials(current.name)}
+            </span>
+            <span
+              className={cn(SIDEBAR_LABEL, "min-w-0 flex-1 truncate text-caption font-medium text-foreground")}
+            >
+              {current.name}
+            </span>
+            <ChevronsUpDown
+              className={cn(SIDEBAR_LABEL, "size-3.5 shrink-0 text-muted-foreground")}
+              aria-hidden="true"
+            />
+          </button>
+        </DropdownTrigger>
+      </RailTooltip>
 
       <DropdownContent className="w-[232px]">
         <DropdownLabel>{t("plural")}</DropdownLabel>

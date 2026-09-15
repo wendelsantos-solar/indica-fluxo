@@ -58,7 +58,7 @@ erDiagram
 | `profiles` | app-level user data; `id` references `auth.users(id)` | PK = auth user id |
 | `workspaces` | the tenant | `slug` UNIQUE |
 | `workspace_members` | membership + role (`owner`/`admin`/`member`) | UNIQUE `(workspace_id, user_id)` |
-| `workspace_invites` | pending team invitations, claimed by e-mail at first login | UNIQUE `(workspace_id, lower(email))` where unaccepted (migration 0002) |
+| `workspace_invites` | pending team invitations, claimed by e-mail at sign-up or, for existing accounts, at sign-in (migration 0008) | UNIQUE `(workspace_id, lower(email))` where unaccepted (migration 0002) |
 
 ### Program configuration
 
@@ -138,7 +138,22 @@ and UNIQUE `(workspace_id, external_id)`.
 `transactions` — the money that actually moved: `type`
 (`payment`/`refund`/`chargeback`/`adjustment`), `gross_amount_minor`, `status`,
 `occurred_at`. **UNIQUE `(workspace_id, provider, provider_transaction_id)`** —
-this is the second idempotency barrier behind `webhook_events`.
+this is the second idempotency barrier behind `webhook_events`. A refund or
+dispute row is stored under the refund/dispute id (`re_…`, `dp_…`) with
+`provider_parent_transaction_id` = the payment it undoes.
+
+`transaction_references` — every provider id of one payment (`in_…`, `pi_…`,
+`ch_…`) → the `provider_transaction_id` it was recorded under. UNIQUE
+`(workspace_id, provider, reference_id)`. Keyed by provider id, not by
+`transactions.id`, because Stripe's `invoice_payment.paid` (the invoice ↔
+PaymentIntent link) may arrive before the invoice payment. Refunds and disputes,
+which carry only the PaymentIntent and charge, find their payment through it.
+Written only by the webhook ingest path; no API role can read it.
+
+`customers.email_hash` doubles as the payment → customer fallback: when no
+customer has a payment's provider customer id, exactly one identified customer
+with the same hash (and no, or the same, provider id) is matched, and its empty
+`provider_customer_id` — never a different one — is back-filled.
 
 ### Ledger
 
@@ -156,8 +171,18 @@ reversal_of_commission_id  set on reversal rows
 
 Rules:
 
-- A commission is **never deleted and never edited downward**. A refund inserts
-  a *reversal* row with a negative amount and flips the original to `reversed`.
+- A commission is **never deleted and never edited downward**. A refund or
+  dispute inserts a *reversal* row with a negative amount, proportional and
+  cumulative: `round_half_up(commission × refunded so far / base)` minus earlier
+  reversals, so partial refunds never drift and the full refund reverses exactly
+  the commission.
+- The original flips to `reversed` only when refunds cover the whole payment
+  (and then its earlier, unbatched partial rows settle to `reversed` too). A
+  partial reversal row takes a payable status instead — `pending` with the
+  original's `eligible_at`, or `available` — so a payout batch nets it against
+  the original. No new status exists for this.
+- A `paid` commission is never rewritten. Its reversal row is recorded as
+  `reversed` and nothing is clawed back — an open gap.
 - `UNIQUE (transaction_id, program_affiliate_id)` where
   `reversal_of_commission_id IS NULL` — one commission per transaction per
   affiliate, whatever the webhook does.
@@ -177,7 +202,7 @@ cannot retroactively change a historical payout.
 | --- | --- |
 | `integrations` | one connected billing account per workspace+provider. UNIQUE `(workspace_id, provider)`. `encrypted_credentials` is AES-256-GCM; plaintext secrets are never stored. |
 | `api_keys` | `pk_`/`sk_` credentials. Stores `key_prefix` for display and `key_hash` (sha256) for verification. UNIQUE on `key_hash`. The secret is shown once. |
-| `webhook_events` | **UNIQUE `(provider, provider_event_id)`**. The idempotency gate. Holds `payload_hash`, `status`, `error_message`. |
+| `webhook_events` | **UNIQUE `(provider, provider_event_id)`**. The idempotency gate. Holds `payload_hash`, `status`, `error_message`. Index `(workspace_id, received_at DESC)` for the latest event per workspace. |
 | `audit_logs` | `entity_type`, `entity_id`, `action`, `metadata jsonb`, `actor_user_id`. Append-only. |
 
 ---
@@ -213,7 +238,8 @@ commissions        (workspace_id, status, eligible_at)
                    (program_affiliate_id, status)
                    (transaction_id)
 payout_items       (payout_batch_id), (program_affiliate_id)
-webhook_events     (status, received_at DESC)
+webhook_events     (status, received_at DESC), (workspace_id, received_at DESC)
+transaction_references (workspace_id, provider, reference_id) UNIQUE
 audit_logs         (workspace_id, created_at DESC)
 ```
 
@@ -241,7 +267,25 @@ Policy shapes:
 | `workspaces`, `programs`, `affiliates`, `customers`, `subscriptions`, `transactions`, `integrations`, `api_keys`, `payout_batches`, `audit_logs` | `is_workspace_member(workspace_id)` | none (no direct read) |
 | `program_affiliates`, `referral_links`, `referral_clicks`, `attributions` | member of the owning program's workspace | row belongs to `current_affiliate_ids()` |
 | `commissions`, `payout_items` | `is_workspace_member(workspace_id)` | own `program_affiliate_id` only, `SELECT` only |
-| `webhook_events` | no policy — reachable only by the Drizzle service connection | none |
+| `webhook_events`, `transaction_references` | no policy, no grant — reachable only by the Drizzle service connection | none |
+
+Members still need to know whether Stripe events arrive. Rather than opening
+`webhook_events` (payload hashes, raw error text, events with no workspace yet),
+migration `0007` adds one narrow function:
+
+```sql
+public.latest_webhook_event(p_workspace_id uuid)
+  returns table (received_at timestamptz, event_type text, status webhook_status)
+  -- SECURITY DEFINER, STABLE, SET search_path = ''
+  -- WHERE workspace_id = p_workspace_id AND public.is_workspace_member(p_workspace_id)
+  -- ORDER BY received_at DESC LIMIT 1
+  -- EXECUTE revoked from public and anon, granted to authenticated
+```
+
+A non-member gets zero rows; `anon` cannot execute it; direct `SELECT` on the
+table stays `permission denied`. `server/services/integration-health.ts` calls it
+under `withUser()`. Verified against the dev database with `request.jwt.claims`
+set as a member (1 row), as a non-member (0 rows) and as `anon` (denied).
 
 Writes are additionally narrowed: only `owner`/`admin` may mutate programs,
 integrations, API keys and payouts. Affiliates have **no** `INSERT`, `UPDATE` or
@@ -266,8 +310,20 @@ policy. The only bypass used by application code is the Drizzle service
 connection (`DATABASE_URL`), confined to the three call sites listed in
 `ARCHITECTURE.md` §2; everything else runs through `withUser()` / `withAnon()`.
 The Supabase secret key (`SUPABASE_SECRET_KEY`, `lib/supabase/admin.ts`) is a
-separate mechanism with exactly one call site — `server/db/seed/auth.ts`,
-which provisions demo logins. It is never a substitute for writing a policy.
+separate mechanism with two call sites — `server/db/seed/auth.ts`, which
+provisions demo logins, and `server/services/invite-mail.ts`, which sends Auth
+invitation e-mails. It is never a substitute for writing a policy.
+
+**Claiming invitations for existing accounts (migration 0008).**
+`handle_new_user()` claims pending affiliate rows and workspace invites only
+when an auth user is created. `public.claim_pending_invites()` does the same
+three writes for an account that already existed: `SECURITY DEFINER`, empty
+`search_path`, `EXECUTE` for `authenticated` only. It takes no argument — the
+address is read from `auth.users` for `auth.uid()`, and only when
+`email_confirmed_at` is set — so a caller can never claim an invitation for an
+e-mail they don't control. The app calls it after password sign-in, after the
+auth callback and on `/app` (`claimPendingInvites` in
+`server/services/workspaces.ts`).
 
 Isolation is **not** regression-tested yet. `src/server/db/__tests__/rls.test.ts`
 — tenant A cannot read tenant B, affiliate A cannot read affiliate B — is
@@ -288,3 +344,47 @@ the class of defect that test would have caught.
   deletable: removing an affiliate anonymises the row and preserves the ledger,
   which is a legitimate-interest financial record.
 - `audit_logs.metadata` must never contain secrets, tokens or full payloads.
+
+---
+
+## 8. Plans
+
+Migration `0006` makes the plans on the pricing page real. There is **no
+checkout and no automatic billing**: a workspace starts on Starter, an owner or
+admin requests Growth from Settings → Plan, the team arranges payment, and the
+operator switches the plan with the service connection (README, "Mudar o plano
+de um workspace").
+
+| Object | Shape |
+| --- | --- |
+| `workspace_plan` enum | `starter`, `growth` |
+| `workspaces.plan` | `workspace_plan NOT NULL DEFAULT 'starter'` |
+| `plan_upgrade_requests` | `workspace_id` (FK, cascade), `requested_plan`, `requested_by` (auth user id), `handled_at` (null while open), `created_at`. Index `(workspace_id, created_at DESC)`; **partial UNIQUE `(workspace_id, requested_plan) WHERE handled_at IS NULL`** — one open request per plan, so a double click cannot file two |
+
+What each plan includes is not in the database. `src/lib/plans.ts` is the one
+table — limits (Starter: 1 program, 10 affiliates, 1 member; Growth: unlimited
+programs and affiliates, 10 members) and gated features (custom rates, team
+invites, audit log). Services enforce it with `assertWithinPlan()` /
+`assertPlanFeature()` from `server/services/plans.ts` inside their own
+transaction, right before the write; the pricing page and the Settings panel
+render the same table. "Members" counts `workspace_members` plus unaccepted
+`workspace_invites`.
+
+### Grants and RLS
+
+- **Column grant on `workspaces`.** `0001` granted table-wide `UPDATE` to
+  `authenticated`, and RLS has no column scope, so an owner/admin could have set
+  `plan = 'growth'` through the Supabase API. `0006` revokes `UPDATE` and grants
+  it back only on `(name, slug, logo_url, default_currency, timezone,
+  updated_at)`. `plan` is writable by the service connection alone. A new
+  user-editable column on `workspaces` must be added to that grant.
+- **`plan_upgrade_requests`** is `ENABLE`d and `FORCE`d. `authenticated` has
+  `SELECT, INSERT` only:
+  - `plan_upgrade_requests_member_select` — `is_workspace_member(workspace_id)`.
+  - `plan_upgrade_requests_admin_insert` — `requested_by = auth.uid()`,
+    `handled_at IS NULL`, and `has_workspace_role(workspace_id, owner|admin)`.
+  - No `UPDATE`/`DELETE`: marking a request handled is an operator action.
+- `audit_logs` needs nothing new: its `member_select` policy (`0001`) already
+  lets members read, and `listAuditLog()` narrows the Settings view to
+  owners/admins on a plan with `auditLog`. Filing a request writes a
+  `plan.upgrade_requested` audit row.

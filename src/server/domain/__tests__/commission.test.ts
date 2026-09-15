@@ -4,9 +4,13 @@ import {
   calculateCommission,
   effectiveCommissionStatus,
   isWithinRecurrenceWindow,
+  planReversal,
+  proportionHalfUp,
   resolveRate,
   type CommissionOutcome,
 } from "../commission"
+import { parseRuleApplied } from "@/features/conversions/rule-applied"
+
 import { AT, attribution, participation, program, transaction } from "./fixtures"
 
 const NOW = AT("2026-09-01T12:00:00Z")
@@ -194,6 +198,17 @@ describe("refunds", () => {
     currency: "USD",
   }
 
+  it("reverses even when the participation is no longer approved", () => {
+    const result = outcome(
+      run({
+        participation: participation({ status: "suspended" }),
+        transaction: transaction({ type: "refund", grossAmountMinor: -4900 }),
+        originalCommission: original,
+      }),
+    )
+    expect(result.kind).toBe("reversal")
+  })
+
   it("fully reverses a full refund", () => {
     const result = outcome(
       run({
@@ -204,6 +219,13 @@ describe("refunds", () => {
     expect(result.kind).toBe("reversal")
     expect(result.commissionAmountMinor).toBe(-1470)
     expect(result.reversalOfCommissionId).toBe("com_1")
+    // The views read this trace back into words; the format is a contract.
+    expect(parseRuleApplied(result.ruleApplied)).toMatchObject({ kind: "reversal", scope: "full" })
+  })
+
+  it("writes a rule trace the views can read", () => {
+    const result = outcome(run())
+    expect(parseRuleApplied(result.ruleApplied)).toMatchObject({ kind: "rule" })
   })
 
   it("reverses proportionally on a partial refund", () => {
@@ -237,6 +259,62 @@ describe("refunds", () => {
     expect(result.commissionAmountMinor).toBe(-1470)
   })
 
+  it("reverses two partial refunds cumulatively, without drift, to exactly the commission", () => {
+    // 1001 commission on a 3000 base: 1/3 refunds would each round to 333.67.
+    const odd = { id: "com_odd", commissionAmountMinor: 1001, baseAmountMinor: 3000, currency: "USD" }
+    const first = outcome(
+      run({ transaction: transaction({ type: "refund", grossAmountMinor: -1000 }), originalCommission: odd }),
+    )
+    expect(first.commissionAmountMinor).toBe(-334) // round_half_up(1001 × 1000 / 3000) = 333.67 → 334
+
+    const second = outcome(
+      run({
+        transaction: transaction({ type: "refund", grossAmountMinor: -1000 }),
+        originalCommission: { ...odd, refundedBeforeMinor: 1000, reversedBeforeMinor: 334 },
+      }),
+    )
+    // Cumulative target round_half_up(1001 × 2000 / 3000) = 667 → this row 333.
+    expect(second.commissionAmountMinor).toBe(-333)
+    expect(second.ruleApplied).toContain("2000/3000")
+
+    const last = outcome(
+      run({
+        transaction: transaction({ type: "refund", grossAmountMinor: -1000 }),
+        originalCommission: { ...odd, refundedBeforeMinor: 2000, reversedBeforeMinor: 667 },
+      }),
+    )
+    expect(last.commissionAmountMinor).toBe(-334)
+    expect(first.commissionAmountMinor + second.commissionAmountMinor + last.commissionAmountMinor).toBe(-1001)
+  })
+
+  it("never reverses more than the commission when refunds exceed the base", () => {
+    const result = outcome(
+      run({
+        transaction: transaction({ type: "refund", grossAmountMinor: -4000 }),
+        originalCommission: { ...original, refundedBeforeMinor: 2450, reversedBeforeMinor: 735 },
+      }),
+    )
+    expect(result.commissionAmountMinor).toBe(-735)
+  })
+
+  it("skips a refund that leaves nothing more to reverse", () => {
+    const result = run({
+      transaction: transaction({ type: "refund", grossAmountMinor: -100 }),
+      originalCommission: { ...original, refundedBeforeMinor: 4900, reversedBeforeMinor: 1470 },
+    })
+    expect(result.kind).toBe("skipped")
+  })
+
+  it("reverses a dispute for its disputed amount", () => {
+    const result = outcome(
+      run({
+        transaction: transaction({ type: "chargeback", grossAmountMinor: -2450 }),
+        originalCommission: original,
+      }),
+    )
+    expect(result.commissionAmountMinor).toBe(-735)
+  })
+
   it("skips when there is nothing to reverse", () => {
     const result = run({ transaction: transaction({ type: "refund", grossAmountMinor: -4900 }) })
     expect(result.kind).toBe("skipped")
@@ -267,5 +345,50 @@ describe("guards", () => {
     const result = run({ transaction: transaction({ grossAmountMinor: 0 }) })
     expect(result.kind).toBe("skipped")
     if (result.kind === "skipped") expect(result.reason).toBe("zero_amount")
+  })
+})
+
+describe("proportionHalfUp", () => {
+  it("rounds half up with exact integer math", () => {
+    expect(proportionHalfUp(1470, 2450, 4900)).toBe(735)
+    expect(proportionHalfUp(1001, 1000, 3000)).toBe(334) // 333.67
+    expect(proportionHalfUp(3, 1, 2)).toBe(2) // 1.5 → 2
+    expect(proportionHalfUp(1, 1, 3)).toBe(0) // 0.33 → 0
+  })
+
+  it("stays exact beyond 2^53 intermediate products", () => {
+    expect(proportionHalfUp(9_000_000_000, 9_000_000_000, 18_000_000_000)).toBe(4_500_000_000)
+  })
+})
+
+describe("planReversal", () => {
+  it("flips an unpaid original only on a full refund, settling earlier partial rows", () => {
+    expect(planReversal("available", true)).toEqual({
+      rowStatus: "reversed",
+      rowEligibleAt: "now",
+      flipOriginal: true,
+      settlePriorReversals: true,
+    })
+  })
+
+  it("keeps the original's status on a partial refund and adds a row a payout nets", () => {
+    expect(planReversal("available", false)).toMatchObject({ rowStatus: "available", flipOriginal: false })
+    expect(planReversal("approved", false)).toMatchObject({ rowStatus: "available", flipOriginal: false })
+    expect(planReversal("pending", false)).toMatchObject({
+      rowStatus: "pending",
+      rowEligibleAt: "original",
+      flipOriginal: false,
+    })
+  })
+
+  it("never rewrites a paid commission, full or partial", () => {
+    for (const full of [true, false]) {
+      expect(planReversal("paid", full)).toEqual({
+        rowStatus: "reversed",
+        rowEligibleAt: "now",
+        flipOriginal: false,
+        settlePriorReversals: false,
+      })
+    }
   })
 })

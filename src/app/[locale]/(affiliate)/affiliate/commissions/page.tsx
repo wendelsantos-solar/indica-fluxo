@@ -4,11 +4,9 @@ import { getTranslations } from "next-intl/server"
 
 import { EmptyState } from "@/components/feedback/empty-state"
 import { PageHeader } from "@/components/layout/page-header"
-import { StatusBadge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Pagination } from "@/components/ui/pagination"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
-import { Term } from "@/components/ui/term"
 import { getFormatters } from "@/i18n/format"
 import { Link } from "@/i18n/navigation"
 import { cn } from "@/lib/utils"
@@ -16,16 +14,22 @@ import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
 import { effectiveCommissionStatus } from "@/server/domain/commission"
 import { listParticipationsForUser } from "@/server/repositories/affiliates"
-import { listCommissionsForAffiliate } from "@/server/repositories/commissions"
+import { listPortalCommissions } from "@/server/repositories/portal"
 
+import { CommissionFilters } from "../_components/commission-filters"
+import {
+  COMMISSION_STATUSES,
+  commissionFilterQuery,
+  parseCommissionFilters,
+  type CommissionFilterValues,
+} from "../_components/commission-filters-params"
 import { pageNumber } from "../_components/page-number"
+import { CommissionBadge } from "../_components/portal-badges"
 import { joinDetails, PortalList, PortalListItem } from "../_components/portal-list"
 
 export const dynamic = "force-dynamic"
 
 const PAGE_SIZE = 25
-
-const STATUS_ORDER = ["pending", "available", "approved", "paid", "reversed", "rejected"] as const
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("portal.commissions")
@@ -36,7 +40,10 @@ export async function generateMetadata(): Promise<Metadata> {
  * What the affiliate earned from each payment, and where each amount is on its
  * way to being paid. A status is shown as the ledger rule reads it: a pending
  * commission whose hold period has ended is already available, even if no
- * founder page has promoted the stored row yet.
+ * founder page has promoted the stored row yet — and the status filter reads
+ * the same rule.
+ *
+ * Status words are defined in one place, the legend under the list.
  */
 export default async function AffiliateCommissionsPage({
   searchParams,
@@ -44,17 +51,24 @@ export default async function AffiliateCommissionsPage({
   const t = await getTranslations("portal.commissions")
   const ta = await getTranslations("common.actions")
   const tp = await getTranslations("portal.shared")
-  const ts = await getTranslations("status")
   const tc = await getTranslations("common.table")
   const f = await getFormatters()
   const user = await requireUser()
-  const requestedPage = pageNumber((await searchParams).page)
+  const params = await searchParams
+  const requestedPage = pageNumber(params.page)
 
-  const { rows, total, page, now } = await withUser(user.id, async (tx) => {
+  const { rows, total, page, now, programs, filters } = await withUser(user.id, async (tx) => {
     const participations = await listParticipationsForUser(tx, user.id)
     const ids = participations.map((participation) => participation.participationId)
+    // One entry per program, even when two participations share a program name.
+    const programs = [
+      ...new Map(participations.map((p) => [p.programId, { id: p.programId, name: p.programName }])).values(),
+    ]
+    const filters = parseCommissionFilters(params, programs.map((program) => program.id))
     const pageOf = (target: number) =>
-      listCommissionsForAffiliate(tx, ids, {
+      listPortalCommissions(tx, ids, {
+        statuses: filters.status ? [filters.status] : undefined,
+        programId: filters.programId,
         limit: PAGE_SIZE,
         offset: (target - 1) * PAGE_SIZE,
       })
@@ -67,14 +81,11 @@ export default async function AffiliateCommissionsPage({
       page = last
       result = await pageOf(page)
     }
-    return { ...result, page, now: new Date() }
+    return { ...result, page, now: new Date(), programs, filters }
   })
 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
-
-  const statusDefinition = STATUS_ORDER.map(
-    (status) => `${ts(status)}: ${t(`statusHelp.${status}`)}`,
-  ).join(" ")
+  const filtered = Boolean(filters.status || filters.programId)
 
   const view = rows.map((row) => {
     const status = effectiveCommissionStatus(row.status, row.eligibleAt, now)
@@ -99,7 +110,20 @@ export default async function AffiliateCommissionsPage({
         description={t("description")}
       />
 
-      {total === 0 ? (
+      {total > 0 || filtered ? <CommissionFilters programs={programs} values={filters} /> : null}
+
+      {total === 0 && filtered ? (
+        <EmptyState
+          icon={Coins}
+          title={t("emptyFiltered.title")}
+          description={t("emptyFiltered.description")}
+          action={
+            <Button asChild variant="secondary" className="max-sm:h-11">
+              <Link href="/affiliate/commissions">{t("emptyFiltered.clear")}</Link>
+            </Button>
+          }
+        />
+      ) : total === 0 ? (
         <EmptyState
           icon={Coins}
           title={t("empty.title")}
@@ -122,9 +146,7 @@ export default async function AffiliateCommissionsPage({
                   <TH numeric>{t("sale")}</TH>
                   <TH numeric>{tc("rate")}</TH>
                   <TH numeric>{tc("commission")}</TH>
-                  <TH>
-                    <Term definition={statusDefinition}>{tc("status")}</Term>
-                  </TH>
+                  <TH>{tc("status")}</TH>
                 </tr>
               </THead>
               <TBody>
@@ -149,7 +171,7 @@ export default async function AffiliateCommissionsPage({
                     </TD>
                     <TD>
                       <div className="flex flex-col items-start gap-0.5">
-                        <StatusBadge status={row.status} />
+                        <CommissionBadge status={row.status} />
                         {row.releases ? (
                           <span className="whitespace-nowrap text-meta text-muted-foreground">
                             {row.releases}
@@ -168,7 +190,7 @@ export default async function AffiliateCommissionsPage({
               <PortalListItem
                 key={row.id}
                 title={row.programName}
-                status={<StatusBadge status={row.status} />}
+                status={<CommissionBadge status={row.status} />}
                 amount={row.amount}
                 amountClassName={row.reversal ? "text-danger-foreground" : undefined}
                 details={
@@ -200,10 +222,10 @@ export default async function AffiliateCommissionsPage({
               />
             </summary>
             <dl className="mt-1 divide-y divide-border-faint border-y border-border">
-              {STATUS_ORDER.map((status) => (
+              {COMMISSION_STATUSES.map((status) => (
                 <div key={status} className="flex flex-col gap-1 px-1 py-2.5 sm:flex-row sm:gap-4">
                   <dt className="shrink-0 sm:w-28">
-                    <StatusBadge status={status} />
+                    <CommissionBadge status={status} />
                   </dt>
                   <dd className="text-pretty text-muted-foreground">{t(`statusHelp.${status}`)}</dd>
                 </div>
@@ -215,8 +237,8 @@ export default async function AffiliateCommissionsPage({
             <Pagination
               label={tp("pagination")}
               summary={t("pageOf", { page, pages, count: total })}
-              previous={page > 1 ? <Link href={pageHref(page - 1)} /> : null}
-              next={page < pages ? <Link href={pageHref(page + 1)} /> : null}
+              previous={page > 1 ? <Link href={pageHref(filters, page - 1)} /> : null}
+              next={page < pages ? <Link href={pageHref(filters, page + 1)} /> : null}
               previousLabel={ta("previous")}
               nextLabel={ta("next")}
             />
@@ -227,6 +249,6 @@ export default async function AffiliateCommissionsPage({
   )
 }
 
-function pageHref(page: number) {
-  return { pathname: "/affiliate/commissions", query: { page } } as const
+function pageHref(filters: CommissionFilterValues, page: number) {
+  return { pathname: "/affiliate/commissions", query: commissionFilterQuery(filters, page) } as const
 }

@@ -5,7 +5,7 @@ import { and, count, desc, eq, sql } from "drizzle-orm"
 import { orderMoneyTotals, toMoneyTotals, type MoneyTotal } from "@/lib/money-totals"
 import { type DbClient } from "@/server/db"
 import { qualified } from "@/server/db/qualify"
-import { commissions, programAffiliates, programs, referralClicks } from "@/server/db/schema"
+import { affiliates, commissions, programAffiliates, programs, referralClicks } from "@/server/db/schema"
 import type { ProgramRules } from "@/server/domain/types"
 
 export type ProgramRow = typeof programs.$inferSelect
@@ -112,6 +112,35 @@ export async function getProgramTotals(tx: DbClient, programId: string): Promise
       toMoneyTotals(money.map((row) => ({ currency: row.currency, amountMinor: row.commission_minor }))),
     ),
   }
+}
+
+/**
+ * The counts on a program's tabs, without loading either list: only the active
+ * tab reads its rows. Same definitions as the lists' own totals —
+ * `listAffiliates({ programId })` (participations of this workspace's
+ * affiliates) and `listCommissions({ programId })` (every commission row).
+ */
+export async function countProgramTabs(
+  tx: DbClient,
+  workspaceId: string,
+  programId: string,
+): Promise<{ affiliates: number; commissions: number }> {
+  const [row] = await tx
+    .select({
+      affiliates: sql<number>`(
+        select count(*)::int from ${programAffiliates}
+          join ${affiliates} on ${affiliates.id} = ${programAffiliates.affiliateId}
+         where ${programAffiliates.programId} = ${programId}
+           and ${affiliates.workspaceId} = ${workspaceId})`,
+      commissions: sql<number>`(
+        select count(*)::int from ${commissions}
+         where ${commissions.programId} = ${programId}
+           and ${commissions.workspaceId} = ${workspaceId})`,
+    })
+    .from(programs)
+    .where(and(eq(programs.id, programId), eq(programs.workspaceId, workspaceId)))
+    .limit(1)
+  return { affiliates: Number(row?.affiliates ?? 0), commissions: Number(row?.commissions ?? 0) }
 }
 
 export async function findProgramBySlug(tx: DbClient, workspaceId: string, slug: string) {

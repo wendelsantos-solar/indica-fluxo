@@ -31,7 +31,7 @@ export default async function AuthLayout({ children, params }: LayoutProps<"/[lo
   return (
     <div className="min-h-dvh bg-background lg:grid lg:grid-cols-2">
       <aside className="hidden min-h-dvh px-12 lg:flex">
-        <div className="mx-auto flex w-full max-w-md flex-col">
+        <div className="mx-auto flex w-full max-w-lg flex-col">
           <div className="flex h-14 items-center">
             <Link href="/" aria-label={chrome("home")} className="rounded-control">
               <Logo />
@@ -43,7 +43,7 @@ export default async function AuthLayout({ children, params }: LayoutProps<"/[lo
               <p className="text-balance text-heading-sm text-foreground">{t("statement")}</p>
               <p className="text-pretty text-body-sm text-muted-foreground">{t("line")}</p>
             </div>
-            <AuthProof className="mt-12" />
+            <AuthProof className="mt-10 w-full" />
           </div>
 
           <p className="py-6 text-meta text-faint-foreground">{chrome("tagline")}</p>
@@ -67,7 +67,9 @@ export default async function AuthLayout({ children, params }: LayoutProps<"/[lo
           <div className="w-full max-w-sm">{children}</div>
         </main>
 
-        <footer className="px-4 py-6 text-center text-meta text-faint-foreground sm:px-6 lg:hidden">
+        {/* Kept in the flow (invisible) from 1024px so both halves have the
+            same header and footer heights and centre on one baseline. */}
+        <footer className="px-4 py-6 text-center text-meta text-faint-foreground sm:px-6 lg:invisible">
           {chrome("tagline")}
         </footer>
       </div>

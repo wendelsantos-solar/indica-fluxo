@@ -1,12 +1,15 @@
 import type { Metadata } from "next"
-import { getTranslations } from "next-intl/server"
+import { getLocale, getTranslations } from "next-intl/server"
 
+import { InlineAlert } from "@/components/feedback/inline-alert"
 import { PageHeader } from "@/components/layout/page-header"
 import { Button } from "@/components/ui/button"
 import { Link } from "@/i18n/navigation"
 import { OnboardingStepper } from "@/features/onboarding/onboarding-stepper"
 import { ProgramForm, type ProgramFormValues } from "@/features/programs/program-form"
+import { currencyOptions } from "@/features/workspaces/options"
 import { requireUser } from "@/server/auth/session"
+import { getPlanOverview } from "@/server/services/plans"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
 
 export const dynamic = "force-dynamic"
@@ -29,6 +32,9 @@ export default async function NewProgramPage({
   const { onboarding } = await searchParams
   const user = await requireUser()
   const workspace = await getWorkspaceForUser(user.id, workspaceSlug)
+  const locale = await getLocale()
+  // Built here, not in the client form, so `Intl` names match at hydration.
+  const currencies = currencyOptions(locale)
 
   const defaultValues: ProgramFormValues = {
     name: "",
@@ -78,12 +84,20 @@ export default async function NewProgramPage({
               variant="onboarding"
               workspaceSlug={workspaceSlug}
               defaultValues={defaultValues}
+              currencyOptions={currencies}
             />
           </div>
         </div>
       </>
     )
   }
+
+  // A form that cannot be saved is not offered: past the plan's program limit
+  // the page says why and where to change it. `createProgram` enforces the
+  // same limit, so a race still ends in the form's translated error.
+  const plan = await getPlanOverview(user.id, workspace.id)
+  const programLimit = plan.limits.programs
+  const atProgramLimit = programLimit !== null && plan.usage.programs >= programLimit
 
   return (
     <>
@@ -103,7 +117,27 @@ export default async function NewProgramPage({
           better narrower, left-aligned with the description above it. */}
       <div>
         <div className="max-w-detail">
-          <ProgramForm mode="create" workspaceSlug={workspaceSlug} defaultValues={defaultValues} />
+          {atProgramLimit && programLimit !== null ? (
+            <InlineAlert
+              title={tp("planLimit.title", { limit: programLimit })}
+              action={
+                <Button asChild variant="secondary" size="sm">
+                  <Link href={{ pathname: "/[workspaceSlug]/settings", params: { workspaceSlug } }}>
+                    {tp("planLimit.action")}
+                  </Link>
+                </Button>
+              }
+            >
+              {tp("planLimit.description")}
+            </InlineAlert>
+          ) : (
+            <ProgramForm
+              mode="create"
+              workspaceSlug={workspaceSlug}
+              defaultValues={defaultValues}
+              currencyOptions={currencies}
+            />
+          )}
         </div>
       </div>
     </>

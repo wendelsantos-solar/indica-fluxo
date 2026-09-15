@@ -105,12 +105,13 @@ export function formatDate(
   locale: string,
   value: Date,
   style: "short" | "medium" = "short",
+  timeZone = "UTC",
 ): string {
   return new Intl.DateTimeFormat(locale, {
     day: "2-digit",
     month: style === "short" ? "2-digit" : "short",
     year: "numeric",
-    timeZone: "UTC",
+    timeZone,
   }).format(value)
 }
 
@@ -120,9 +121,10 @@ export function formatDate(
  * Server components get this from `getFormatters()` in `@/i18n/format`; client
  * components from `useFormatters()`. Both are thin wrappers around this.
  */
-export function createFormatters(locale: string) {
+export function createFormatters(locale: string, timeZone = "UTC") {
   return {
     locale,
+    timeZone,
     money: (amountMinor: number, currency: Currency, options?: MoneyOptions) =>
       formatMoney(locale, amountMinor, currency, options),
     basisPoints: (basisPoints: number) => formatBasisPoints(locale, basisPoints),
@@ -130,7 +132,7 @@ export function createFormatters(locale: string) {
       formatNumber(locale, value, options),
     rate: (numerator: number, denominator: number) =>
       formatRate(locale, numerator, denominator),
-    date: (value: Date, style?: "short" | "medium") => formatDate(locale, value, style),
+    date: (value: Date, style?: "short" | "medium") => formatDate(locale, value, style, timeZone),
   }
 }
 

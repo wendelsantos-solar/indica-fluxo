@@ -23,7 +23,11 @@ export interface PayableRow {
   commissionCount: number
 }
 
-const CHECKBOX = "size-4 accent-primary"
+/**
+ * Neutral, not amber: the amber on this view belongs to "Create payout batch".
+ * `accent-foreground` follows the theme (light ink in dark, dark ink in light).
+ */
+const CHECKBOX = "size-4 accent-foreground"
 
 /**
  * Selection drives a single server action; the total updates locally so the

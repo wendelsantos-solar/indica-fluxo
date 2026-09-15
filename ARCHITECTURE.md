@@ -91,14 +91,19 @@ RLS is bypassed in exactly two mechanisms, and they are not the same thing:
 1. **The Drizzle service connection** (`DATABASE_URL`, `server/db/index.ts`).
    Confined to three call sites, each of which documents why it must:
    `server/services/tracking.ts` (anonymous click writes), `app/api/webhooks/stripe`
-   (provider-authenticated writes), and `server/db/seed` (development only).
+   and `app/api/webhooks/stripe/[integrationId]` (provider-authenticated reads
+   and writes: the integration's encrypted signing secret, `webhook_events`,
+   the ledger), and `server/db/seed` (development only).
    Everything else goes through `withUser()` / `withAnon()`, which downgrade to
    the `authenticated` / `anon` role so Postgres policies stay the boundary.
 2. **The Supabase admin client** (`SUPABASE_SECRET_KEY`, `lib/supabase/admin.ts`).
    Reserved for administrative Supabase API calls that have no user session at
-   all (Auth Admin operations, maintenance scripts). Its only call site is
-   `server/db/seed/auth.ts`, which provisions demo logins; adding another
-   requires a comment stating why the operation cannot run under RLS.
+   all (Auth Admin operations, maintenance scripts). Its call sites are
+   `server/db/seed/auth.ts`, which provisions demo logins, and
+   `server/services/invite-mail.ts`, which sends affiliate and teammate
+   invitations with `auth.admin.inviteUserByEmail` after the inviting service
+   has authorised an owner/admin. Adding another requires a comment stating why
+   the operation cannot run under RLS.
 
 An affiliate is scoped to a workspace (`affiliates.workspace_id`). The same
 human working with two SaaS companies has two `affiliates` rows joined by
@@ -154,19 +159,35 @@ commissions. That is why identify is server-to-server, full stop.
 ### 3.3 Billing webhook → commission
 
 ```
-Stripe → POST /api/webhooks/stripe
-   │  1. read raw body, verify signature (lib/billing/stripe)
+Stripe → POST /api/webhooks/stripe/<integrationId>     (one endpoint per workspace)
+   │  0. load the integration (service connection), decrypt its whsec_… secret
+   │  1. read raw body, verify the signature with THAT secret (lib/billing/stripe/webhook.ts)
    │  2. claim (provider, provider_event_id) in webhook_events  ← idempotency gate
+   │       workspace_id = the integration's workspace — never event.account
    │  3. adapter.normalizeEvent() → NormalizedBillingEvent
-   │  4. BillingEventService.handle(event)
+   │  4. handleBillingEvent(workspaceId, event)
+   │       ├ resolve customer: provider customer id, else identified e-mail hash
    │       ├ upsert customer / subscription
-   │       ├ insert transaction (unique per provider id)
+   │       ├ insert transaction (unique per provider id) + transaction_references
    │       ├ resolve attribution → program_affiliate
    │       ├ domain/commission.calculateCommission(...)   ← pure
-   │       └ insert commission (or reversal on refund)
+   │       └ insert commission, or a proportional reversal on refund/dispute
    │  5. mark webhook_events row processed
    ▼  200 OK
 ```
+
+Each workspace adds its own endpoint in its own Stripe dashboard, so each
+endpoint has its own signing secret. The founder pastes it in Integrations; it
+is stored AES-256-GCM encrypted in `integrations.encrypted_credentials`
+(`lib/crypto/secrets.ts`) and never shown again. An unknown integration or one
+without a secret answers `404`; a bad signature `400 invalid_signature` (and
+the time of the rejection is noted on the integration, so Integrations can say
+"wrong secret").
+
+`POST /api/webhooks/stripe` (no id) is the **legacy platform endpoint**: one
+`STRIPE_WEBHOOK_SECRET`, workspace resolved from `event.account`. It remains for
+Stripe Connect and for `stripe listen` in development. Both routes share
+`ingestVerifiedWebhook` from step 2 on.
 
 Step 2 is an `INSERT … ON CONFLICT DO NOTHING RETURNING id`. If nothing comes
 back, the event was already claimed and we return `200` immediately. Combined
@@ -174,6 +195,14 @@ with `UNIQUE (workspace_id, provider, provider_transaction_id)` on transactions,
 a duplicate delivery can never produce a second commission.
 
 Steps 3–5 run inside one database transaction.
+
+Refunds and disputes are recorded under their own ids (`re_…`, `dp_…`) and find
+the payment through `transaction_references`, which maps every id of a payment
+(`in_…`, `pi_…`, `ch_…`) to the id it was recorded under — filled by the payment
+event and by `invoice_payment.paid`, in any order. Integrations shows health
+from evidence, not from `integrations.status`: `server/services/integration-health.ts`
+reads the latest event through `public.latest_webhook_event()` under
+`withUser()` (`DATABASE.md` §6).
 
 ### 3.4 Payout
 
@@ -200,15 +229,24 @@ interface BillingProvider {
 ```
 
 `NormalizedBillingEvent` is a closed union — `payment.succeeded`,
-`payment.refunded`, `subscription.updated`, `subscription.cancelled` — carrying
+`payment.refunded`, `payment.referenced` (ids of one payment, no money),
+`subscription.updated`, `subscription.cancelled` — carrying
 only primitives: ids, ISO strings, `amountMinor`, `currency`. No Stripe types
 cross this line. Adding Paddle means adding one file under `lib/billing/paddle/`
 and one entry in the registry; the commission engine does not change.
 
-Stripe is connected via **Stripe Connect OAuth**, so we hold an account id, not
-the customer's secret key. `integrations.encrypted_credentials` exists for
-providers that force us to hold a token, and is AES-256-GCM encrypted with
-`ENCRYPTION_KEY` (`lib/crypto/secrets.ts`).
+`verifyWebhook` on the adapter verifies with the platform secret (legacy
+endpoint). Per-workspace endpoints call `verifyStripeWebhook(raw, signature,
+secret)` from `lib/billing/stripe/webhook.ts` with the integration's own secret;
+verification is local HMAC work and needs no Stripe API key.
+
+We never hold a founder's Stripe **secret key**: an integration stores the
+account id (`acct_…`) and the endpoint's **webhook signing secret**
+(`whsec_…`), which only proves that deliveries came from that endpoint. It is
+AES-256-GCM encrypted with `ENCRYPTION_KEY` in `integrations.encrypted_credentials`
+as `{ webhookSecret }`, dropped on disconnect, and never returned to the browser.
+Stripe Connect OAuth (`buildConnectUrl` / `exchangeConnectCode`) exists in the
+adapter but is not wired to the UI.
 
 ---
 

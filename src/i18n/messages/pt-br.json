@@ -31,7 +31,9 @@
     "skip": "Pular para o conteúdo",
     "breadcrumb": "Trilha de navegação",
     "navigation": "Navegação",
-    "home": "Início"
+    "home": "Início",
+    "commands": "Comandos",
+    "commandsLabel": "Abrir comandos"
   },
   "palette": {
     "dialog": "Menu de comandos",
@@ -44,7 +46,10 @@
     "groups": {
       "navigation": "Ir para",
       "actions": "Ações",
-      "workspaces": "Workspaces"
+      "workspaces": "Workspaces",
+      "programs": "Programas",
+      "affiliates": "Afiliados",
+      "batches": "Lotes de pagamento"
     },
     "newProgram": "Criar programa",
     "switchWorkspace": "Trocar para {name}",
@@ -57,7 +62,12 @@
     "toggleSidebar": "Alternar barra lateral",
     "affiliatePortal": "Abrir portal do afiliado",
     "dashboard": "Abrir painel do fundador",
-    "signOut": "Sair"
+    "signOut": "Sair",
+    "searching": "Buscando…",
+    "resultCount": "{count, plural, =0 {Nenhum resultado} one {# resultado} other {# resultados}}",
+    "inviteAffiliate": "Convidar afiliado",
+    "newBatch": "Criar lote de pagamento",
+    "newLink": "Criar link com nome"
   },
   "marketing": {
     "home": {
@@ -96,7 +106,7 @@
         "body": "Um programa de indicação parece simples até alguém precisar pagar a comissão certa. Por trás de cada link existe uma infraestrutura que ninguém do seu time quer manter.",
         "listLabel": "O que você teria que construir",
         "items": {
-          "tracking": "Tracking de cliques e cookies",
+          "tracking": "Rastreamento de cliques e cookies",
           "attribution": "Atribuição quando dois afiliados indicam o mesmo cliente",
           "webhooks": "Webhooks do Stripe sem comissão duplicada",
           "recurring": "Comissão recorrente por meses ou para sempre",
@@ -112,7 +122,7 @@
         "subtitle": "Nada exige migração, contrato ou mudança no seu checkout.",
         "connect": {
           "title": "Conecte a cobrança",
-          "body": "Informe sua conta Stripe e aponte o webhook para o IndicaFluxo. Lemos os eventos de pagamento — nunca guardamos sua chave secreta."
+          "body": "Informe sua conta Stripe, cadastre o endereço de webhook que geramos para o seu workspace e cole o segredo de assinatura. Lemos os eventos de pagamento — nunca pedimos a chave secreta da sua API."
         },
         "commission": {
           "title": "Defina a comissão",
@@ -120,7 +130,7 @@
         },
         "invite": {
           "title": "Convide afiliados",
-          "body": "Cada afiliado recebe um link de indicação e um portal próprio para acompanhar cliques, clientes e ganhos."
+          "body": "Cada afiliado recebe um convite por e-mail — ou o link que você copia e envia — e um portal próprio para acompanhar cliques, clientes e ganhos."
         },
         "track": {
           "title": "Acompanhe a receita",
@@ -132,7 +142,7 @@
         "title": "Feito para a parte difícil: acertar o valor.",
         "attribution": {
           "title": "Saiba de onde veio cada cliente.",
-          "body": "Primeiro ou último clique, com janela configurável. Quando dois afiliados trazem o mesmo visitante, a regra do programa decide — e a decisão fica registrada."
+          "body": "Primeiro ou último clique, com janela configurável. Quando dois afiliados trazem o mesmo visitante, a regra do programa decide — e você vê o caminho de cada conversão, do clique à comissão."
         },
         "recurring": {
           "title": "Comissões recorrentes, sem conta de cabeça.",
@@ -140,7 +150,7 @@
         },
         "payouts": {
           "title": "Saiba exatamente quanto pagar.",
-          "body": "Comissões cumprem a carência e ficam disponíveis. Você agrupa em um lote, paga por Pix ou transferência do seu jeito e marca como pago."
+          "body": "Comissões cumprem o período de retenção e ficam disponíveis. Você agrupa em um lote, paga por Pix ou transferência do seu jeito e marca como pago."
         }
       },
       "sides": {
@@ -175,7 +185,7 @@
           "body": "Pagamentos, assinaturas, renovações e estornos."
         },
         "tracker": {
-          "title": "Script de tracking",
+          "title": "Script de rastreamento",
           "body": "Uma tag no seu site registra a origem de cada visita."
         },
         "api": {
@@ -183,7 +193,7 @@
           "body": "Seu backend liga o visitante ao cliente com uma chamada."
         },
         "available": "Disponível",
-        "more": "Outros provedores de cobrança estão a caminho."
+        "more": "Hoje a cobrança integrada é o Stripe."
       },
       "principles": {
         "eyebrow": "Transparência",
@@ -209,7 +219,8 @@
         "eyebrow": "Preços",
         "title": "Comece grátis. Cresça quando o canal provar valor.",
         "cta": "Ver todos os planos",
-        "free": "Grátis"
+        "free": "Grátis",
+        "note": "Todo workspace começa no Starter. O Growth é liberado sob pedido, sem cobrança automática."
       },
       "closing": {
         "title": "Pronto para transformar indicações em receita?",
@@ -231,16 +242,16 @@
       "topAffiliates": "Melhores afiliados",
       "invite": "Convidar afiliado",
       "notice": {
-        "title": "Nova conversão",
-        "detail": "{name} trouxe um cliente no plano Pro",
-        "commission": "{amount} de comissão"
+        "title": "Conversão registrada",
+        "detail": "{name} indicou um cliente do plano Pro",
+        "commission": "{amount} de comissão em retenção"
       },
       "rules": {
         "commission": "Comissão",
         "duration": "Duração",
         "model": "Atribuição",
         "window": "Janela",
-        "hold": "Carência",
+        "hold": "Retenção",
         "months": "{count} meses",
         "days": "{count} dias",
         "lastClick": "Último clique"
@@ -298,13 +309,11 @@
       "tagline": "Infraestrutura de afiliados para SaaS."
     },
     "footer": {
-      "product": "Produto",
-      "features": "Recursos",
       "integrations": "Integrações",
-      "resources": "Materiais",
       "account": "Conta",
       "createAccount": "Criar conta",
-      "rights": "© {year} IndicaFluxo"
+      "rights": "© {year} IndicaFluxo",
+      "explore": "Explorar"
     }
   },
   "common": {
@@ -369,8 +378,9 @@
       "link": "Link",
       "name": "Nome",
       "actions": "Ações",
-      "baseAmount": "Valor base",
-      "releasedOn": "Liberada em"
+      "baseAmount": "Valor da venda",
+      "releasedOn": "Liberada em",
+      "conversionRate": "Taxa de conversão"
     },
     "roles": {
       "owner": "Dono",
@@ -379,6 +389,39 @@
     },
     "money": {
       "otherCurrencies": "+ {amounts}"
+    },
+    "pagination": {
+      "pastEndTitle": "Nenhum resultado nesta página",
+      "pastEndDescription": "{pages, plural, one {A lista tem só # página agora.} other {A lista tem # páginas agora.}}",
+      "pastEndAction": "Ir para a página {page}"
+    },
+    "period": {
+      "all": "Todo o período",
+      "7d": "Últimos 7 dias",
+      "30d": "Últimos 30 dias",
+      "90d": "Últimos 90 dias",
+      "12m": "Últimos 12 meses"
+    },
+    "rule": {
+      "summary": "{rate} · {duration} · {source}",
+      "duration": {
+        "lifetime": "para sempre",
+        "firstPayment": "só no primeiro pagamento",
+        "months": "{count, plural, one {por # mês} other {por # meses}}"
+      },
+      "source": {
+        "program": "regra do programa",
+        "affiliate": "taxa especial do afiliado"
+      },
+      "cause": {
+        "refund": "Estorno",
+        "chargeback": "Contestação"
+      },
+      "reversal": {
+        "full": "{cause} total do pagamento",
+        "partial": "{cause} parcial: {refunded} de {base} devolvidos",
+        "final": "{cause} final: {refunded} de {base} devolvidos"
+      }
     }
   },
   "auth": {
@@ -394,14 +437,20 @@
       "submit": "Entrar",
       "switchPrompt": "Ainda não tem conta?",
       "switchAction": "Criar conta",
-      "forgot": "Esqueci minha senha"
+      "forgot": "Esqueci minha senha",
+      "linkExpired": "Esse link expirou ou já foi usado. <link>Peça um novo link de acesso</link>."
     },
     "signup": {
       "title": "Comece seu programa de afiliados",
       "subtitle": "Grátis para começar. Sem cartão de crédito.",
       "submit": "Criar conta",
       "switchPrompt": "Já tem uma conta?",
-      "switchAction": "Entrar"
+      "switchAction": "Entrar",
+      "inviteTitle": "Aceite seu convite",
+      "inviteSubtitle": "Crie sua conta com o e-mail que recebeu o convite.",
+      "inviteHint": "Recebeu o e-mail do convite? Você também pode abrir o link dele para escolher sua senha.",
+      "inviteLocked": "O convite vale para este e-mail.",
+      "inviteUseAnother": "Usar outro e-mail"
     },
     "password": {
       "show": "Mostrar senha",
@@ -455,51 +504,48 @@
       "expiredTitle": "Link expirado",
       "expiredBody": "Esse link para redefinir a senha expirou ou já foi usado. Peça um novo para continuar.",
       "expiredAction": "Pedir um novo link",
-      "backToLogin": "Voltar para entrar"
+      "backToLogin": "Voltar para entrar",
+      "inviteTitle": "Escolha sua senha",
+      "inviteSubtitle": "Convite aceito. Defina uma senha para entrar depois com {email}.",
+      "inviteDoneTitle": "Tudo pronto",
+      "inviteDoneBody": "Sua senha está definida. Da próxima vez, entre com seu e-mail e essa senha.",
+      "inviteDoneActionAffiliate": "Ir para o portal",
+      "inviteDoneActionMember": "Ir para o workspace"
     }
   },
   "pricing": {
     "metaTitle": "Preços",
     "title": "Preço de ferramenta, não de imposto.",
     "subtitle": "Não ficamos com um percentual da sua receita de afiliados, porque nunca tocamos no dinheiro. Você paga pela infraestrutura e fica com o ganho.",
-    "mostPopular": "Mais popular",
-    "cta": "Começar grátis",
     "plans": {
       "starter": {
         "name": "Starter",
         "cadence": "enquanto você valida",
         "description": "Tudo que você precisa para rodar um programa e provar que o canal funciona.",
-        "features": {
-          "programs": "1 programa",
-          "affiliates": "Até 10 afiliados",
-          "tracking": "Tracking de cliques e atribuição",
-          "ledger": "Ledger de comissões",
-          "payouts": "Pagamentos manuais"
-        }
+        "cta": "Começar grátis"
       },
       "growth": {
         "name": "Growth",
-        "cadence": "por mês",
-        "description": "Para um programa que já gera receita com a qual você se importa.",
-        "features": {
-          "programs": "Programas ilimitados",
-          "affiliates": "Afiliados ilimitados",
-          "rates": "Taxas personalizadas por afiliado",
-          "batches": "Lotes de pagamento e histórico",
-          "team": "Membros de time e log de auditoria"
-        }
+        "cadence": "por mês, combinado com a equipe",
+        "description": "Para um programa que já gera receita: sem limite de programas e afiliados, com time e registro de auditoria.",
+        "cta": "Criar conta e pedir o Growth"
+      }
+    },
+    "onRequest": "Sob pedido",
+    "startsOnStarter": "Todo workspace começa no Starter. Peça o Growth em Configurações → Plano; sem cobrança automática — combinamos o pagamento com você.",
+    "next": {
+      "title": "O que acontece depois",
+      "signup": {
+        "title": "Você cria a conta",
+        "body": "O workspace começa no Starter, grátis e sem cartão. Dá para conectar o Stripe e convidar afiliados no mesmo dia."
       },
-      "scale": {
-        "name": "Scale",
-        "cadence": "por mês",
-        "description": "Vários produtos, alguém dedicado a parcerias e relatórios em que as pessoas confiam.",
-        "features": {
-          "everything": "Tudo do Growth",
-          "workspaces": "Múltiplos workspaces",
-          "support": "Suporte prioritário",
-          "retention": "Retenção de dados estendida",
-          "onboarding": "Ajuda no onboarding"
-        }
+      "request": {
+        "title": "Pede o Growth quando precisar",
+        "body": "Em Configurações → Plano você vê o uso de cada limite e envia o pedido com um clique."
+      },
+      "contact": {
+        "title": "A gente entra em contato",
+        "body": "Combinamos o pagamento com você e liberamos o plano. Nada é cobrado automaticamente."
       }
     }
   },
@@ -507,7 +553,7 @@
     "metaTitle": "Guia de integração",
     "metaDescription": "Instale o tracker, identifique clientes no servidor, receba os pagamentos do Stripe e veja a primeira comissão registrada no IndicaFluxo.",
     "header": {
-      "docs": "Docs",
+      "docs": "Documentação",
       "dashboard": "Painel",
       "signUp": "Criar conta",
       "openMenu": "Abrir navegação da documentação",
@@ -638,8 +684,8 @@
       "response": "Resposta",
       "responseBody": "<code>attributionsBound</code> indica quantas atribuições abertas desse visitante foram ligadas ao cliente. <code>0</code> significa que o visitante não chegou por um link de afiliado ativo.",
       "fieldsTitle": "Campos",
-      "stripeIdTitle": "Envie o providerCustomerId",
-      "stripeIdBody": "O pagamento do Stripe encontra o afiliado pelo id do cliente no Stripe. Sem <code>providerCustomerId</code>, o pagamento é registrado sem comissão. Se o cliente do Stripe ainda não existe no cadastro, chame o identify de novo quando criá-lo, com o mesmo <code>externalId</code>."
+      "stripeIdTitle": "Envie o providerCustomerId ou o e-mail",
+      "stripeIdBody": "O pagamento do Stripe encontra o afiliado pelo id do cliente no Stripe. Sem ele, usa o <strong>e-mail</strong> enviado no identify, comparado ao e-mail do pagamento: faturas trazem o e-mail do cliente no Stripe; pagamentos avulsos, só quando têm <code>receipt_email</code>. No primeiro pagamento que casar pelo e-mail, o id do Stripe é gravado e os seguintes casam por ele. Sem nenhum dos dois, o pagamento é registrado sem comissão."
     },
     "fields": {
       "name": "Campo",
@@ -649,22 +695,25 @@
       "optional": "opcional",
       "visitorId": "Identificador do visitante: <code>v_</code> seguido de 16 a 48 letras minúsculas ou números.",
       "externalId": "Id do usuário no seu sistema (até 200 caracteres). Chamadas repetidas com o mesmo valor atualizam o mesmo cliente.",
-      "providerCustomerId": "Id do cliente no Stripe (<code>cus_…</code>). Necessário para gerar comissão.",
-      "email": "E-mail do cliente. Guardado apenas como hash.",
+      "providerCustomerId": "Id do cliente no Stripe (<code>cus_…</code>). Recomendado: é o jeito mais direto de ligar os pagamentos ao afiliado.",
+      "email": "E-mail do cliente, guardado apenas como hash. Sem <code>providerCustomerId</code>, é por ele que o pagamento do Stripe encontra o cliente — envie o mesmo endereço que o Stripe tem.",
       "provider": "Provedor de cobrança. Padrão <code>stripe</code>, o único integrado hoje."
     },
     "connectStripe": {
       "title": "Conecte o Stripe e receba os pagamentos",
-      "lead": "É pelo webhook do Stripe que o IndicaFluxo sabe que um cliente pagou. Em Integrações:",
+      "lead": "É pelo webhook do Stripe que o IndicaFluxo sabe que um cliente pagou. Cada workspace tem a própria URL de webhook e o próprio segredo de assinatura. Em Integrações:",
       "steps": {
-        "account": "Informe o <strong>ID da conta Stripe</strong> (<code>acct_…</code>) e conecte.",
-        "webhook": "No Stripe, adicione a URL de webhook abaixo e assine os eventos listados em <a>Eventos do Stripe</a>."
+        "account": "Informe o <strong>ID da conta Stripe</strong> (<code>acct_…</code>) e continue.",
+        "webhook": "Copie a <strong>URL do webhook</strong> que aparece — ela termina no ID da sua integração. No painel do Stripe, em Desenvolvedores → Webhooks, adicione um endpoint com essa URL e selecione os eventos listados em <a>Eventos do Stripe</a>.",
+        "secret": "Na página do endpoint, revele o <strong>segredo de assinatura</strong> (<code>whsec_…</code>) e cole em Integrações. Ele fica guardado criptografado e não é exibido de novo."
       },
       "urlLabel": "URL do webhook",
       "idempotentTitle": "Reentregas não duplicam comissão",
       "idempotentBody": "Cada evento é verificado pela assinatura e registrado uma única vez. Se o Stripe reenviar, o evento é reconhecido e ignorado.",
       "currencyTitle": "Mesma moeda do programa",
-      "currencyBody": "Um pagamento só gera comissão se estiver na moeda do programa. Um programa em BRL ignora pagamentos em USD."
+      "currencyBody": "Um pagamento só gera comissão se estiver na moeda do programa. Um programa em BRL ignora pagamentos em USD.",
+      "urlPlaceholder": "ID_DA_INTEGRACAO",
+      "verify": "Para confirmar, envie um evento de teste pelo Stripe. Integrações mostra <strong>Recebendo eventos</strong> com a hora do último evento; se a assinatura não conferir, mostra <strong>assinatura inválida</strong> — quase sempre um segredo de outro endpoint."
     },
     "commission": {
       "title": "Entenda como a comissão é calculada",
@@ -685,7 +734,7 @@
       "lifecycle": {
         "pending": "<strong>Pendente</strong> — durante o período de retenção do programa.",
         "available": "<strong>Disponível</strong> — pode entrar num lote de pagamento.",
-        "approved": "<strong>Aprovada</strong> — está num lote aguardando pagamento.",
+        "approved": "<strong>Em lote</strong> — está num lote aguardando pagamento.",
         "paid": "<strong>Paga</strong> — o lote foi marcado como pago.",
         "reversed": "<strong>Revertida</strong> — um estorno criou uma reversão negativa. Nada é apagado."
       }
@@ -759,10 +808,11 @@
       "types": {
         "payment": "Pagamento de fatura → pode gerar comissão",
         "oneOffPayment": "Pagamento avulso (sem fatura) → pode gerar comissão",
-        "refund": "Estorno → reversão da comissão",
-        "chargeback": "Disputa → reversão da comissão",
+        "refund": "Estorno, inclusive parcial → reversão proporcional da comissão",
+        "chargeback": "Disputa → reversão proporcional ao valor disputado",
         "subscription": "Criação ou mudança de assinatura",
-        "subscriptionCancelled": "Cancelamento de assinatura"
+        "subscriptionCancelled": "Cancelamento de assinatura",
+        "paymentLink": "Liga a fatura ao pagamento que a quitou → estornos e disputas encontram a comissão"
       }
     },
     "errors": {
@@ -800,7 +850,7 @@
     "cancelled": "Cancelada",
     "failed": "Falhou",
     "suspended": "Suspenso",
-    "chargeback": "Chargeback",
+    "chargeback": "Contestação",
     "refund": "Estorno",
     "paused": "Pausado",
     "archived": "Arquivado",
@@ -820,20 +870,21 @@
       "legendCommission": "Comissão",
       "metrics": {
         "revenue": "Receita de afiliados",
-        "comparison": "vs. 30 dias anteriores",
+        "comparison": "vs. {days} dias anteriores",
         "commissions": "Comissões",
         "activeAffiliates": "Afiliados ativos",
         "customers": "Clientes conquistados",
         "netRevenueAfter": "{amount} de receita líquida",
         "conversionOfClicks": "{rate} de {clicks, plural, one {# clique} other {# cliques}}",
-        "comparisonInCurrency": "Em {currency}, vs. 30 dias anteriores"
+        "comparisonInCurrency": "Em {currency}, vs. {days} dias anteriores",
+        "ofApproved": "{count, plural, one {com clique ou venda no período · # aprovado} other {com clique ou venda no período · # aprovados}}"
       },
       "revenueOverTime": "Receita ao longo do tempo",
       "conversionFunnel": "Funil de conversão",
       "topAffiliates": "Principais afiliados",
       "recentConversions": "Conversões recentes",
-      "noCommissions": "Nenhuma comissão ainda.",
-      "noConversions": "Nenhuma conversão ainda.",
+      "noCommissions": "Nenhuma comissão ainda",
+      "noConversions": "Nenhuma conversão ainda",
       "readyToPay": "{amount} prontos para pagar",
       "stillOnHold": "{amount} ainda no período de retenção.",
       "reviewPayouts": "Revisar pagamentos",
@@ -864,23 +915,26 @@
           },
           "stripe": {
             "title": "Conectar o Stripe",
-            "titleDone": "Stripe conectado",
+            "titleDone": "Stripe recebendo eventos",
             "description": "Os pagamentos dos clientes indicados viram comissões automaticamente.",
             "action": "Conectar Stripe",
-            "actionDone": "Ver integração"
+            "actionDone": "Ver integração",
+            "titleWaiting": "Aguardando o primeiro evento do Stripe",
+            "descriptionWaiting": "As credenciais estão salvas. Este passo é marcado quando o Stripe enviar o primeiro evento — um pagamento de teste já basta.",
+            "actionWaiting": "Ver integração"
           },
           "affiliate": {
             "title": "Convidar o primeiro afiliado",
             "titleDone": "Primeiro afiliado convidado",
-            "description": "O afiliado recebe um código e um link de indicação na hora.",
+            "description": "Convide por e-mail ou encaminhe o link do convite. O código de indicação fica pronto na hora.",
             "action": "Convidar afiliado",
             "actionDone": "Ver afiliados"
           },
           "tracking": {
-            "title": "Instalar o tracking",
-            "titleDone": "Tracking instalado",
-            "description": "Cole o snippet no seu site. Este passo é marcado sozinho quando o primeiro clique em um link de indicação chegar.",
-            "action": "Ver snippet",
+            "title": "Instalar o rastreamento",
+            "titleDone": "Rastreamento instalado",
+            "description": "Cole o código de rastreamento no seu site. Este passo é marcado sozinho quando chegar o primeiro clique em um link de indicação.",
+            "action": "Ver código de rastreamento",
             "actionDone": "Ver integração"
           }
         }
@@ -888,12 +942,25 @@
       "viewAllAffiliates": "Ver todos",
       "viewAllConversions": "Ver todas",
       "chartSummary": "De {start} a {end}: {revenue} de receita de afiliados e {commission} em comissões. Maior receita em {peakDay}, com {peakRevenue}.",
-      "chartCurrencyNote": "Valores em {currency}. O movimento em {others} não entra neste gráfico."
+      "chartCurrencyNote": "Valores em {currency}. O movimento em {others} não entra neste gráfico.",
+      "descriptionSetup": "Os passos entre este workspace e a primeira comissão.",
+      "period": "Últimos {days} dias",
+      "chartValues": "{count, plural, one {Ver os valores do # dia com movimento} other {Ver os valores dos # dias com movimento}}",
+      "chartValuesCaption": "Receita e comissão por dia, em {currency}",
+      "chartEmpty": {
+        "title": "Nenhuma receita nos últimos {days} dias",
+        "description": "O gráfico volta a aparecer quando um cliente indicado pagar."
+      },
+      "funnelSignupsHint": "Cadastros aparecem quando o seu servidor identifica os visitantes pela API.",
+      "funnelEmpty": "Nenhum clique nos últimos {days} dias.",
+      "topAffiliatesScope": "Por comissão, desde o início.",
+      "noCommissionsDescription": "Os afiliados que mais geram comissão aparecem aqui.",
+      "noConversionsDescription": "Cada pagamento de um cliente indicado aparece aqui, com o afiliado que o trouxe."
     },
     "funnel": {
       "clicks": "Cliques",
       "signups": "Cadastros",
-      "trials": "Testes",
+      "trials": "Assinaturas",
       "customers": "Clientes",
       "fromPrevious": "da etapa anterior",
       "ofClicks": "{rate} dos cliques"
@@ -910,9 +977,9 @@
       "pageOf": "Página {page} de {pages} · {total} afiliados",
       "empty": {
         "title": "Nenhum afiliado ainda",
-        "description": "Convide seu primeiro afiliado. Ele recebe um link de indicação na hora.",
+        "description": "Convide seu primeiro afiliado. Enviamos o convite por e-mail e você recebe um link para encaminhar.",
         "filteredTitle": "Nenhum afiliado corresponde a esses filtros",
-        "filteredDescription": "Tente outro termo de busca, ou limpe o filtro de status."
+        "filteredDescription": "Tente outro termo de busca ou limpe os filtros."
       },
       "filterProgram": "Filtrar por programa",
       "allPrograms": "Todos os programas",
@@ -927,7 +994,9 @@
         "description": "Afiliados entram por um programa, que define quanto cada um ganha. Crie o programa e depois convide seus afiliados.",
         "action": "Criar programa"
       },
-      "otherCurrenciesExcluded": "+ comissões em outra moeda"
+      "otherCurrenciesExcluded": "+ comissões em outra moeda",
+      "filtersLabel": "Filtrar afiliados",
+      "pendingCount": "{count, plural, one {# aguardando aprovação} other {# aguardando aprovação}}"
     },
     "commissions": {
       "title": "Comissões",
@@ -945,14 +1014,26 @@
         "title": "Nenhuma comissão ainda",
         "description": "As comissões aparecem assim que um cliente indicado paga e a sua cobrança avisa o IndicaFluxo.",
         "filteredTitle": "Nenhuma comissão corresponde a esses filtros",
-        "filteredDescription": "Tente outro status ou programa.",
+        "filteredDescription": "Tente outro afiliado, status ou programa.",
         "descriptionConnected": "O Stripe está conectado. A primeira comissão aparece aqui quando um cliente indicado pagar."
       },
       "terms": {
-        "rate": "Percentual aplicado ao valor base: a taxa do programa ou a taxa especial do afiliado. “Fixa” quando a comissão é um valor fixo por pagamento.",
-        "status": "Pendente: ainda na retenção. Disponível: pode entrar num lote de pagamento. Aprovada: está num lote aguardando pagamento. Paga: o lote foi pago. Revertida: o pagamento foi estornado. Rejeitada: não conta.",
+        "rate": "Percentual aplicado ao valor da venda: a taxa do programa ou a taxa especial do afiliado. “Fixa” quando a comissão é um valor fixo por pagamento.",
+        "status": "Pendente: ainda na retenção. Disponível: pode entrar num lote de pagamento. Em lote: está num lote aguardando pagamento. Paga: o lote foi pago. Revertida: o pagamento foi estornado. Rejeitada: não conta.",
         "releasedOn": "Data em que termina a retenção do programa. A partir dela a comissão pode ser paga, se o pagamento do cliente não for estornado."
-      }
+      },
+      "filtersLabel": "Filtrar comissões",
+      "filterAffiliate": "Filtrar por afiliado",
+      "allAffiliates": "Todos os afiliados",
+      "statusLabel": {
+        "pending": "Pendente",
+        "available": "Disponível",
+        "approved": "Em lote",
+        "paid": "Paga",
+        "reversed": "Revertida",
+        "rejected": "Rejeitada"
+      },
+      "openTrail": "Ver o caminho da conversão que gerou esta comissão"
     },
     "conversions": {
       "title": "Conversões",
@@ -960,16 +1041,27 @@
       "empty": {
         "title": "Nenhuma conversão ainda",
         "description": "Quando um visitante rastreado vira cliente pagante, o pagamento aparece aqui junto do afiliado que o conquistou.",
-        "descriptionConnected": "O Stripe está conectado. Quando um visitante rastreado virar cliente pagante, o pagamento aparece aqui."
+        "descriptionConnected": "O Stripe está conectado. Quando um visitante rastreado virar cliente pagante, o pagamento aparece aqui.",
+        "filteredTitle": "Nenhuma conversão corresponde a esses filtros",
+        "filteredDescription": "Tente outro afiliado, programa ou período.",
+        "filteredAffiliateDescription": "{name} não tem conversões com esses filtros. Tente outro programa ou período."
       },
       "pagination": "Paginação",
-      "pageOf": "Página {page} de {pages} · {total} conversões"
+      "pageOf": "Página {page} de {pages} · {total} conversões",
+      "apply": "Aplicar",
+      "filtersLabel": "Filtrar conversões",
+      "filterAffiliate": "Filtrar por afiliado",
+      "allAffiliates": "Todos os afiliados",
+      "filterProgram": "Filtrar por programa",
+      "allPrograms": "Todos os programas",
+      "filterPeriod": "Filtrar por período",
+      "openTrail": "Ver o caminho desta conversão, do clique à comissão"
     },
     "payouts": {
       "title": "Pagamentos",
       "description": "O IndicaFluxo é a fonte de verdade do que você deve. Você paga os afiliados pelos seus próprios meios e registra aqui.",
       "availableToPay": "Disponível para pagar",
-      "readyToPay": "Prontos para pagar",
+      "readyToPay": "Disponível para pagar",
       "history": "Histórico de pagamentos",
       "batch": "Lote",
       "affiliates": "Afiliados",
@@ -994,7 +1086,8 @@
       },
       "availableOtherCurrencies": "+ {amounts}",
       "readyToPayByCurrency": "Um lote tem uma só moeda. Escolha a moeda e depois quem entra no lote; as outras moedas ficam para um lote próprio.",
-      "currencyTabs": "Moedas a pagar"
+      "currencyTabs": "Moedas a pagar",
+      "memberReadOnly": "Somente proprietários e administradores escolhem quem entra em um lote de pagamento. Aqui você acompanha os totais e o histórico."
     },
     "programs": {
       "title": "Programas",
@@ -1014,7 +1107,12 @@
         "description": "Um programa define quanto os afiliados ganham e como as conversões são atribuídas. A maioria dos SaaS começa com um só.",
         "action": "Criar seu primeiro programa"
       },
-      "attributionDefinition": "Quem recebe o crédito pela venda (primeiro ou último clique) e por quantos dias depois do clique."
+      "attributionDefinition": "Quem recebe o crédito pela venda (primeiro ou último clique) e por quantos dias depois do clique.",
+      "planLimit": {
+        "title": "Seu plano inclui {limit, plural, one {# programa} other {# programas}}",
+        "description": "Para criar outro programa, solicite a mudança de plano em Configurações.",
+        "action": "Ver plano"
+      }
     },
     "newProgram": {
       "title": "Novo programa",
@@ -1028,7 +1126,7 @@
     },
     "integrations": {
       "title": "Integrações",
-      "description": "Conecte o provedor de cobrança que fatura seus clientes e depois instale o tracking."
+      "description": "Conecte o provedor de cobrança que fatura seus clientes e depois instale o rastreamento."
     },
     "settings": {
       "title": "Configurações",
@@ -1038,12 +1136,32 @@
         "description": "Membros veem tudo neste workspace. Só donos e admins podem alterar programas, pagamentos e chaves.",
         "member": "Membro",
         "role": "Papel",
-        "pendingProfile": "Perfil pendente",
-        "you": "(você)",
-        "invitedRole": "convidado · {role}",
-        "pendingProfileHint": "Ainda sem nome no perfil · conta",
+        "you": "Você",
         "joinedOn": "Entrou em {date}",
-        "invitedOn": "Convite enviado em {date}"
+        "invitedOn": "Convite criado em {date}",
+        "unnamedMember": "Membro",
+        "pendingRole": "Convite pendente · {role}",
+        "actions": "Ações",
+        "menuLabel": "Ações para {name}",
+        "makeAdmin": "Tornar admin",
+        "makeMember": "Tornar membro",
+        "remove": "Remover do workspace",
+        "leave": "Sair do workspace",
+        "resend": "Reenviar convite",
+        "revoke": "Revogar convite",
+        "removeTitle": "Remover {name}?",
+        "removeBody": "{name} perde o acesso a este workspace imediatamente. Para voltar, precisa de um novo convite.",
+        "removeConfirm": "Remover",
+        "leaveTitle": "Sair deste workspace?",
+        "leaveBody": "Você perde o acesso a este workspace imediatamente. Para voltar, um dono ou admin precisa convidar você de novo.",
+        "leaveConfirm": "Sair do workspace",
+        "revokeTitle": "Revogar o convite de {email}?",
+        "revokeBody": "O convite deixa de valer: se a pessoa criar uma conta com esse e-mail, não entra no workspace.",
+        "revokeConfirm": "Revogar convite",
+        "resendTitle": "Reenviar convite",
+        "resendBody": "Vamos enviar o e-mail de convite de novo para {email}. Você também recebe um link para encaminhar.",
+        "resendConfirm": "Reenviar e-mail",
+        "done": "Concluir"
       },
       "readOnly": "Só donos e admins podem alterar o workspace. Seu papel aqui é {role}."
     },
@@ -1066,7 +1184,7 @@
       },
       "emptyAffiliates": {
         "title": "Nenhum afiliado neste programa",
-        "description": "Convide alguém e a pessoa recebe um código de indicação na hora."
+        "description": "Convide alguém: o código de indicação fica pronto na hora, e você recebe um link do convite para encaminhar."
       },
       "emptyCommissions": {
         "title": "Nenhuma comissão neste programa ainda",
@@ -1084,11 +1202,22 @@
       "affiliatesCapped": "Mostrando os {shown} afiliados mais recentes, de {total}.",
       "commissionsCapped": "Mostrando as {shown} comissões mais recentes, de {total}.",
       "viewAllAffiliates": "Ver todos os afiliados",
-      "viewAllCommissions": "Ver todas as comissões"
+      "viewAllCommissions": "Ver todas as comissões",
+      "configuration": "Configuração do programa",
+      "websiteMissing": {
+        "title": "Sem site do programa, os afiliados não têm link padrão",
+        "description": "Informe o site do produto para que cada afiliado receba um link pronto para divulgar.",
+        "action": "Adicionar site"
+      },
+      "affiliateActions": {
+        "menuLabel": "Ações para {name}",
+        "viewAffiliate": "Ver afiliado",
+        "viewCommissions": "Ver comissões"
+      }
     },
     "error": {
       "title": "Não foi possível carregar esta página",
-      "description": "Pode ser uma falha passageira, ou uma área que o seu papel neste workspace não permite ver. Tente de novo; se continuar, fale com o dono do workspace.",
+      "description": "Pode ser uma falha passageira. Tente de novo; se continuar, fale com o suporte e informe o código do erro.",
       "retry": "Tentar de novo",
       "backToOverview": "Voltar para a visão geral",
       "reference": "Código do erro:"
@@ -1122,6 +1251,123 @@
       "emptyItems": {
         "title": "Nenhum afiliado neste lote",
         "description": "Este lote não tem itens. Crie um novo lote a partir de Pagamentos."
+      },
+      "created": {
+        "title": "Lote criado",
+        "description": "Exporte a lista ou copie a tabela para fazer as transferências. Depois de pagar, marque o lote como pago."
+      },
+      "export": {
+        "csv": "Exportar CSV",
+        "copyTable": "Copiar tabela",
+        "filenamePrefix": "pagamentos",
+        "columns": {
+          "affiliate": "Afiliado",
+          "email": "E-mail",
+          "amount": "Valor",
+          "currency": "Moeda",
+          "commissions": "Comissões",
+          "batch": "Lote"
+        }
+      }
+    },
+    "affiliate": {
+      "title": "Afiliado",
+      "since": "Afiliado desde {date}",
+      "fixedRate": "{amount} por pagamento",
+      "viewAll": "Ver todas",
+      "metrics": {
+        "title": "Desempenho",
+        "scope": "Desde a entrada, somando todos os programas. Valores em moedas diferentes nunca são somados.",
+        "clicks": "Cliques",
+        "customers": "Clientes",
+        "conversionRate": "{rate} dos cliques",
+        "revenue": "Receita gerada",
+        "commissions": "Comissões",
+        "commissionsScope": "Pendentes, disponíveis, em lote e pagas"
+      },
+      "programs": {
+        "title": "Programas",
+        "empty": "Este afiliado não participa de nenhum programa.",
+        "customRate": "taxa especial"
+      },
+      "links": {
+        "title": "Links de indicação",
+        "emptyTitle": "Nenhum link personalizado",
+        "emptyDescription": "O afiliado ainda usa só o link padrão, com o código de cada programa.",
+        "destination": "Destino"
+      },
+      "conversions": {
+        "title": "Conversões recentes",
+        "emptyTitle": "Nenhuma conversão ainda",
+        "emptyDescription": "Quando um cliente indicado por este afiliado pagar, o pagamento aparece aqui."
+      },
+      "commissions": {
+        "title": "Comissões recentes",
+        "emptyTitle": "Nenhuma comissão ainda",
+        "emptyDescription": "As comissões deste afiliado aparecem aqui assim que um cliente indicado pagar."
+      }
+    },
+    "conversion": {
+      "metaTitle": "Caminho da conversão",
+      "title": "Conversão de {customer}",
+      "description": "Do clique à comissão: como este cliente chegou, qual afiliado ficou com o crédito e o que cada pagamento gerou.",
+      "timeline": "Linha do tempo",
+      "thisConversion": "Esta conversão",
+      "truncated": "Mostrando as primeiras {count, plural, one {# movimentação} other {# movimentações}} deste cliente.",
+      "clicksUnavailable": "Os cliques desta atribuição não estão mais disponíveis. A atribuição, os pagamentos e as comissões continuam registrados.",
+      "events": {
+        "firstClick": "Primeiro clique",
+        "lastClick": "Último clique",
+        "otherAffiliate": "Pelo link de {name}, que não ficou com o crédito desta conversão.",
+        "identified": "Cliente identificado",
+        "identifiedUndated": "O horário da identificação não é registrado",
+        "commission": "Comissão",
+        "reversal": "Reversão da comissão"
+      },
+      "transactionType": {
+        "payment": "Pagamento",
+        "refund": "Reembolso",
+        "chargeback": "Contestação",
+        "adjustment": "Ajuste"
+      },
+      "transactionStatus": {
+        "pending": "Pendente",
+        "failed": "Falhou"
+      },
+      "fields": {
+        "link": "Link",
+        "landing": "Página de chegada",
+        "referrer": "Origem",
+        "direct": "Acesso direto",
+        "utm": "UTM",
+        "externalId": "ID no seu sistema",
+        "providerCustomerId": "ID na cobrança",
+        "transaction": "Transação",
+        "base": "Valor da venda",
+        "rule": "Regra aplicada",
+        "releasedOn": "Liberada em",
+        "paidOn": "Paga em",
+        "batch": "Lote"
+      },
+      "missing": {
+        "title": "Sem atribuição registrada",
+        "description": "Nenhum clique rastreado está ligado a este cliente neste programa. Acontece com uma conversão lançada manualmente ou quando a identificação recebeu outro ID de cliente. Os pagamentos e as comissões abaixo continuam valendo."
+      },
+      "moved": {
+        "title": "A atribuição mudou depois desta conversão",
+        "description": "Um clique posterior passou o crédito deste visitante para outro afiliado. As comissões abaixo continuam registradas para {name}."
+      },
+      "side": {
+        "title": "Atribuição",
+        "affiliate": "Afiliado",
+        "program": "Programa",
+        "model": "Modelo",
+        "window": "Janela",
+        "attributedAt": "Atribuída em",
+        "expiresAt": "Expira em",
+        "customer": "Cliente",
+        "none": "—",
+        "timesIn": "Datas e horários no fuso do workspace ({zone})."
       }
     }
   },
@@ -1135,7 +1381,8 @@
       "program": "Programa",
       "done": "Pronto",
       "completed": "(concluída)"
-    }
+    },
+    "header": "Primeiros passos"
   },
   "portal": {
     "overview": {
@@ -1165,7 +1412,17 @@
         "description": "Cliques e clientes aparecem aqui assim que alguém usar seu link."
       },
       "otherCurrencies": "e {amounts}",
-      "chartCurrencyNote": "Somente programas em {currency}"
+      "chartCurrencyNote": "Somente programas em {currency}",
+      "helloNoName": "Olá.",
+      "balance": {
+        "available": "Disponível",
+        "onHold": "Em retenção",
+        "nextRelease": "Próxima liberação em {date}",
+        "inBatch": "Em lote de pagamento",
+        "inBatchNote": "Já incluída em um pagamento que o dono do programa vai fazer."
+      },
+      "chartSummary": "{amount} em comissões nos últimos 30 dias, {days, plural, =0 {sem nenhum dia com comissão} one {com comissão em # dia} other {com comissão em # dias}}.",
+      "chartDaysTitle": "Dias mais recentes com comissão"
     },
     "links": {
       "title": "Links",
@@ -1176,7 +1433,17 @@
       "namedLinksEmpty": "Nenhum link com nome ainda. Crie um para cada canal (YouTube, newsletter, Instagram) e compare os cliques.",
       "clicks": "{count, plural, =0 {nenhum clique} one {# clique} other {# cliques}}",
       "campaignLabel": "Campanha: {campaign}",
-      "copyLink": "Copiar link {name}"
+      "copyLink": "Copiar link {name}",
+      "rename": "Renomear",
+      "renameLabel": "Renomear o link {name}",
+      "renameTitle": "Renomear link",
+      "renameDescription": "Muda só o nome que aparece aqui. O endereço do link continua o mesmo, então o que você já divulgou segue funcionando.",
+      "renameSubmit": "Salvar nome",
+      "delete": "Excluir",
+      "deleteLabel": "Excluir o link {name}",
+      "deleteTitle": "Excluir o link “{name}”?",
+      "deleteDescription": "O link sai desta lista e os cliques dele deixam de ser contados separadamente. Os cliques e as comissões que ele já trouxe continuam valendo, e quem abrir o endereço ainda é creditado a você pelo seu código.",
+      "deleteConfirm": "Excluir link"
     },
     "commissions": {
       "title": "Comissões",
@@ -1188,18 +1455,38 @@
         "description": "Compartilhe seu link de indicação. As comissões aparecem aqui assim que um cliente indicado pagar."
       },
       "saleOf": "venda de {amount}",
-      "releasesOn": "Disponível em {date}",
+      "releasesOn": "Liberada em {date}",
       "reversal": "Estorno",
       "legendTitle": "O que significa cada status",
       "statusHelp": {
-        "pending": "Em período de retenção. Fica disponível na data indicada, se o cliente não pedir reembolso.",
-        "available": "Liberada para pagamento. Entra no próximo pagamento que o dono do programa fizer.",
-        "approved": "Incluída em um pagamento que o dono do programa já preparou e ainda vai fazer.",
+        "pending": "Ainda no período de retenção do programa. É liberada na data indicada, se o cliente não pedir reembolso.",
+        "available": "Liberada para pagamento. Entra no próximo lote de pagamento que o dono do programa montar.",
+        "approved": "Incluída em um lote de pagamento que o dono do programa já montou e ainda vai pagar.",
         "paid": "O dono do programa marcou como paga.",
         "reversed": "Cancelada porque o cliente foi reembolsado ou contestou a cobrança. Não é paga.",
         "rejected": "Recusada pelo programa. Não entra em nenhum pagamento."
       },
-      "pageOf": "Página {page} de {pages} · {count, plural, one {# comissão} other {# comissões}}"
+      "pageOf": "Página {page} de {pages} · {count, plural, one {# comissão} other {# comissões}}",
+      "status": {
+        "pending": "Em retenção",
+        "available": "Disponível",
+        "approved": "Em lote",
+        "paid": "Paga",
+        "reversed": "Revertida",
+        "rejected": "Recusada"
+      },
+      "filters": {
+        "label": "Filtrar comissões",
+        "status": "Status",
+        "program": "Programa",
+        "allStatuses": "Todos os status",
+        "allPrograms": "Todos os programas"
+      },
+      "emptyFiltered": {
+        "title": "Nenhuma comissão com esses filtros",
+        "description": "Troque o status ou o programa para ver outras comissões.",
+        "clear": "Limpar filtros"
+      }
     },
     "conversions": {
       "title": "Conversões",
@@ -1226,7 +1513,13 @@
       "awaiting": "Aguardando pagamento",
       "paymentReference": "Referência do pagamento",
       "paymentReferenceValue": "Referência: <mono>{reference}</mono>",
-      "capped": "Mostrando os {count} pagamentos mais recentes."
+      "capped": "Mostrando os {count} pagamentos mais recentes.",
+      "status": {
+        "pending": "Aguardando pagamento",
+        "paid": "Pago",
+        "failed": "Falhou",
+        "cancelled": "Cancelado"
+      }
     },
     "settings": {
       "title": "Configurações",
@@ -1259,7 +1552,9 @@
     },
     "shared": {
       "viewLinks": "Ver meus links",
-      "pagination": "Paginação"
+      "pagination": "Paginação",
+      "latest": "Últimas {count}",
+      "cappedNote": "Mostrando apenas as mais recentes."
     },
     "error": {
       "title": "Não foi possível carregar esta página",
@@ -1291,19 +1586,25 @@
       "missingTitle": "Link padrão indisponível",
       "missingDescription": "O dono do programa ainda não configurou o site do produto. Enquanto isso, crie um link com destino.",
       "createLink": "Criar link"
+    },
+    "participationStatus": {
+      "approved": "Aprovado",
+      "pending": "Pendente",
+      "suspended": "Suspenso",
+      "rejected": "Recusado"
     }
   },
   "forms": {
     "program": {
       "basics": {
         "title": "Básico",
-        "description": "O que os afiliados veem ao entrar."
+        "description": "Nome, status e site do produto."
       },
       "name": "Nome do programa",
       "namePlaceholder": "Programa de parceiros",
       "status": "Status",
       "description": "Descrição",
-      "descriptionHint": "Opcional. Exibida aos afiliados no portal deles.",
+      "descriptionHint": "Opcional. Descrição curta do programa.",
       "commission": {
         "title": "Comissão",
         "description": "Quanto um afiliado ganha, e por quanto tempo depois do primeiro pagamento."
@@ -1343,9 +1644,15 @@
         "summaryWithStatus": "{status} · {settings}"
       },
       "websiteUrl": "Site do produto",
-      "websiteUrlHint": "Onde o script de tracking está instalado. O link padrão dos afiliados aponta para cá.",
+      "websiteUrlHint": "Onde o script de rastreamento está instalado. O link padrão dos afiliados aponta para cá.",
       "websiteUrlPlaceholder": "https://seuproduto.com",
-      "durationMonthsHint": "De 2 a 120 meses. Para pagar só uma vez, escolha “Somente o primeiro pagamento”."
+      "durationMonthsHint": "De 2 a 120 meses. Para pagar só uma vez, escolha “Somente o primeiro pagamento”.",
+      "confirm": {
+        "title": "Salvar estas alterações?",
+        "statusBody": "Com o status “{status}”, os cliques nos links continuam registrados, mas nenhum visitante novo é atribuído a afiliados — vale para todos os afiliados do programa. Clientes já atribuídos continuam gerando comissões.",
+        "currencyBody": "As comissões já registradas continuam em {from}. Depois de salvar, só pagamentos em {to} geram comissão neste programa; pagamentos em {from} deixam de gerar.",
+        "action": "Salvar alterações"
+      }
     },
     "workspace": {
       "title": "Workspace",
@@ -1359,7 +1666,7 @@
       "label": "Convidar por e-mail",
       "placeholder": "colega@empresa.com",
       "role": "Papel",
-      "submit": "Enviar convite"
+      "submit": "Convidar"
     },
     "createWorkspace": {
       "name": "Nome da empresa ou produto",
@@ -1388,7 +1695,7 @@
     },
     "inviteAffiliate": {
       "title": "Convidar afiliado",
-      "description": "A pessoa não precisa ter conta. Quando entrar no IndicaFluxo com este e-mail, encontra o link de indicação pronto para usar.",
+      "description": "A pessoa não precisa ter conta. Enviamos um convite para este e-mail e mostramos um link para você encaminhar. O código de indicação já fica pronto.",
       "program": "Programa",
       "name": "Nome",
       "email": "E-mail",
@@ -1399,17 +1706,22 @@
       "customRateHint": "Opcional. Sobrepõe a taxa do programa.",
       "company": "Empresa",
       "optional": "Opcional.",
-      "submit": "Convidar afiliado"
+      "submit": "Convidar afiliado",
+      "sentTitle": "Convite enviado",
+      "createdTitle": "Convite criado",
+      "createdDescription": "{name} já está no programa, com o código de indicação pronto.",
+      "inviteAnother": "Convidar outro",
+      "done": "Concluir"
     },
     "apiKeys": {
       "title": "Chaves de API",
-      "description": "A chave pública vai no código de tracking do seu site. A chave secreta é só para chamadas do seu servidor a <code>/api/identify</code>.",
+      "description": "A chave pública vai no código de rastreamento do seu site. A chave secreta é só para chamadas do seu servidor a <code>/api/identify</code>.",
       "revealWarning": "Copie agora — ela não será exibida de novo.",
       "key": "Chave",
       "type": "Tipo",
       "lastUsed": "Último uso",
       "rotate": "Gerar nova chave",
-      "snippet": "Código de tracking",
+      "snippet": "Código de rastreamento",
       "typeSecret": "Secreta",
       "typePublishable": "Pública",
       "neverUsed": "Nunca",
@@ -1419,20 +1731,22 @@
       "generatePublishable": "Gerar nova chave pública",
       "noKey": "Nenhuma chave ativa",
       "keyPlaceholder": "SUA_CHAVE_PUBLICA",
-      "snippetLocked": "A chave completa só aparece quando é gerada. Gere uma nova chave para instalar o tracking.",
-      "snippetNoKey": "Gere uma chave pública para completar o código e instalar o tracking.",
+      "snippetLocked": "A chave pública completa só aparece na criação; o código já instalado continua funcionando. Gerar uma nova invalida a atual.",
+      "snippetNoKey": "Gere uma chave pública para completar o código e instalar o rastreamento.",
       "snippetReady": "Este código já contém a nova chave. Cole no seu site no lugar do código anterior, se houver.",
       "confirmTitle": "{type, select, secret {Gerar nova chave secreta?} other {Gerar nova chave pública?}}",
-      "confirmPublishable": "A chave pública atual para de funcionar na hora. O código de tracking instalado no seu site deixa de registrar cliques até você trocá-lo pelo código com a nova chave.",
+      "confirmPublishable": "A chave pública atual para de funcionar na hora. O código de rastreamento instalado no seu site deixa de registrar cliques até você trocá-lo pelo código com a nova chave.",
       "confirmSecret": "A chave secreta atual para de funcionar na hora. As chamadas do seu servidor a /api/identify falham até você atualizar a chave.",
       "confirmAction": "Gerar nova chave",
       "empty": {
         "title": "Primeiro passo: gere sua chave pública",
-        "description": "Ela completa o código de tracking abaixo e só é exibida uma vez, na hora em que é gerada. A chave secreta, para chamadas do seu servidor, pode ser gerada depois.",
+        "description": "Ela completa o código de rastreamento abaixo e só é exibida uma vez, na hora em que é gerada. A chave secreta, para chamadas do seu servidor, pode ser gerada depois.",
         "action": "Gerar chave pública"
       },
       "adminOnly": "Só administradores podem ver e gerar chaves de API.",
-      "snippetFirstStep": "Gere a chave pública acima para completar este código."
+      "snippetFirstStep": "Gere a chave pública acima para completar este código.",
+      "lastClick": "Último clique registrado {when}.",
+      "noClicks": "Nenhum clique registrado ainda. Depois de instalar o código, abra um link de indicação para testar."
     },
     "payable": {
       "selectAll": "Selecionar todos os afiliados",
@@ -1446,7 +1760,7 @@
     "batch": {
       "markPaid": "Marcar como pago",
       "confirmTitle": "Marcar {reference} como pago?",
-      "confirmBody": "Isto registra que você pagou {count, plural, one {# afiliado} other {# afiliados}} um total de {amount} fora da plataforma. As comissões deste lote passam a <strong>pagas</strong> e isso não pode ser desfeito.",
+      "confirmBody": "Isto registra que você pagou {amount} a {count, plural, one {# afiliado} other {# afiliados}} fora da plataforma. As comissões deste lote passam a <strong>pagas</strong> e isso não pode ser desfeito.",
       "reference": "Referência do pagamento",
       "referenceHint": "Opcional. O ID da transferência, a referência bancária ou o número da nota.",
       "confirmAction": "Sim, marcar como pago",
@@ -1456,9 +1770,9 @@
       "cancelConfirm": "Sim, cancelar lote"
     },
     "stripe": {
-      "description": "O IndicaFluxo lê os eventos de pagamento para calcular comissões. Ele nunca movimenta dinheiro e nunca guarda sua chave secreta do Stripe.",
+      "description": "O IndicaFluxo recebe os eventos de pagamento pelo webhook do Stripe para calcular comissões. Ele nunca movimenta dinheiro e nunca guarda sua chave secreta do Stripe.",
       "accountId": "ID da conta Stripe",
-      "accountIdHint": "Fica no painel do Stripe, em Settings → Account details.",
+      "accountIdHint": "Fica no painel do Stripe, em Configurações → Detalhes da conta.",
       "accountIdPlaceholder": "acct_1A2b3C4d5E",
       "account": "ID da conta",
       "webhook": "URL do webhook",
@@ -1469,11 +1783,61 @@
       "title": "Stripe",
       "disconnectHint": "Desconectar interrompe o registro de novas comissões.",
       "disconnectTitle": "Desconectar o Stripe?",
-      "disconnectBody": "Novos pagamentos dos seus clientes deixam de gerar comissões até você conectar de novo. As comissões já registradas continuam como estão.",
+      "disconnectBody": "Os eventos enviados para a URL deste workspace passam a ser recusados e novos pagamentos deixam de gerar comissões. O segredo de assinatura é apagado. As comissões já registradas continuam como estão.",
       "disconnectConfirm": "Desconectar",
       "errorTitle": "A conexão com o Stripe está com erro",
       "errorBody": "Novas comissões podem não estar sendo registradas. Confira a URL do webhook no painel do Stripe e conecte a conta de novo abaixo.",
-      "adminOnly": "Só administradores podem conectar ou desconectar o Stripe."
+      "adminOnly": "Só administradores podem conectar ou desconectar o Stripe.",
+      "secret": "Segredo de assinatura",
+      "secretHint": "Começa com whsec_. Fica guardado criptografado e não é exibido de novo.",
+      "secretPlaceholder": "whsec_…",
+      "secretSaved": "Segredo salvo",
+      "secretMissing": "Nenhum segredo salvo — os eventos desta URL são recusados.",
+      "saveSecret": "Salvar segredo",
+      "replaceSecret": "Substituir segredo",
+      "cancel": "Cancelar",
+      "memberSetupPending": "A configuração do Stripe ainda não foi concluída. Só administradores podem concluí-la.",
+      "badge": {
+        "notStarted": "Não configurado",
+        "awaitingSecret": "Configuração pendente",
+        "awaitingFirstEvent": "Aguardando evento",
+        "receiving": "Recebendo eventos",
+        "lastEventFailed": "Último evento falhou",
+        "signatureRejected": "Assinatura recusada",
+        "error": "Com erro"
+      },
+      "steps": {
+        "label": "Configuração do Stripe em 3 passos",
+        "status": "Passo {index}, {status, select, done {concluído} current {atual} other {a seguir}}:",
+        "locked": "Disponível depois do passo 1.",
+        "account": {
+          "title": "Informe a conta Stripe",
+          "submit": "Continuar",
+          "save": "Salvar conta",
+          "edit": "Alterar"
+        },
+        "webhook": {
+          "title": "Adicione o webhook no Stripe",
+          "description": "No painel do Stripe, em <strong>Desenvolvedores → Webhooks</strong>, adicione um endpoint com esta URL — ela é exclusiva deste workspace — e selecione os eventos abaixo.",
+          "events": "Eventos para selecionar"
+        },
+        "secret": {
+          "title": "Cole o segredo de assinatura",
+          "description": "Na página do endpoint que você criou, revele o <strong>segredo de assinatura</strong> (Signing secret) e cole aqui. É com ele que confirmamos que cada evento veio mesmo do seu Stripe."
+        }
+      },
+      "health": {
+        "awaitingTitle": "Aguardando o primeiro evento",
+        "awaitingBody": "O segredo está salvo. Para confirmar, envie um evento de teste pelo endpoint no painel do Stripe — ele aparece aqui assim que chegar.",
+        "receivingTitle": "Recebendo eventos · último {when}",
+        "receivingBody": "Último evento recebido: <code>{type}</code>.",
+        "failedTitle": "Último evento falhou: não conseguimos registrá-lo",
+        "failedBody": "<code>{type}</code> chegou {when}, mas o registro falhou do nosso lado. O Stripe reenvia o evento automaticamente; se continuar falhando, fale com o suporte.",
+        "rejectedTitle": "Último evento falhou: assinatura inválida",
+        "rejectedBody": "Uma entrega chegou {when} com uma assinatura que não confere com o segredo salvo. Confira se você copiou o segredo deste endpoint e substitua abaixo.",
+        "errorTitle": "A conexão com o Stripe está com erro",
+        "errorBody": "Novas comissões podem não estar sendo registradas. Confira o endpoint no painel do Stripe e substitua o segredo de assinatura."
+      }
     },
     "affiliateActions": {
       "menuLabel": "Ações para {name}",
@@ -1486,7 +1850,8 @@
       "suspendConfirm": "Sim, suspender",
       "rejectTitle": "Recusar {name}?",
       "rejectBody": "{name} não entra em {program}: os links não geram comissões. Você pode aprovar essa pessoa depois, se mudar de ideia.",
-      "rejectConfirm": "Sim, recusar"
+      "rejectConfirm": "Sim, recusar",
+      "approveLabel": "Aprovar {name}"
     },
     "customRate": {
       "title": "Taxa especial de {name}",
@@ -1502,17 +1867,31 @@
       "current": "Taxa especial atual: {rate}.",
       "save": "Salvar taxa",
       "remove": "Remover taxa especial"
+    },
+    "inviteOutcome": {
+      "sent": "Convite enviado para {email}.",
+      "alreadyLinked": "{name} já tem acesso ao portal de afiliados. O novo programa aparece lá, sem precisar de outro convite.",
+      "accountExists": "{email} já tem conta no IndicaFluxo, por isso não enviamos e-mail. Na próxima vez que a pessoa entrar com esse e-mail, o convite é aceito. Envie o link de acesso abaixo.",
+      "notConfigured": "O envio de e-mails não está configurado neste ambiente, então nenhum e-mail foi enviado. Envie o link abaixo para a pessoa.",
+      "rateLimited": "O limite de envio de e-mails foi atingido, então nenhum e-mail foi enviado. Envie o link abaixo ou tente reenviar mais tarde.",
+      "failed": "Não conseguimos enviar o e-mail. O convite está registrado: envie o link abaixo para a pessoa.",
+      "linkLabel": "Link do convite",
+      "loginLinkLabel": "Link de acesso",
+      "copyLink": "Copiar link",
+      "hintSent": "Envie este link se o e-mail não chegar.",
+      "hintNotSent": "Pelo link, a pessoa cria a conta com {email} e, ao confirmar o e-mail, o convite é aceito.",
+      "hintLogin": "A pessoa entra com a conta que já tem e o convite é aceito."
     }
   },
   "errors": {
     "generic": "Algo deu errado. Tente de novo.",
     "unauthorized": "Você precisa estar conectado para fazer isso.",
     "forbidden": "Você não tem acesso a este workspace.",
-    "notFound": "Não encontrado.",
+    "notFound": "Não encontramos o que você procurava.",
     "validation": "Confira os campos destacados.",
-    "conflict": "Essa operação conflita com o estado atual.",
-    "rateLimited": "Requisições demais. Aguarde um instante.",
-    "invalidRequest": "Requisição inválida.",
+    "conflict": "Algo mudou enquanto você fazia isso. Atualize a página e tente de novo.",
+    "rateLimited": "Muitas tentativas em pouco tempo. Aguarde um instante e tente de novo.",
+    "invalidRequest": "Não conseguimos processar esse pedido. Atualize a página e tente de novo.",
     "badCredentials": "E-mail ou senha incorretos.",
     "missingProgram": "Referência de programa ausente.",
     "participationNotFound": "Participação do afiliado não encontrada.",
@@ -1540,7 +1919,7 @@
     "workspaceNotCreated": "Não foi possível criar o workspace.",
     "workspaceNotFound": "Workspace não encontrado, ou você não tem acesso a ele.",
     "workspaceNotSaved": "Não foi possível salvar o workspace.",
-    "inviteNotSent": "Não foi possível enviar o convite.",
+    "inviteNotSent": "Não foi possível criar o convite.",
     "stripeNotConnected": "Não foi possível conectar o Stripe.",
     "stripeNotDisconnected": "Não foi possível desconectar o Stripe.",
     "keyNotRotated": "Não foi possível gerar a nova chave.",
@@ -1605,7 +1984,35 @@
     "customRateCurrencyChanged": "A moeda do programa mudou. Atualize a página e informe o valor de novo.",
     "payableChanged": "O que está a pagar mudou: algum afiliado selecionado não tem mais comissões pagáveis nessa moeda. Atualize a página e selecione de novo.",
     "batchNotPaid": "Não foi possível marcar o lote como pago.",
-    "batchNotCancelled": "Não foi possível cancelar o lote."
+    "batchNotCancelled": "Não foi possível cancelar o lote.",
+    "inviteNotResent": "Não foi possível reenviar o convite.",
+    "inviteNotFound": "Esse convite não existe mais ou já foi aceito. Atualize a página.",
+    "inviteNotRevoked": "Não foi possível revogar o convite.",
+    "memberNotFound": "Essa pessoa não faz mais parte do workspace. Atualize a página.",
+    "memberNotUpdated": "Não foi possível alterar o papel.",
+    "memberNotRemoved": "Não foi possível remover a pessoa.",
+    "lastOwner": "O workspace precisa de pelo menos um dono.",
+    "ownerProtected": "Só um dono pode alterar ou remover outro dono.",
+    "memberChangeForbidden": "Só donos e admins podem gerenciar o time.",
+    "affiliateNotFound": "Afiliado não encontrado.",
+    "linkNotFound": "Esse link não existe mais. Atualize a página.",
+    "linkNotSaved": "Não foi possível renomear o link.",
+    "linkNotDeleted": "Não foi possível excluir o link.",
+    "planLimit": {
+      "programs": "Você chegou ao limite de programas do seu plano. Veja o uso e peça o Growth em Configurações → Plano.",
+      "affiliates": "Você chegou ao limite de afiliados do seu plano. Veja o uso e peça o Growth em Configurações → Plano.",
+      "members": "Você chegou ao limite de pessoas no time do seu plano (convites pendentes contam). Veja o uso em Configurações → Plano."
+    },
+    "planFeature": {
+      "customRates": "Taxas personalizadas por afiliado fazem parte do Growth. Peça a mudança em Configurações → Plano.",
+      "teamInvites": "Convidar pessoas para o time faz parte do Growth. Peça a mudança em Configurações → Plano.",
+      "auditLog": "O registro de auditoria faz parte do Growth. Peça a mudança em Configurações → Plano."
+    },
+    "planAlreadyIncluded": "Este workspace já está nesse plano ou em um superior.",
+    "planUpgradeNotRequested": "Não foi possível enviar o pedido de mudança de plano. Tente de novo.",
+    "stripeSecretInvalid": "Cole o segredo de assinatura do endpoint, que começa com whsec_.",
+    "stripeSecretNotSaved": "Não foi possível salvar o segredo de assinatura.",
+    "stripeSetupMissing": "Informe a conta Stripe (passo 1) antes de salvar o segredo."
   },
   "success": {
     "programSaved": "Programa salvo.",
@@ -1617,20 +2024,155 @@
     "keyRotated": "Nova chave gerada.",
     "batchPaid": "Lote marcado como pago.",
     "batchCancelled": "Lote cancelado. As comissões voltaram para “Disponível”.",
-    "inviteSent": "Convite enviado para {email}. A pessoa entra no workspace ao fazer login com esse e-mail.",
-    "affiliateAdded": "{name} entrou no programa. Ao entrar no IndicaFluxo com {email}, a pessoa já encontra o link de indicação.",
+    "inviteSent": "Convite enviado para {email}.",
     "affiliateUpdated": "Afiliado atualizado.",
-    "batchCreated": "Lote {reference} criado. Marque como pago depois de transferir o dinheiro.",
     "confirmationResent": "E-mail reenviado.",
     "affiliateApproved": "Afiliado aprovado. As próximas vendas pelos links dele já geram comissão.",
     "affiliateSuspended": "Afiliado suspenso. Os links dele deixam de gerar comissões.",
     "affiliateRejected": "Afiliado recusado.",
-    "rateRemoved": "Taxa especial removida. Vale de novo a taxa do programa."
+    "rateRemoved": "Taxa especial removida. Vale de novo a taxa do programa.",
+    "inviteCreated": "Convite criado.",
+    "inviteResent": "Convite reenviado para {email}.",
+    "inviteNotEmailed": "O convite continua valendo, mas nenhum e-mail foi enviado.",
+    "affiliateEnrolled": "{name} entrou no programa.",
+    "memberRoleChanged": "Papel atualizado.",
+    "memberRemoved": "Pessoa removida do workspace.",
+    "inviteRevoked": "Convite revogado.",
+    "linkRenamed": "Nome do link atualizado.",
+    "linkDeleted": "Link excluído. Os cliques e as comissões dele continuam valendo.",
+    "planUpgradeRequested": "Pedido enviado. Nossa equipe entra em contato para combinar o pagamento.",
+    "stripeAccountSaved": "Conta salva. Agora adicione a URL do webhook no Stripe.",
+    "stripeSecretSaved": "Segredo salvo. Envie um evento de teste pelo Stripe para confirmar que está tudo funcionando."
   },
   "notFound": {
     "title": "Página não encontrada",
     "description": "O endereço pode ter mudado ou você não tem acesso a ele.",
     "dashboard": "Ir para o painel",
     "home": "Página inicial"
+  },
+  "plans": {
+    "names": {
+      "starter": "Starter",
+      "growth": "Growth"
+    },
+    "lines": {
+      "limit": {
+        "programs": "{count, plural, one {# programa} other {Até # programas}}",
+        "affiliates": "Até {count, plural, one {# afiliado} other {# afiliados}}",
+        "members": "{count, plural, one {Só você no workspace} other {Até # pessoas no time}}"
+      },
+      "unlimited": {
+        "programs": "Programas ilimitados",
+        "affiliates": "Afiliados ilimitados",
+        "members": "Pessoas ilimitadas no time"
+      },
+      "feature": {
+        "customRates": "Taxas personalizadas por afiliado",
+        "teamInvites": "Convites para o time",
+        "auditLog": "Registro de auditoria"
+      },
+      "base": {
+        "stripe": "Integração com o Stripe",
+        "tracking": "Rastreamento de cliques e atribuição",
+        "ledger": "Registro de comissões com retenção e estornos",
+        "payouts": "Lotes de pagamento com exportação em CSV",
+        "portal": "Portal do afiliado"
+      },
+      "notIncluded": "não incluído"
+    },
+    "panel": {
+      "title": "Plano",
+      "description": "O que este workspace inclui e quanto dele já está em uso.",
+      "current": "Plano atual",
+      "summary": {
+        "starter": "Grátis. Para rodar um programa e provar que o canal funciona.",
+        "growth": "Para um programa que já gera receita: mais programas, afiliados e pessoas no time."
+      },
+      "usageTitle": "Uso",
+      "resources": {
+        "programs": "Programas",
+        "affiliates": "Afiliados",
+        "members": "Pessoas no time"
+      },
+      "usageOf": "{used} de {limit}",
+      "usageUnlimited": "{used} · ilimitado",
+      "atLimit": "No limite",
+      "membersHint": "Conta quem já está no workspace e os convites pendentes.",
+      "upgradeTitle": "O que o {plan} acrescenta",
+      "noBilling": "Não há cobrança automática nem cartão cadastrado. Ao pedir o {plan}, nossa equipe entra em contato para combinar o pagamento e libera o plano no seu workspace.",
+      "request": "Pedir o {plan}",
+      "requested": "Pedido do {plan} enviado em {date} — entraremos em contato.",
+      "readOnly": "Só donos e admins podem pedir a mudança de plano.",
+      "highest": "Este workspace já está no plano mais completo."
+    },
+    "audit": {
+      "title": "Registro de auditoria",
+      "description": "{count, plural, one {A última alteração feita neste workspace.} other {As # alterações mais recentes feitas neste workspace.}}",
+      "columns": {
+        "action": "O que aconteceu",
+        "actor": "Quem",
+        "when": "Quando"
+      },
+      "mobileMeta": "{actor} · {when}",
+      "actor": {
+        "system": "Sistema",
+        "you": "Você",
+        "member": "Membro {id}"
+      },
+      "empty": {
+        "title": "Nada registrado ainda",
+        "description": "Mudanças em programas, taxas, pagamentos e integrações aparecem aqui, com quem fez e quando."
+      },
+      "locked": {
+        "title": "O registro de auditoria faz parte do {plan}",
+        "description": "Veja quem mudou taxas, pagamentos e integrações, e quando. Peça o {plan} na seção Plano, acima."
+      },
+      "actions": {
+        "workspace": {
+          "created": "Workspace criado",
+          "updated": "Workspace atualizado"
+        },
+        "member": {
+          "invited": "Pessoa convidada para o time",
+          "role_changed": "Papel de membro alterado",
+          "removed": "Membro removido do time",
+          "invite_revoked": "Convite para o time cancelado"
+        },
+        "program": {
+          "created": "Programa criado",
+          "updated": "Programa atualizado"
+        },
+        "affiliate": {
+          "created": "Afiliado adicionado",
+          "approved": "Afiliado aprovado",
+          "rejected": "Afiliado recusado",
+          "suspended": "Afiliado suspenso",
+          "rate_changed": "Taxa de afiliado alterada"
+        },
+        "link": {
+          "created": "Link de indicação criado"
+        },
+        "commission": {
+          "approved": "Comissão incluída em lote",
+          "reversed": "Comissão revertida"
+        },
+        "payout": {
+          "created": "Lote de pagamento criado",
+          "marked_paid": "Lote marcado como pago",
+          "cancelled": "Lote de pagamento cancelado"
+        },
+        "integration": {
+          "connected": "Integração conectada",
+          "disconnected": "Integração desconectada"
+        },
+        "api_key": {
+          "created": "Chave de API gerada",
+          "revoked": "Chave de API revogada"
+        },
+        "plan": {
+          "upgrade_requested": "Mudança de plano solicitada"
+        }
+      }
+    }
   }
 }

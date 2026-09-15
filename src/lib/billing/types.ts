@@ -47,7 +47,13 @@ interface BaseEvent {
 
 export interface PaymentSucceededEvent extends BaseEvent {
   type: "payment.succeeded"
+  /** The id the payment is recorded under: the invoice, or the one-off PaymentIntent. */
   providerTransactionId: string
+  /**
+   * Other provider ids of this same payment that a later refund or dispute may
+   * carry instead (PaymentIntent, charge). Only what the payload holds.
+   */
+  providerReferences: string[]
   providerCustomerId: string | null
   providerSubscriptionId: string | null
   customerEmail: string | null
@@ -57,14 +63,26 @@ export interface PaymentSucceededEvent extends BaseEvent {
 
 export interface PaymentRefundedEvent extends BaseEvent {
   type: "payment.refunded"
+  /** The refund (`re_…`) or dispute (`dp_…`) itself, so each partial refund is its own row. */
   providerTransactionId: string
-  /** The payment being refunded. */
-  providerParentTransactionId: string | null
+  /** Every id the refunded payment may be known by (PaymentIntent, charge, invoice). */
+  paymentReferences: string[]
   providerCustomerId: string | null
   currency: string
   /** Positive magnitude; the engine applies the sign. */
   amountMinor: number
   isChargeback: boolean
+}
+
+/**
+ * Links ids of one payment without moving money — Stripe's `invoice_payment.paid`
+ * says which PaymentIntent and charge paid an invoice. It may arrive before or
+ * after the invoice payment itself.
+ */
+export interface PaymentReferencedEvent extends BaseEvent {
+  type: "payment.referenced"
+  providerTransactionId: string
+  providerReferences: string[]
 }
 
 export interface SubscriptionUpdatedEvent extends BaseEvent {
@@ -83,6 +101,7 @@ export interface SubscriptionCancelledEvent extends BaseEvent {
 export type NormalizedBillingEvent =
   | PaymentSucceededEvent
   | PaymentRefundedEvent
+  | PaymentReferencedEvent
   | SubscriptionUpdatedEvent
   | SubscriptionCancelledEvent
 

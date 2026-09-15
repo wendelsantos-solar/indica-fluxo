@@ -32,7 +32,7 @@ const INITIAL: PayoutFormState = {}
 export function MarkPaidDialog({
   workspaceSlug,
   batchId,
-  reference,
+  batchLabel,
   affiliateCount,
   totalAmountMinor,
   currency,
@@ -40,7 +40,8 @@ export function MarkPaidDialog({
 }: {
   workspaceSlug: string
   batchId: string
-  reference: string
+  /** The batch's name in the reader's language — `formatBatchLabel`. */
+  batchLabel: string
   affiliateCount: number
   totalAmountMinor: number
   currency: string
@@ -73,7 +74,7 @@ export function MarkPaidDialog({
           <input type="hidden" name="batchId" value={batchId} />
 
           <DialogHeader>
-            <DialogTitle>{t("confirmTitle", { reference })}</DialogTitle>
+            <DialogTitle>{t("confirmTitle", { reference: batchLabel })}</DialogTitle>
             <DialogDescription>
               {t.rich("confirmBody", {
                 count: affiliateCount,
@@ -121,11 +122,12 @@ export function MarkPaidDialog({
 export function CancelBatchButton({
   workspaceSlug,
   batchId,
-  reference,
+  batchLabel,
 }: {
   workspaceSlug: string
   batchId: string
-  reference: string
+  /** The batch's name in the reader's language — `formatBatchLabel`. */
+  batchLabel: string
 }) {
   const t = useTranslations("forms.batch")
   const [state, setState] = useState<PayoutFormState>(INITIAL)
@@ -137,7 +139,7 @@ export function CancelBatchButton({
     <ConfirmDialog
       trigger={t("cancelBatch")}
       triggerVariant="danger"
-      title={t("cancelTitle", { reference })}
+      title={t("cancelTitle", { reference: batchLabel })}
       description={t("cancelBody")}
       confirmLabel={t("cancelConfirm")}
       action={async (formData) => setState(await cancelBatchAction(INITIAL, formData))}

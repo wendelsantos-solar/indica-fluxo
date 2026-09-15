@@ -25,6 +25,9 @@ export function Toaster() {
       theme={resolvedTheme === "light" ? "light" : "dark"}
       position={narrow ? "bottom-center" : "bottom-right"}
       duration={4000}
+      // Sonner's own default is 999999999; the product's scale keeps toasts
+      // above dialogs and popovers without outranking the skip link.
+      style={{ zIndex: "var(--z-index-toast)" }}
       toastOptions={{
         classNames: {
           toast:

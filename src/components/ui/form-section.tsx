@@ -5,7 +5,10 @@ import { cn } from "@/lib/utils"
 /**
  * One group of related fields inside a form card: heading and one-line
  * description on the left, fields on the right from `md`, separated from the
- * next group by a hairline. DESIGN.md §9 Forms.
+ * previous group by a hairline. DESIGN.md §9 Forms.
+ *
+ * The hairline sits on top of every section but the first of its form, so a
+ * footer with its own `border-t` after the last section never draws two lines.
  */
 export function FormSection({
   title,
@@ -21,7 +24,7 @@ export function FormSection({
   return (
     <section
       className={cn(
-        "grid gap-4 border-b border-border px-4 py-5 last:border-0 md:grid-cols-[minmax(0,14rem)_1fr] md:gap-8 sm:px-5",
+        "grid gap-4 border-t border-border px-4 py-5 first-of-type:border-t-0 md:grid-cols-[minmax(0,14rem)_1fr] md:gap-8 sm:px-5",
         className,
       )}
     >

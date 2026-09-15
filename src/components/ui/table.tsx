@@ -11,21 +11,39 @@ import { cn } from "@/lib/utils"
  *
  * `bordered` restores a radius-12 frame for the rare table that shares a row
  * with other content (a card grid) and would otherwise float.
+ *
+ * `stickyFirstColumn` is for the wide financial tables a founder scans on a
+ * phone (DESIGN.md §13): the first column stays put while the rest scrolls,
+ * and below `md` the right edge fades so it is visible there is more. It
+ * implies `scrollable`. The last cell gets extra room so the fade never sits
+ * on top of the final figure once the table is scrolled to the end.
  */
 export function TableContainer({
   className,
   scrollable = false,
   bordered = false,
+  stickyFirstColumn = false,
   ...props
-}: React.HTMLAttributes<HTMLDivElement> & { scrollable?: boolean; bordered?: boolean }) {
+}: React.HTMLAttributes<HTMLDivElement> & {
+  scrollable?: boolean
+  bordered?: boolean
+  stickyFirstColumn?: boolean
+}) {
   return (
     <div
       data-slot="scrollable"
       data-bordered={bordered || undefined}
+      data-sticky-first={stickyFirstColumn || undefined}
       className={cn(
         "group/table border-y border-border",
         bordered && "overflow-hidden rounded-panel border-x bg-surface-1",
-        scrollable && "overflow-x-auto",
+        (scrollable || stickyFirstColumn) && "overflow-x-auto",
+        stickyFirstColumn && [
+          "[&_tr>*:first-child]:sticky [&_tr>*:first-child]:left-0 [&_tr>*:first-child]:z-raised",
+          "[&_tr>*:first-child]:bg-surface-1",
+          "max-md:[mask-image:linear-gradient(to_right,black_calc(100%_-_24px),transparent)]",
+          "max-md:[&_tr>*:last-child]:pr-6",
+        ],
         className,
       )}
       {...props}

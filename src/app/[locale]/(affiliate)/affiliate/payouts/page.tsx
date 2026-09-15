@@ -4,7 +4,6 @@ import { getTranslations } from "next-intl/server"
 
 import { EmptyState } from "@/components/feedback/empty-state"
 import { PageHeader } from "@/components/layout/page-header"
-import { StatusBadge } from "@/components/ui/badge"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
 import { getFormatters } from "@/i18n/format"
 import { requireUser } from "@/server/auth/session"
@@ -12,6 +11,7 @@ import { withUser } from "@/server/db"
 import { listParticipationsForUser } from "@/server/repositories/affiliates"
 import { listPayoutsForAffiliate, PAYOUT_HISTORY_LIMIT } from "@/server/repositories/commissions"
 
+import { PayoutBadge } from "../_components/portal-badges"
 import { PortalList, PortalListItem } from "../_components/portal-list"
 
 export const dynamic = "force-dynamic"
@@ -40,9 +40,9 @@ export default async function AffiliatePayoutsPage() {
     )
   })
 
+  // "Aguardando pagamento" is the badge; the date line only says when it was paid.
   function paidLine(row: (typeof rows)[number]) {
-    if (row.paidAt) return t("paidOn", { date: f.date(row.paidAt) })
-    return row.status === "pending" ? t("awaiting") : null
+    return row.paidAt ? t("paidOn", { date: f.date(row.paidAt) }) : null
   }
 
   return (
@@ -78,10 +78,10 @@ export default async function AffiliatePayoutsPage() {
                       {f.money(row.amountMinor, row.currency)}
                     </TD>
                     <TD>
-                      <StatusBadge status={row.status} />
+                      <PayoutBadge status={row.status} />
                     </TD>
                     <TD className="whitespace-nowrap text-muted-foreground">
-                      {row.paidAt ? f.date(row.paidAt) : row.status === "pending" ? t("awaiting") : "—"}
+                      {row.paidAt ? f.date(row.paidAt) : "—"}
                     </TD>
                     <TD mono>{row.externalReference ?? "—"}</TD>
                   </TR>
@@ -95,7 +95,7 @@ export default async function AffiliatePayoutsPage() {
               <PortalListItem
                 key={row.id}
                 title={<span className="font-mono text-caption">{row.reference}</span>}
-                status={<StatusBadge status={row.status} />}
+                status={<PayoutBadge status={row.status} />}
                 amount={f.money(row.amountMinor, row.currency)}
                 details={
                   paidLine(row) || row.externalReference ? (

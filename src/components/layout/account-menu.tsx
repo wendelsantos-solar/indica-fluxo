@@ -7,6 +7,7 @@ import { useTheme } from "next-themes"
 import { Link } from "@/i18n/navigation"
 import { LOCALE_LABEL, routing } from "@/i18n/routing"
 
+import { RailTooltip, SIDEBAR_CENTER_IN_RAIL, SIDEBAR_LABEL } from "@/components/layout/app-shell"
 import { useSwitchLocale } from "@/components/layout/locale-switcher"
 import {
   Dropdown,
@@ -49,24 +50,25 @@ export function AccountMenu({
 
   return (
     <Dropdown>
-      <DropdownTrigger asChild>
-        <button
-          type="button"
-          aria-label={t("menu")}
-          title={email}
-          className={cn(
-            "flex h-9 w-full items-center gap-2.5 rounded-control px-1.5 text-left transition-colors duration-[120ms] hover:bg-hover touch:h-11",
-            "max-lg:justify-center lg:group-data-[collapsed=true]/sidebar:justify-center group-data-[drawer=true]/sidebar:justify-start",
-          )}
-        >
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-fill-strong text-micro text-foreground-secondary">
-            {initials(name || email)}
-          </span>
-          <span className="hidden min-w-0 flex-1 truncate text-caption text-muted-foreground lg:block lg:group-data-[collapsed=true]/sidebar:hidden group-data-[drawer=true]/sidebar:block">
-            {name || email}
-          </span>
-        </button>
-      </DropdownTrigger>
+      <RailTooltip label={name || email}>
+        <DropdownTrigger asChild>
+          <button
+            type="button"
+            aria-label={t("menu")}
+            className={cn(
+              "flex h-9 w-full items-center gap-2.5 rounded-control px-1.5 text-left transition-colors duration-[120ms] hover:bg-hover touch:h-11",
+              SIDEBAR_CENTER_IN_RAIL,
+            )}
+          >
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-fill-strong text-micro text-foreground-secondary">
+              {initials(name || email)}
+            </span>
+            <span className={cn(SIDEBAR_LABEL, "min-w-0 flex-1 truncate text-caption text-muted-foreground")}>
+              {name || email}
+            </span>
+          </button>
+        </DropdownTrigger>
+      </RailTooltip>
       <DropdownContent side="top" align="start" className="w-[240px]">
         <DropdownLabel>{t("signedInAs")}</DropdownLabel>
         <p className="truncate px-2 pb-2 text-caption text-foreground-secondary">{email}</p>
@@ -95,19 +97,19 @@ export function AccountMenu({
         ))}
         <DropdownSeparator />
         {portal ? (
-        <DropdownItem asChild>
-          {portal === "affiliate" ? (
-            <Link href="/affiliate/overview">
-              <User aria-hidden="true" />
-              {t("affiliatePortal")}
-            </Link>
-          ) : (
-            <Link href="/app">
-              <LayoutDashboard aria-hidden="true" />
-              {t("dashboard")}
-            </Link>
-          )}
-        </DropdownItem>
+          <DropdownItem asChild>
+            {portal === "affiliate" ? (
+              <Link href="/affiliate/overview">
+                <User aria-hidden="true" />
+                {t("affiliatePortal")}
+              </Link>
+            ) : (
+              <Link href="/app">
+                <LayoutDashboard aria-hidden="true" />
+                {t("dashboard")}
+              </Link>
+            )}
+          </DropdownItem>
         ) : null}
         <DropdownItem asChild>
           <Link href="/logout" prefetch={false}>

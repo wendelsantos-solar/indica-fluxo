@@ -102,6 +102,13 @@ describe("createFormatters", () => {
     expect(norm(f.number(18430))).toBe("18.430")
     expect(norm(f.basisPoints(3000))).toBe("30%")
   })
+
+  it("renders dates on the workspace's calendar, not UTC's", () => {
+    // 01:00 UTC on the 15th is still 22:00 on the 14th in São Paulo.
+    const instant = new Date("2026-09-15T01:00:00Z")
+    expect(createFormatters("pt-br").date(instant)).toBe("15/09/2026")
+    expect(createFormatters("pt-br", "America/Sao_Paulo").date(instant)).toBe("14/09/2026")
+  })
 })
 
 describe("majorToMinor / minorToMajor", () => {

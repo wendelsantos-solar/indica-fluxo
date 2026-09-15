@@ -35,13 +35,16 @@ function stepHref(key: ActivationStepKey, done: boolean, workspaceSlug: string):
     case "affiliate":
       return { pathname: "/[workspaceSlug]/affiliates", params }
     case "stripe":
-    case "tracking":
       return { pathname: "/[workspaceSlug]/integrations", params }
+    case "tracking":
+      // Straight to the tracking section, not the top of Integrations.
+      return { pathname: "/[workspaceSlug]/integrations", params, hash: "tracking" }
   }
 }
 
 /**
- * The overview's main content until the first click or payment arrives: what
+ * The overview's main content while setup is incomplete and nothing has
+ * happened yet (see `shouldShowActivationChecklist`): what
  * was just achieved, then the five things between here and a first commission.
  * One amber action — on the next pending step — and nothing else competing.
  */
@@ -141,10 +144,19 @@ export async function ActivationChecklist({
         </div>
 
         <ol aria-labelledby="activation-checklist" className="mt-4 border-t border-border">
-          {activation.steps.map(({ key, done }) => {
+          {activation.steps.map(({ key, done, waiting }) => {
             const isNext = activation.next === key
-            const title = done ? t(`steps.${key}.titleDone`) : t(`steps.${key}.title`)
-            const label = done ? t(`steps.${key}.actionDone`) : t(`steps.${key}.action`)
+            // Stripe saved but silent: not "connected" until an event proves it.
+            const title = done
+              ? t(`steps.${key}.titleDone`)
+              : waiting
+                ? t("steps.stripe.titleWaiting")
+                : t(`steps.${key}.title`)
+            const label = done
+              ? t(`steps.${key}.actionDone`)
+              : waiting
+                ? t("steps.stripe.actionWaiting")
+                : t(`steps.${key}.action`)
 
             let action: React.ReactNode
             if (key === "affiliate" && !done && latest) {
@@ -201,7 +213,7 @@ export async function ActivationChecklist({
                   </p>
                   {isNext ? (
                     <p className="mt-0.5 max-w-prose text-pretty text-caption text-muted-foreground">
-                      {t(`steps.${key}.description`)}
+                      {waiting ? t("steps.stripe.descriptionWaiting") : t(`steps.${key}.description`)}
                     </p>
                   ) : null}
                 </div>
@@ -251,6 +263,7 @@ export async function ActivationReminder({
 }) {
   if (!activation.next) return null
   const t = await getTranslations("dashboard.overview.activation")
+  const nextStep = activation.steps.find((step) => step.key === activation.next)
 
   return (
     <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption">
@@ -261,7 +274,7 @@ export async function ActivationReminder({
         href={stepHref(activation.next, false, workspaceSlug)}
         className="inline-flex items-center gap-1 rounded-badge text-foreground-secondary transition-colors duration-[120ms] hover:text-foreground"
       >
-        {t(`steps.${activation.next}.title`)}
+        {nextStep?.waiting ? t("steps.stripe.titleWaiting") : t(`steps.${activation.next}.title`)}
         <ArrowRight className="size-3.5" aria-hidden="true" />
       </Link>
     </p>

@@ -3,21 +3,32 @@ import { NextResponse, type NextRequest } from "next/server"
 import { billingProvider } from "@/lib/billing/provider"
 import { logger } from "@/lib/logger"
 import {
-  claimWebhookEvent,
-  finishWebhookEvent,
-  handleBillingEvent,
+  ingestVerifiedWebhook,
   workspaceForProviderAccount,
 } from "@/server/services/billing-events"
+
+import { ingestResponse } from "./responses"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 /**
+ * LEGACY platform endpoint. Kept for Stripe Connect (events carry
+ * `event.account`) and for the local/demo setup that forwards events with the
+ * Stripe CLI signed by the one platform-wide `STRIPE_WEBHOOK_SECRET`.
+ *
+ * A founder's own Stripe endpoint is signed with that endpoint's secret, which
+ * this route cannot know — founders use `/api/webhooks/stripe/<integrationId>`
+ * instead (DOCS_TECHNICAL_FINDINGS.md T1).
+ *
  * Order matters and is the whole point (ARCHITECTURE.md §3.3):
  *   1. read the RAW body — never a parsed one
  *   2. verify the signature before anything touches JSON.parse
  *   3. claim (provider, event id) so a redelivery is a no-op
  *   4. normalise, then hand a provider-free event to the domain
+ *
+ * Runs on the service connection (via `billing-events`): the caller is Stripe,
+ * authenticated by its signature, not a user — ARCHITECTURE.md §2.
  */
 export async function POST(request: NextRequest) {
   const signature = request.headers.get("stripe-signature")
@@ -37,55 +48,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid_signature" }, { status: 400 })
   }
 
-  const log = logger.child({
-    provider: "stripe",
-    eventId: verified.providerEventId,
-  })
-
   const workspaceId = await workspaceForProviderAccount("stripe", verified.providerAccountId)
+  const result = await ingestVerifiedWebhook({ provider: stripe, verified, rawBody, workspaceId })
 
-  const webhookEventId = await claimWebhookEvent({
-    provider: "stripe",
-    providerEventId: verified.providerEventId,
-    eventType: verified.rawType,
-    rawBody,
-    workspaceId,
-  })
-
-  // Already claimed by an earlier delivery — acknowledge and stop.
-  if (!webhookEventId) {
-    log.info("duplicate webhook ignored")
-    return NextResponse.json({ received: true, duplicate: true })
-  }
-
-  if (!workspaceId) {
-    await finishWebhookEvent(webhookEventId, "ignored", "no workspace for connected account")
-    log.warn("webhook for an unconnected account")
-    return NextResponse.json({ received: true, ignored: true })
-  }
-
-  const normalized = stripe.normalizeEvent(verified)
-  if (!normalized) {
-    await finishWebhookEvent(webhookEventId, "ignored", `unhandled type ${verified.rawType}`)
-    return NextResponse.json({ received: true, ignored: true })
-  }
-
-  try {
-    const outcome = await handleBillingEvent(workspaceId, normalized)
-    await finishWebhookEvent(
-      webhookEventId,
-      outcome.status === "ignored" ? "ignored" : "processed",
-      outcome.status === "ignored" ? outcome.reason : undefined,
-    )
-
-    log.info("webhook processed", { workspaceId, outcome: outcome.status })
-    return NextResponse.json({ received: true })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "unknown error"
-    await finishWebhookEvent(webhookEventId, "failed", message)
-    log.error("webhook processing failed", { workspaceId, error })
-
-    // 500 asks Stripe to retry; the claim row records why it failed.
-    return NextResponse.json({ error: "processing_failed" }, { status: 500 })
-  }
+  return ingestResponse(result)
 }

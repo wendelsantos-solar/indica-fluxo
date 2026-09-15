@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { getTranslations, setRequestLocale } from "next-intl/server"
 
 import { SignInForm } from "@/features/auth/sign-in-form"
+import { parseInviteQuery } from "@/features/auth/invite-query"
 import { safeRedirectPath } from "@/features/auth/safe-redirect"
 
 export async function generateMetadata({
@@ -26,5 +27,7 @@ export default async function LoginPage({ params, searchParams }: PageProps<"/[l
   // field can be edited like any other.
   const next = safeRedirectPath(first(query.next), "") || undefined
 
-  return <SignInForm next={next} linkExpired={first(query.error) === "link"} />
+  const invite = parseInviteQuery(query)
+
+  return <SignInForm next={next} linkExpired={first(query.error) === "link"} defaultEmail={invite.email} />
 }

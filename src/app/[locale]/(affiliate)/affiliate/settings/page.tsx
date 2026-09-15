@@ -2,12 +2,12 @@ import type { Metadata } from "next"
 import { getTranslations } from "next-intl/server"
 
 import { PageHeader, SectionHeader } from "@/components/layout/page-header"
-import { StatusBadge } from "@/components/ui/badge"
 import { getFormatters } from "@/i18n/format"
 import { requireUser } from "@/server/auth/session"
 import { withUser } from "@/server/db"
 import { listParticipationsForUser } from "@/server/repositories/affiliates"
 
+import { ParticipationBadge } from "../_components/portal-badges"
 import { PortalList, PortalListItem } from "../_components/portal-list"
 
 export const dynamic = "force-dynamic"
@@ -30,6 +30,11 @@ export default async function AffiliateSettingsPage() {
     listParticipationsForUser(tx, user.id),
   )
 
+  // The person's own profile name, not whichever program sorts first. Without
+  // one, the names the program owners have on record — usually one.
+  const recordedNames = [...new Set(participations.map((p) => p.affiliateName.trim()).filter(Boolean))]
+  const accountName = user.name ?? (recordedNames.length > 0 ? recordedNames.join(" · ") : null)
+
   return (
     <>
       <PageHeader title={t("title")} description={t("description")} />
@@ -42,7 +47,7 @@ export default async function AffiliateSettingsPage() {
               <div className="flex flex-col gap-0.5 px-1 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                 <dt className="text-caption text-muted-foreground">{t("account.name")}</dt>
                 <dd className="min-w-0 truncate text-caption text-foreground">
-                  {participations[0]?.affiliateName ?? "—"}
+                  {accountName ?? "—"}
                 </dd>
               </div>
               <div className="flex flex-col gap-0.5 px-1 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
@@ -63,7 +68,7 @@ export default async function AffiliateSettingsPage() {
                 <PortalListItem
                   key={participation.participationId}
                   title={participation.programName}
-                  status={<StatusBadge status={participation.status} />}
+                  status={<ParticipationBadge status={participation.status} />}
                   details={t.rich("programs.code", {
                     code: participation.code,
                     mono: (chunks) => (

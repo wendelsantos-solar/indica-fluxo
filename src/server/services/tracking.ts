@@ -150,6 +150,9 @@ export async function recordClick(input: RecordClickInput): Promise<RecordClickR
           programAffiliateId: decision.programAffiliateId,
           firstClickId: decision.firstClickId,
           lastClickId: decision.lastClickId,
+          // The model that made this decision, so the row explains itself even
+          // after the program's model is changed.
+          attributionModel: match.attributionModel,
           attributedAt: decision.attributedAt,
           expiresAt: decision.expiresAt,
           updatedAt: new Date(),

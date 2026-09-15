@@ -29,7 +29,7 @@ export function Tooltip({
           side={side}
           sideOffset={6}
           className={cn(
-            "z-50 max-w-[280px] rounded-control bg-surface-3 px-2 py-1 text-meta",
+            "z-popover max-w-[280px] rounded-control bg-surface-3 px-2 py-1 text-meta",
             "text-foreground-secondary shadow-overlay",
             "data-[state=delayed-open]:animate-pop-in",
           )}

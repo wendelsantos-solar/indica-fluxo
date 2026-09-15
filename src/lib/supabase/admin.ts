@@ -20,10 +20,16 @@ import { requireSupabaseSecretKey } from "@/lib/env/server"
  *   Direct SQL that bypasses RLS goes through Drizzle (`DATABASE_URL`,
  *   `src/server/db`), not through this client.
  *
- * Call sites today: `src/server/db/seed/auth.ts` only (provisioning demo
- * logins — there is no session at seed time and no RLS policy can express
- * "create an auth user"). Add another only with a comment saying why the
- * operation cannot run under RLS.
+ * Call sites today:
+ * - `src/server/db/seed/auth.ts` — provisioning demo logins: there is no
+ *   session at seed time and no RLS policy can express "create an auth user".
+ * - `src/server/services/invite-mail.ts` — `auth.admin.inviteUserByEmail` for
+ *   affiliate and teammate invitations: e-mailing (and creating) another
+ *   person's auth user is an Auth Admin operation with no RLS equivalent. It
+ *   runs after the calling service has checked the inviter is an owner/admin,
+ *   and touches nothing in `public`.
+ * Add another only with a comment saying why the operation cannot run under
+ * RLS.
  */
 let cached: SupabaseClient | null = null
 

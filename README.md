@@ -27,11 +27,36 @@ Every variable is documented in `.env.example`. The split matters:
 | `SUPABASE_SECRET_KEY` | **server only** | `sb_secret_*`, bypasses RLS |
 | `DATABASE_URL` | **server only** | direct Postgres for Drizzle |
 | `ENCRYPTION_KEY`, `HASH_PEPPER` | **server only** | |
-| `STRIPE_*` | **server only** | |
+| `STRIPE_SECRET_KEY`, `STRIPE_CONNECT_CLIENT_ID` | **server only** | optional; Stripe API calls and Connect OAuth |
+| `STRIPE_WEBHOOK_SECRET` | **server only** | optional; only the legacy platform endpoint `/api/webhooks/stripe` (Connect, `stripe listen` in development) |
 
 Validation lives in `src/lib/env/client.ts` (browser-safe) and
 `src/lib/env/server.ts` (`server-only`). A server secret is never exported by a
 module the browser can import.
+
+## Stripe webhooks
+
+Each workspace receives Stripe events on its own endpoint,
+`<APP_URL>/api/webhooks/stripe/<integrationId>`. A founder sets it up under
+**Integrações**: enter the Stripe account id, add the URL shown there as an
+endpoint in their Stripe dashboard (selecting the listed events), then paste
+that endpoint's signing secret (`whsec_…`). The secret is stored AES-256-GCM
+encrypted with `ENCRYPTION_KEY` and never shown again; the endpoint verifies
+every delivery with it and credits the integration's workspace. Integrations
+only reports the connection as working once an event has actually arrived.
+
+`/api/webhooks/stripe` (no id) is the legacy platform endpoint, verified with
+`STRIPE_WEBHOOK_SECRET` and routed by `event.account`. Keep it for Stripe
+Connect and for local development:
+
+```bash
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+# copy the printed whsec_… into STRIPE_WEBHOOK_SECRET
+```
+
+To test a workspace endpoint locally instead, forward to
+`localhost:3000/api/webhooks/stripe/<integrationId>` and paste the `whsec_…`
+that `stripe listen` prints into that workspace's Integrations page.
 
 ## Supabase security
 
@@ -86,6 +111,63 @@ And under **Authentication → Emails**:
   `COOLDOWN_SECONDS` in `src/features/auth/check-email.tsx`.
 - If *Secure password change* is enabled, `updateUser` may require a recent
   sign-in; the reset page then shows the expired-link state.
+
+### Invitations
+
+Inviting an affiliate or a teammate sends Supabase's *Invite user* e-mail
+(`auth.admin.inviteUserByEmail`, the Admin Client call site documented in
+`src/server/services/invite-mail.ts`) and always shows a copyable link as well.
+For the e-mail link to work:
+
+- The *Invite user* template must link to
+  `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=invite`. The default
+  `{{ .ConfirmationURL }}` puts the session in the URL fragment, which the server
+  callback cannot read.
+- `<APP_URL>/**` must be in the Redirect URLs.
+- Without `SUPABASE_SECRET_KEY` no e-mail is sent; the invitation is still
+  created and the founder is told to send the link.
+
+The invited person sets a password on `/<locale>/redefinir-senha?invite=…` and
+lands in the portal (affiliate) or the workspace (teammate). Someone who
+already has an account signs in with the same e-mail; pending invitations for
+that address are claimed at sign-in.
+
+## Mudar o plano de um workspace
+
+Não há checkout nem cobrança automática. Todo workspace começa no Starter; um
+dono ou admin pede o Growth em **Configurações → Plano**, o que grava uma linha
+em `plan_upgrade_requests`. Depois de combinar o pagamento, o operador muda o
+plano pela conexão de serviço (`DATABASE_URL`) — o papel `authenticated` não tem
+permissão de escrita na coluna `plan` nem em `handled_at` (ver `DATABASE.md` §8).
+
+Cada pedido novo gera a linha de log `plan upgrade requested` (com
+`workspaceId`, `from`, `to`). Configure um alerta sobre ela: a página de preços
+promete que a equipe entra em contato, e não existe caixa de entrada no app.
+
+Pedidos em aberto:
+
+```sql
+select w.slug, r.requested_plan, r.created_at
+from plan_upgrade_requests r
+join workspaces w on w.id = r.workspace_id
+where r.handled_at is null
+order by r.created_at;
+```
+
+Liberar o plano e fechar o pedido, na mesma transação:
+
+```sql
+begin;
+update workspaces set plan = 'growth', updated_at = now() where slug = 'acme';
+update plan_upgrade_requests set handled_at = now()
+where workspace_id = (select id from workspaces where slug = 'acme')
+  and handled_at is null;
+commit;
+```
+
+Voltar para o Starter é o mesmo `update` com `'starter'`. Nada é apagado: o que
+já passou do limite continua existindo, só não dá para criar mais até o uso
+voltar a caber no plano.
 
 ## Commands
 

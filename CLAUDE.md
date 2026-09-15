@@ -17,8 +17,10 @@ Operating rules for any AI agent (or human) working in this repository.
 3. **Read `DATABASE.md` before altering the schema.**
 4. **Never bypass RLS.** RLS is bypassed only by the Drizzle service
    connection (`DATABASE_URL`) inside the webhook/tracking ingest paths and the
-   seed, and by `src/lib/supabase/admin.ts`. Both must document why. Neither
-   may reach the browser bundle. See **Supabase security** below.
+   seed, and by `src/lib/supabase/admin.ts` (called from the seed and from
+   `src/server/services/invite-mail.ts` for Auth invitation e-mails). Both must
+   document why. Neither may reach the browser bundle. See **Supabase security**
+   below.
 5. **No business logic in React components or Route Handlers.**
    Route Handler = parse → validate (Zod) → authorize → call service → respond.
 6. **Never import `stripe` outside `src/lib/billing/stripe/`.**
