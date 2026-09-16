@@ -3,7 +3,7 @@
  *
  * The system is the Linear-derived product language first built for Outlier
  * (its ADR 015 / 017): near-black layered surfaces, hairlines instead of
- * shadows, one signal-amber accent, and a light theme designed on its own
+ * shadows, a monochrome primary (ink on light, paper on dark), and a light theme designed on its own
  * terms — a white content panel on a quiet gray canvas — rather than inverted.
  *
  * Primitives carry the reference palette's own names (void → paper), so a
@@ -46,11 +46,14 @@
   --color-zinc-950: #111113;
 
   /* ====================================================================
-   * PRIMITIVES — accent.
-   * Signal amber is the only saturated action colour in the product. It
-   * takes the reference's single-accent role: the one primary action per view.
+   * PRIMITIVES — primary action.
+   * The primary action is monochrome: the theme's strongest ink on its
+   * lightest plane, inverted per theme. Saturated colour is left to status
+   * (success / warning / danger / info) and data, where it carries meaning.
+   * Amber survives only as the warning hue (ochre, below).
    * ================================================================== */
-  --color-signal-amber: #f2b84b;
+  --color-ink-hover: #2c2d32;
+  --color-snow-hover: #dcdee1;
 
   /* ====================================================================
    * PRIMITIVES — status chroma. Functional, never decorative: a ledger has
@@ -107,12 +110,12 @@
   --border: var(--color-zinc-200);
   --border-strong: var(--color-zinc-300);
 
-  /* Accent — same amber button in both themes (dark text, 11:1). */
-  --primary: var(--color-signal-amber);
-  --primary-hover: color-mix(in srgb, var(--color-signal-amber) 90%, var(--color-zinc-950));
-  --primary-foreground: var(--color-zinc-950);
-  /* Amber as text or as a mark on white needs to be darker to read. */
-  --primary-text: #9a5b00;
+  /* Primary — near-black with white text (18.9:1); hover lifts one step lighter. */
+  --primary: var(--color-zinc-950);
+  --primary-hover: var(--color-ink-hover);
+  --primary-foreground: var(--color-paper);
+  /* The primary as a mark or text (a "Recommended" tag, a highlighted step). */
+  --primary-text: var(--color-zinc-950);
 
   --success: var(--color-pulse-green-deep);
   --success-subtle: color-mix(in oklab, var(--color-pulse-green) 12%, transparent);
@@ -164,7 +167,8 @@
   --shiki-token-punctuation: var(--color-zinc-650);
   --shiki-token-link: var(--color-signal-teal-deep);
 
-  --chart-1: #b07600;
+  /* Revenue is the neutral ink series; commission keeps teal. */
+  --chart-1: var(--color-zinc-800);
   --chart-2: var(--color-signal-teal-deep);
   --chart-3: var(--color-iris-violet-deep);
   --chart-4: var(--color-pulse-green-deep);
@@ -202,10 +206,11 @@
   --border: var(--color-graphite);
   --border-strong: var(--color-smoke);
 
-  --primary: var(--color-signal-amber);
-  --primary-hover: color-mix(in srgb, var(--color-signal-amber) 90%, var(--color-paper));
+  /* Primary — near-white with void text (18.7:1); hover settles one step darker. */
+  --primary: var(--color-snow);
+  --primary-hover: var(--color-snow-hover);
   --primary-foreground: var(--color-void);
-  --primary-text: var(--color-signal-amber);
+  --primary-text: var(--color-snow);
 
   --success: var(--color-pulse-green);
   --success-subtle: color-mix(in oklab, var(--color-pulse-green) 20%, transparent);
@@ -255,7 +260,7 @@
   --shiki-token-punctuation: var(--color-fog);
   --shiki-token-link: var(--color-signal-teal);
 
-  --chart-1: var(--color-signal-amber);
+  --chart-1: var(--color-mist);
   --chart-2: var(--color-signal-teal);
   --chart-3: var(--color-lavender);
   --chart-4: var(--color-pulse-green);

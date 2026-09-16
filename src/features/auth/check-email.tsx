@@ -17,7 +17,7 @@ const COOLDOWN_SECONDS = 60
  * confirmation. Repeating the address back is deliberate: it is what lets
  * someone spot a typo and start again.
  *
- * No amber here: the real next step happens in the inbox, so resending is a
+ * No primary here: the real next step happens in the inbox, so resending is a
  * fallback, not the action the screen exists for.
  */
 export function CheckEmail({ email, onUseAnother }: { email: string; onUseAnother: () => void }) {

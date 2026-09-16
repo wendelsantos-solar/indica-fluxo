@@ -131,13 +131,13 @@ export async function countProgramTabs(
     .select({
       affiliates: sql<number>`(
         select count(*)::int from ${programAffiliates}
-          join ${affiliates} on ${affiliates.id} = ${programAffiliates.affiliateId}
-         where ${programAffiliates.programId} = ${programId}
-           and ${affiliates.workspaceId} = ${workspaceId})`,
+          join ${affiliates} on ${qualified(affiliates.id)} = ${qualified(programAffiliates.affiliateId)}
+         where ${qualified(programAffiliates.programId)} = ${programId}
+           and ${qualified(affiliates.workspaceId)} = ${workspaceId})`,
       commissions: sql<number>`(
         select count(*)::int from ${commissions}
-         where ${commissions.programId} = ${programId}
-           and ${commissions.workspaceId} = ${workspaceId})`,
+         where ${qualified(commissions.programId)} = ${programId}
+           and ${qualified(commissions.workspaceId)} = ${workspaceId})`,
     })
     .from(programs)
     .where(and(eq(programs.id, programId), eq(programs.workspaceId, workspaceId)))

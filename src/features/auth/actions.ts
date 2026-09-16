@@ -126,7 +126,10 @@ export async function signIn(_prev: SignInState, formData: FormData): Promise<Si
   await claimPendingInvites(data.user.id)
 
   const fallback = getPathname({ href: "/app", locale: current })
-  return redirectToPath(safeRedirectPath(formData.get("next"), fallback))
+  const next = safeRedirectPath(formData.get("next"), fallback)
+  // A `next` that points at sign-out would undo the sign-in that just happened.
+  const logout = getPathname({ href: "/logout", locale: current })
+  return redirectToPath(next === logout || next.startsWith(`${logout}?`) ? fallback : next)
 }
 
 export async function signUp(_prev: SignUpState, formData: FormData): Promise<SignUpState> {

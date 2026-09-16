@@ -15,14 +15,14 @@ export function generateStaticParams() {
  * The social card is rendered to a PNG by Satori, which cannot read CSS custom
  * properties — so this is the one place hex values stand in for tokens. They
  * are the dark theme's own: void canvas, carbon panel, graphite hairline,
- * snow/fog text and the signal-amber accent (src/design/tokens.css).
+ * snow/fog text and the primary ink (src/design/tokens.css).
  */
 const VOID = "#08090a"
 const CARBON = "#0f1011"
 const GRAPHITE = "#23252a"
 const SNOW = "#f7f8f8"
 const FOG = "#8a8f98"
-const AMBER = "#f2b84b"
+const PRIMARY = SNOW
 
 export default async function OpengraphImage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
@@ -44,7 +44,7 @@ export default async function OpengraphImage({ params }: { params: Promise<{ loc
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 30, fontWeight: 600 }}>
-          <div style={{ width: 28, height: 6, borderRadius: 3, background: AMBER }} />
+          <div style={{ width: 28, height: 6, borderRadius: 3, background: PRIMARY }} />
           IndicaFluxo
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>

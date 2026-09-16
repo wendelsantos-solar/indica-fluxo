@@ -19,7 +19,7 @@ What was taken, and what was decided here:
 | Area | From the reference / Outlier | Indica decision |
 | --- | --- | --- |
 | Surfaces | Void → Carbon → Obsidian, hairlines instead of shadows | Same ladder. The app is a sidebar on the canvas plus **one inset, bordered content panel** |
-| Accent | One accent for the single primary action | **Signal amber `#f2b84b`**, Outlier's accent, replacing the reference's acid lime |
+| Accent | One accent for the single primary action | **Monochrome primary**: near-black on light, near-white on dark (2026-09 revision; the earlier signal amber now survives only as the `warning` hue) |
 | Light theme | Reference is dark-only; Outlier designed one | Outlier's: a quiet gray canvas around a white panel — designed, not inverted |
 | Text | Paper / Mist / Fog / Ash, no chromatic body text | Same four steps; Ash lightened to `#7e838b` so it clears 4.5:1 |
 | Type | Inter Variable 400/510/590, `cv01 ss03 zero` | Same. **13px is the product default**; a dense ledger adds `micro`/`label`/`meta` below it and `title` (18px) for record names |
@@ -72,8 +72,11 @@ Five principles, in priority order:
 - Components consume **semantic tokens only** (`bg-surface-1`, `text-muted-foreground`).
 - Primitives (`--color-void`, `--color-zinc-200`) exist only inside
   `src/design/tokens.css` to define semantics. Never reference a primitive in a component.
-- **The amber accent is rationed.** One primary action per view. A header with
-  three amber buttons is a bug. `text-primary-text` (amber as text) is for the
+- **The primary is monochrome and rationed.** Ink on light, paper on dark,
+  inverted by the tokens — never by `dark:` classes in a component. One primary
+  action per view; a header with three solid primary buttons is a bug.
+  Saturated colour belongs to status and data, never to "this is important".
+  `text-primary-text` (the primary as text) is for the
   rare mark that must read as identity, never for body copy.
 - **No chromatic body text.** Colour appears only on the primary action, on
   status dots/deltas, and in charts.
@@ -101,15 +104,15 @@ If you add a token, add it twice.
 | `muted-foreground` | `#8a8f98` | `#5b5d65` | Labels, column headers, secondary text |
 | `faint-foreground` | `#7e838b` | `#6a6c74` | Metadata, placeholders, section labels |
 | `inverse` / `inverse-foreground` | `#e6e7e9` / void | ink / white | Skip link, workspace glyph |
-| `primary` / `primary-hover` / `primary-foreground` | amber / +10% white / void | amber / +10% ink / ink | The one primary action |
-| `primary-text` | amber | `#9a5b00` | Amber as text or mark |
+| `primary` / `primary-hover` / `primary-foreground` | snow `#f7f8f8` / `#dcdee1` (darker) / void | ink `#111113` / `#2c2d32` (lighter) / white | The one primary action |
+| `primary-text` | snow | ink | The primary as a mark ("Recommended", "You" steps) |
 | `success` · `warning` · `danger` · `info` (+ `-subtle`, `-foreground`) | `#27a644` · `#e2a93b` · `#f07070` · `#4cc9d6` | `#1a7f4b` · `#8f5f00` · `#c62828` · `#0a6f7c` | Status dots, deltas, error text |
 | `ring` | Mist `#d0d6e0` | ink | Focus outline — brightens, no extra hue |
 | `scrim` | black 55% | ink 32% | Dialog and drawer backdrop |
 | `on-danger` | void | white | Text on a solid danger fill (confirm button) |
 | `select-chevron` | fog chevron | zinc chevron | Native select arrow, per theme |
 | `shiki-token-*` | mist / lavender / mint / teal / ochre | darker steps | Syntax highlighting in docs code blocks (≥ 4.5:1 on `surface-2`) |
-| `chart-1 … chart-6` | amber, teal, lavender, green, coral, fog | darker steps | Data series, in order |
+| `chart-1 … chart-6` | mist, teal, lavender, green, coral, fog | darker steps | Data series, in order (revenue is the neutral ink series) |
 
 Elevation tokens: `shadow-ring` (inset hairline), `shadow-overlay` (floating
 layers: the reference's inset highlight stack + hairline in dark, a soft drop in
@@ -126,8 +129,8 @@ Computed (WCAG 2.x) against every plane each token sits on:
 | `muted-foreground` | ≥ 5.3:1 | ≥ 5.9:1 | AA |
 | `faint-foreground` | ≥ 4.5:1 | ≥ 4.7:1 | AA — the floor, do not go quieter |
 | status `-foreground` | ≥ 5.9:1 | ≥ 4.5:1 | AA |
-| `primary-foreground` on `primary` | 11:1 | 10.5:1 | AAA |
-| `chart-1` on its panel | 10:1 | 3.9:1 | ≥ 3:1 graphics |
+| `primary-foreground` on `primary` | 18.7:1 (14.8:1 hover) | 18.9:1 (13.7:1 hover) | AAA |
+| `chart-1` on its panel | 13:1 | 11.2:1 | ≥ 3:1 graphics |
 
 Never encode meaning in colour alone: every status carries a label, every
 delta carries a sign and an arrow icon.
@@ -250,7 +253,7 @@ Depth is expressed by **surface contrast plus a hairline**, not by shadow.
   a callout. Lists, tables, metrics and empty states sit on the panel between
   hairlines.
 - Only floating layers (menu, popover, tooltip, dialog, palette, toast) use
-  `shadow-overlay`. The amber button alone carries `shadow-control`.
+  `shadow-overlay`. The primary button alone carries `shadow-control`.
 - Scrim: `bg-scrim`. No backdrop blur beyond 2px (sticky bars only).
 
 ### Stacking (z-index)
@@ -316,7 +319,7 @@ Primitives live in `src/components/ui`, the frame in `src/components/layout`.
 
 ### Button
 
-Variants: `primary` (amber, `shadow-control`, **one per view**), `secondary`
+Variants: `primary` (monochrome solid, `shadow-control`, **one per view**), `secondary`
 (transparent + hairline, text brightens on hover), `ghost` (text until hovered),
 `danger` (hairline + danger text; tinted on hover), `destructive` (solid, only
 inside the confirmation that states the consequence), `link`.
@@ -356,7 +359,7 @@ The most important component in this product.
 
 Height 20, radius 4, hairline, 12px medium **neutral** label, with a 6px status
 dot in front. The dot lets a column of statuses be scanned; the label carries
-the meaning. `tone="primary"` (amber hairline and text) is reserved for a mark
+the meaning. `tone="primary"` (strong hairline and ink text) is reserved for a mark
 of identity, not a role or a status. `StatusDot` is the bare dot for chrome.
 
 | Domain status | Tone |
@@ -491,11 +494,11 @@ outcomes. A form that can show inline success must not fire a toast.
   commission flow, problem, how it works, product stories, founder/affiliate
   sides, integrations, principles, pricing preview, closing CTA — and its only
   imagery is the product, rebuilt from tokens in
-  `(marketing)/_components/visuals.tsx`. One amber action per viewport; mock
+  `(marketing)/_components/visuals.tsx`. One primary action per viewport; mock
   buttons inside visuals are secondary. Claims must be true in the code
   (Stripe only; no invented customers, logos or numbers).
 - Docs: own route group. Docs bar (brand / Docs, language, theme, Painel, one
-  amber sign-up), then at `max-w-docs` (1440px) a sticky section sidebar
+  primary sign-up), then at `max-w-docs` (1440px) a sticky section sidebar
   (14rem) · reading column (48rem) · "Nesta página" outline (12rem, from `xl`);
   below `lg` the sidebar is a drawer. Every H2/H3 is anchored with a hover
   copy-link. Code samples use `CodeBlock`/`CodeTabs` (Shiki at build time,
@@ -584,8 +587,8 @@ DON'T text-2xl font-bold
 DO    <td className="text-right tabular-nums">{formatMoney(1470,'USD')}</td>
 DON'T <td>{(14.7).toFixed(2)}</td>
 
-DO    one amber primary action per view
-DON'T three amber buttons competing in one header
+DO    one primary action per view
+DON'T three solid primary buttons competing in one header
 
 DO    bg-hover / bg-selected / bg-fill       (theme-safe alpha tokens)
 DON'T bg-white/5                            (invisible in light)

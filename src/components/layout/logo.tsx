@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils"
 
 /**
  * A mark, not an illustration: two paths merging into one — a referral
- * becoming a flow. The amber stroke is identity, not a call to action, which
+ * becoming a flow. The primary-ink stroke is identity, not a call to action, which
  * is why it may appear beside the one primary button without competing.
  */
 export function Logo({

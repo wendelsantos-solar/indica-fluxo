@@ -1,3 +1,4 @@
+import { PageHeaderBar } from "@/components/layout/page-header"
 import { MetricSkeleton, Skeleton, TableSkeleton } from "@/components/ui/skeleton"
 
 /**
@@ -8,14 +9,11 @@ import { MetricSkeleton, Skeleton, TableSkeleton } from "@/components/ui/skeleto
 export default function ProgramDetailLoading() {
   return (
     <>
-      <div
-        data-page-header
-        className="sticky top-12 z-sticky -mx-4 mb-6 flex min-h-12 items-center gap-3 border-b border-border bg-surface-1 px-4 md:top-0 md:-mx-6 md:px-6"
-      >
+      <PageHeaderBar>
         <Skeleton className="h-3.5 w-20" />
         <Skeleton className="h-3.5 w-32" />
         <Skeleton className="ml-auto h-7 w-32 rounded-control" />
-      </div>
+      </PageHeaderBar>
 
       <div aria-busy="true">
         <div className="max-w-detail space-y-10">

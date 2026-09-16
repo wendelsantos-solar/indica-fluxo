@@ -6,7 +6,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 /**
- * DESIGN.md §9. `primary` is the amber action — one per view, the thing the
+ * DESIGN.md §9. `primary` is the monochrome action — one per view, the thing the
  * screen exists for. Everything else is neutral: `secondary` is a hairline,
  * `ghost` is text until hovered. Colour here is a signal, not decoration.
  */

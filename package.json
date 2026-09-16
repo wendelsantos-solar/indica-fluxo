@@ -17,6 +17,7 @@
     "db:seed": "tsx --conditions=react-server src/server/db/seed/index.ts",
     "db:reset": "tsx --conditions=react-server src/server/db/seed/reset.ts",
     "perf:dashboard": "tsx --conditions=react-server scripts/perf/bench-dashboard.ts",
+    "perf:navigation": "tsx --conditions=react-server scripts/perf/bench-navigation.ts",
     "perf:explain": "tsx --conditions=react-server scripts/perf/explain-at-scale.ts",
     "perf:load": "node scripts/perf/load.mjs",
     "perf:vitals": "node scripts/perf/lab-vitals.mjs"

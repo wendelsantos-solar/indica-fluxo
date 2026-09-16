@@ -26,6 +26,10 @@ const PUBLIC_PATHS = new Set([
   "/forgot-password",
   "/reset-password",
   "/auth/callback",
+  // Signing out without a session is a no-op that lands on sign-in. Gating it
+  // sent a signed-out visitor to `/login?next=/logout`, and the next successful
+  // sign-in followed that `next` straight back into a sign-out.
+  "/logout",
 ])
 
 /** Public ingest surfaces: no locale, no session, no cookie refresh. */

@@ -91,7 +91,7 @@ export function FormNotice({ children, className }: { children: React.ReactNode;
   )
 }
 
-/** Inline link style for auth copy: quiet, brightens on hover, never amber. */
+/** Inline link style for auth copy: quiet, brightens on hover, never the primary. */
 export const AUTH_LINK =
   "rounded-hairline font-medium text-foreground-secondary underline-offset-4 transition-colors duration-[120ms] hover:text-foreground hover:underline"
 

@@ -61,7 +61,7 @@ export default async function AffiliateLinksPage() {
     links: links.filter((link) => link.participationId === participation.participationId),
   }))
 
-  // The one amber copy button: the first default link that exists and earns.
+  // The one primary copy button: the first default link that exists and earns.
   const featuredId = data.find(
     ({ participation }) => linkEarns(participation) && participation.programWebsiteUrl,
   )?.participation.participationId

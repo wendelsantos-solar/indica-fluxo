@@ -118,7 +118,7 @@ export function ReferralLinkField({
   className,
 }: {
   url: string
-  /** Amber copy button. At most one per view. */
+  /** Primary copy button. At most one per view. */
   prominent?: boolean
   compact?: boolean
   /** Accessible name of the compact copy button, when several links share a view. */

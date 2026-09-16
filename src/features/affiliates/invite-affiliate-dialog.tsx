@@ -45,7 +45,7 @@ export function InviteAffiliateDialog({
   defaultProgramId?: string
   /** Defaults to the translated "Invite affiliate" — one verb everywhere. */
   triggerLabel?: string
-  /** Page headers use the small amber trigger; an empty state may want `md`. */
+  /** Page headers use the small primary trigger; an empty state may want `md`. */
   triggerVariant?: "primary" | "secondary"
   triggerSize?: "sm" | "md"
   /**

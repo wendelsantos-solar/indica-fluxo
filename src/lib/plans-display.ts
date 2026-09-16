@@ -208,7 +208,7 @@ export interface PricingCard {
   nameKey: string
   descriptionKey: string
   cta: { key: string; href: typeof SIGNUP_HREF }
-  /** The one amber action on the page. */
+  /** The one primary action on the page. */
   recommended: boolean
   priceMonthlyMinor: number
   currency: string

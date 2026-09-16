@@ -21,7 +21,8 @@ import { EnvironmentBadge } from "@/features/programs/environment-badge"
 import { ProgramAffiliateActions } from "@/features/programs/program-affiliate-actions"
 import { ProgramForm } from "@/features/programs/program-form"
 import { SimulateConversionDialog } from "@/features/sandbox/simulate-conversion-dialog"
-import { PROGRAM_TABS, ProgramTabs, type ProgramTab } from "@/features/programs/program-tabs"
+import { PROGRAM_TABS, type ProgramTab } from "@/features/programs/program-tab-ids"
+import { ProgramTabs } from "@/features/programs/program-tabs"
 import { currencyOptions } from "@/features/workspaces/options"
 import { minorToMajor } from "@/lib/money"
 import { getSessionUser, requireUser } from "@/server/auth/session"
@@ -152,7 +153,7 @@ export default async function ProgramDetailPage({
           </Link>,
         ]}
         actions={
-          // The settings tab has its own amber action (save); one per view.
+          // The settings tab has its own primary action (save); one per view.
           tab === "settings" ? null : (
             <InviteAffiliateDialog
               workspaceSlug={workspaceSlug}
@@ -285,7 +286,7 @@ export default async function ProgramDetailPage({
                   title={t("emptyAffiliates.title")}
                   description={t("emptyAffiliates.description")}
                   action={
-                    // The header already carries the amber invite.
+                    // The header already carries the primary invite.
                     <InviteAffiliateDialog
                       workspaceSlug={workspaceSlug}
                       programs={programRef}

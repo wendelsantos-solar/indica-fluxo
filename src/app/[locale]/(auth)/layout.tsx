@@ -16,7 +16,7 @@ import { AuthProof } from "@/features/auth/auth-proof"
  * marketing pages it was reached from, and says what the visitor is signing
  * into — one statement and the product itself as the only picture. The right
  * half is the working surface: `surface-1` behind a hairline, the form centred
- * in a narrow column, and nothing else competing with its one amber action.
+ * in a narrow column, and nothing else competing with its one primary action.
  *
  * Below 1024px the left half is dropped entirely and the form stands alone on
  * the canvas under a slim bar, as the rest of the public chrome does.

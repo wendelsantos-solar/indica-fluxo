@@ -1,3 +1,4 @@
+import { PageHeaderBar } from "@/components/layout/page-header"
 import { MetricSkeleton, Skeleton, TableSkeleton } from "@/components/ui/skeleton"
 
 /**
@@ -19,15 +20,9 @@ import { MetricSkeleton, Skeleton, TableSkeleton } from "@/components/ui/skeleto
 function HeaderBar({ description = true }: { description?: boolean }) {
   return (
     <>
-      <div
-        data-page-header
-        className={
-          "sticky top-12 z-sticky -mx-4 flex min-h-12 items-center border-b border-border bg-surface-1 px-4 md:top-0 md:-mx-6 md:px-6 " +
-          (description ? "mb-5" : "mb-6")
-        }
-      >
+      <PageHeaderBar hasDescription={description}>
         <Skeleton className="h-3.5 w-32" />
-      </div>
+      </PageHeaderBar>
       {description ? (
         // Same box as the description paragraph: one caption line, then 24px.
         <div className="mb-6 flex h-5 items-center">

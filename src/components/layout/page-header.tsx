@@ -32,15 +32,7 @@ export function PageHeader({
 
   return (
     <>
-      <div
-        data-page-header
-        className={cn(
-          "sticky top-12 z-sticky -mx-4 flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 border-b border-border",
-          "bg-surface-1/90 px-4 py-2 backdrop-blur-[2px] md:top-0 md:-mx-6 md:px-6",
-          description ? "mb-5" : "mb-6",
-          className,
-        )}
-      >
+      <PageHeaderBar hasDescription={Boolean(description)} className={className}>
         {breadcrumb?.length ? (
           <nav aria-label={t("breadcrumb")} className="flex min-w-0 items-center gap-1.5 text-caption">
             {breadcrumb.map((crumb, index) => (
@@ -64,13 +56,46 @@ export function PageHeader({
           </div>
         ) : null}
         {actions ? <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div> : null}
-      </div>
+      </PageHeaderBar>
       {description ? (
         <p className="mb-6 text-pretty text-caption text-muted-foreground">
           <span className="block max-w-[68ch]">{description}</span>
         </p>
       ) : null}
     </>
+  )
+}
+
+/**
+ * The bar itself, shared by `PageHeader` and every route skeleton so the frame
+ * cannot drift between loading and loaded. The border and fill run full-bleed
+ * across the panel; the row inside sits on the same `max-w-content` axis as the
+ * page body, so on a wide screen the title lines up with the content under it
+ * instead of hugging the panel edge.
+ */
+export function PageHeaderBar({
+  hasDescription = false,
+  className,
+  children,
+}: {
+  /** A description line follows the bar: 20px to it instead of 24px to the content. */
+  hasDescription?: boolean
+  className?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      data-page-header
+      className={cn(
+        "sticky top-12 z-sticky -mx-4 border-b border-border bg-surface-1/90 px-4 backdrop-blur-[2px] md:top-0 md:-mx-6 md:px-6",
+        hasDescription ? "mb-5" : "mb-6",
+        className,
+      )}
+    >
+      <div className="mx-auto flex min-h-12 w-full max-w-content flex-wrap items-center gap-x-3 gap-y-1 py-2">
+        {children}
+      </div>
+    </div>
   )
 }
 

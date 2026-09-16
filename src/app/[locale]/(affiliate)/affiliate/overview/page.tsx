@@ -176,7 +176,7 @@ export default async function AffiliateOverviewPage() {
   const earningDays = [...allEarningDays].reverse().slice(0, CHART_DAYS_LISTED)
   const chartTotal = series.reduce((sum, point) => sum + point.commissionMinor, 0)
 
-  // The one amber action: the first default link that exists and earns.
+  // The one primary action: the first default link that exists and earns.
   const featuredId = participations.find((p) => linkEarns(p) && p.programWebsiteUrl)
     ?.participationId
 

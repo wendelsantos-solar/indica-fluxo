@@ -1,0 +1,7 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "indica-dev", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev"], "port": 3000 },
+    { "name": "indica-prod", "runtimeExecutable": "pnpm", "runtimeArgs": ["start", "-p", "3100"], "port": 3100 }
+  ]
+}

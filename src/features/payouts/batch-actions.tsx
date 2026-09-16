@@ -63,7 +63,7 @@ export function MarkPaidDialog({
   return (
     <Dialog open={open} onOpenChange={(next) => !pending && setOpen(next)}>
       <DialogTrigger asChild>
-        {/* Secondary in the row: the page's amber action is creating a batch. */}
+        {/* Secondary in the row: the page's primary action is creating a batch. */}
         <Button variant={triggerVariant} size="sm">
           {t("markPaid")}
         </Button>

@@ -68,7 +68,7 @@ function testProgramSlug(programs: readonly { slug?: string; environment?: "test
  * was just achieved, then the steps between here and a first commission —
  * with the Sandbox journey (test conversion, live mode) when the overview
  * passes `liveMode` to `activationSignals`.
- * One amber action — on the next pending step — and nothing else competing.
+ * One primary action — on the next pending step — and nothing else competing.
  */
 export async function ActivationChecklist({
   workspaceSlug,
@@ -274,7 +274,7 @@ function StepMarker({ done, next }: { done: boolean; next: boolean }) {
  * Once numbers flow, the checklist steps aside. If something that decides
  * whether those numbers become commissions is still missing — typically Stripe
  * while clicks already arrive — one quiet line keeps it in view. No card, no
- * amber, no dismiss: it disappears by itself when the step is done.
+ * primary, no dismiss: it disappears by itself when the step is done.
  */
 export async function ActivationReminder({
   workspaceSlug,

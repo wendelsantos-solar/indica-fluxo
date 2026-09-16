@@ -6,8 +6,7 @@ import { TabLink } from "@/components/ui/tabs"
 import { useRouter } from "@/i18n/navigation"
 import { cn } from "@/lib/utils"
 
-export const PROGRAM_TABS = ["affiliates", "commissions", "settings"] as const
-export type ProgramTab = (typeof PROGRAM_TABS)[number]
+import type { ProgramTab } from "@/features/programs/program-tab-ids"
 
 /**
  * A program's tab strip. The page renders only the active tab's data, so a tab

@@ -1,3 +1,4 @@
+import { PageHeaderBar } from "@/components/layout/page-header"
 import { Skeleton } from "@/components/ui/skeleton"
 
 /**
@@ -7,13 +8,10 @@ import { Skeleton } from "@/components/ui/skeleton"
 export default function NewProgramLoading() {
   return (
     <>
-      <div
-        data-page-header
-        className="sticky top-12 z-sticky -mx-4 mb-5 flex min-h-12 items-center gap-3 border-b border-border bg-surface-1 px-4 md:top-0 md:-mx-6 md:px-6"
-      >
+      <PageHeaderBar hasDescription>
         <Skeleton className="h-3.5 w-20" />
         <Skeleton className="h-3.5 w-28" />
-      </div>
+      </PageHeaderBar>
       <div className="mb-6">
         <Skeleton className="h-3.5 w-96 max-w-full" />
       </div>

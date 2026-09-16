@@ -213,7 +213,7 @@ export async function HeroPreview() {
           <div className="flex h-12 items-center gap-3 border-b border-border px-4 sm:px-5">
             <span className="text-caption font-medium text-foreground">{t("overview")}</span>
             <span className="hidden text-caption text-muted-foreground sm:inline">{t("period")}</span>
-            <span className={cn(buttonVariants({ variant: "primary", size: "sm" }), "ml-auto")}>{t("invite")}</span>
+            <span className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "ml-auto")}>{t("invite")}</span>
           </div>
 
           <div className="px-4 sm:px-5">
