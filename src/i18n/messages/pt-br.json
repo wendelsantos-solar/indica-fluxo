@@ -2008,7 +2008,7 @@
         "error": "Com erro"
       },
       "steps": {
-        "label": "Configuração do Stripe em 3 passos",
+        "label": "Configuração do Stripe em 4 passos",
         "status": "Passo {index}, {status, select, done {concluído} current {atual} other {a seguir}}:",
         "locked": "Disponível depois do passo 1.",
         "account": {
@@ -2019,12 +2019,32 @@
         },
         "webhook": {
           "title": "Adicione o webhook no Stripe",
-          "description": "No painel do Stripe, em <strong>Desenvolvedores → Webhooks</strong>, adicione um endpoint com esta URL — ela é exclusiva deste workspace — e selecione os eventos abaixo. Faça isso com o modo de teste ligado e, quando for para produção, também no modo de produção: cada modo tem o próprio endpoint e o próprio segredo.",
-          "events": "Eventos para selecionar"
+          "description": "No painel do Stripe, em <strong>Desenvolvedores → Webhooks</strong>, crie um endpoint com esta URL — ela é exclusiva deste workspace — e selecione os eventos abaixo.",
+          "events": "Eventos para selecionar",
+          "modes": "Comece com o modo de teste do Stripe ligado. Para produção, repita no modo de produção: cada modo tem o próprio endpoint e o próprio segredo.",
+          "openStripe": "Abrir webhooks no Stripe",
+          "copyEvents": "Copiar eventos",
+          "confirm": "Já criei o endpoint",
+          "summary": "Endpoint criado no Stripe",
+          "httpsWarning": "O Stripe só entrega eventos para URLs públicas com HTTPS, e esta URL usa HTTP.",
+          "groups": {
+            "payments": "Pagamentos",
+            "refunds": "Reembolsos e disputas",
+            "subscriptions": "Assinaturas"
+          }
         },
         "secret": {
           "title": "Cole o segredo de assinatura",
-          "description": "Na página de cada endpoint, revele o <strong>segredo de assinatura</strong> (Signing secret) e cole no campo do modo correspondente. Um basta para começar; o outro pode ser salvo depois."
+          "description": "Na página do endpoint, revele o <strong>segredo de assinatura</strong> (Signing secret) e cole no modo correspondente. Um modo basta para começar."
+        },
+        "progress": "Etapa {current} de {total}",
+        "review": "Rever",
+        "collapse": "Recolher",
+        "verify": {
+          "title": "Confirme o recebimento",
+          "waiting": "Aguardando o primeiro evento…",
+          "body": "Faça um pagamento de teste no Stripe — por exemplo, com o cartão <code>4242 4242 4242 4242</code> — ou rode <code>stripe trigger invoice.paid</code>. Esta etapa é concluída sozinha quando o evento chegar.",
+          "checkNow": "Verificar agora"
         }
       },
       "health": {
@@ -2042,11 +2062,13 @@
       "secretEnvironments": {
         "test": {
           "label": "Segredo do endpoint de teste",
-          "hint": "Do endpoint criado com o modo de teste do Stripe ligado. Começa com whsec_; fica guardado criptografado e não é exibido de novo."
+          "hint": "Do endpoint criado com o modo de teste do Stripe ligado.",
+          "tab": "Teste"
         },
         "live": {
           "label": "Segredo do endpoint de produção",
-          "hint": "Do endpoint criado no modo de produção do Stripe. Começa com whsec_; fica guardado criptografado e não é exibido de novo."
+          "hint": "Do endpoint criado no modo de produção do Stripe.",
+          "tab": "Produção"
         }
       },
       "secretMissingEnvironment": "Não salvo — os eventos deste modo são recusados.",
@@ -2056,6 +2078,11 @@
         "lastRecorded": "{environment, select, live {Último pagamento de produção registrado} other {Último pagamento de teste registrado}} {when}",
         "failed": "{environment, select, live {Último evento de produção falhou} other {Último evento de teste falhou}} {when}",
         "none": "{environment, select, live {Nenhum evento de produção recebido ainda.} other {Nenhum evento de teste recebido ainda.}}"
+      },
+      "secretPrefix": "O segredo de assinatura começa com whsec_.",
+      "secretStatus": {
+        "saved": "salvo",
+        "missing": "não salvo"
       }
     },
     "affiliateActions": {

@@ -6,7 +6,7 @@ import { formatBatchLabel } from "@/features/payouts/batch-label"
 import { buildPayoutCsv, csvFormatForLocale, payoutCsvFilename } from "@/features/payouts/csv"
 import { routing } from "@/i18n/routing"
 import { logger } from "@/lib/logger"
-import { getSessionUser } from "@/server/auth/session"
+import { getVerifiedSessionUser } from "@/server/auth/session"
 import { isAppError } from "@/server/policies/errors"
 import { getPayoutBatchExport } from "@/server/services/payouts"
 import { getWorkspaceForUser } from "@/server/services/workspaces"
@@ -34,7 +34,8 @@ export async function GET(
   if (!parsed.success) return NextResponse.json({ error: "invalid_request" }, { status: 400 })
   const { workspaceSlug, batchId, locale } = parsed.data
 
-  const user = await getSessionUser()
+  // `/api` skips the proxy, so nothing has checked the session for revocation yet.
+  const user = await getVerifiedSessionUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
 
   try {

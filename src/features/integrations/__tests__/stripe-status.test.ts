@@ -80,7 +80,8 @@ describe("deriveStripeState", () => {
   it("shows the wizard only before a secret is saved", () => {
     expect(needsSetup("notStarted")).toBe(true)
     expect(needsSetup("awaitingSecret")).toBe(true)
-    expect(needsSetup("awaitingFirstEvent")).toBe(false)
+    expect(needsSetup("awaitingFirstEvent")).toBe(true)
+    expect(needsSetup("receiving")).toBe(false)
     expect(needsSetup("signatureRejected")).toBe(false)
   })
 })

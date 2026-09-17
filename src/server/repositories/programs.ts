@@ -87,14 +87,14 @@ export interface ProgramTotals {
  * per row: rejected commissions do not count, reversals net out.
  */
 export async function getProgramTotals(tx: DbClient, programId: string): Promise<ProgramTotals> {
-  const [counts] = await tx.execute<{ clicks: number; customers: number }>(sql`
+  const { rows: [counts] } = await tx.execute<{ clicks: number; customers: number }>(sql`
     select
       (select count(*) from referral_clicks where program_id = ${programId})::int as clicks,
       (select count(distinct customer_id) from commissions
         where program_id = ${programId} and commission_amount_minor > 0)::int as customers
   `)
 
-  const money = await tx.execute<{ currency: string; revenue_minor: string; commission_minor: string }>(sql`
+  const { rows: money } = await tx.execute<{ currency: string; revenue_minor: string; commission_minor: string }>(sql`
     select
       currency,
       coalesce(sum(base_amount_minor), 0)::bigint as revenue_minor,

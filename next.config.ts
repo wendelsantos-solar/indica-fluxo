@@ -46,6 +46,15 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  experimental: {
+    // Every dashboard page is dynamic, and by default the client router keeps
+    // none of them: going back to a page seen a moment ago re-runs all of its
+    // queries. 30 s makes that instant. Mutations still show at once — Server
+    // Actions here call `revalidatePath`, set a cookie or `router.refresh()`,
+    // each of which clears this cache. Only changes made elsewhere (a webhook)
+    // can appear up to 30 s late on a back-navigation.
+    staleTimes: { dynamic: 30 },
+  },
 
   // The dev server is also reached through a tunnel on this host. Without it,
   // Next blocks cross-origin requests to dev-only assets (HMR, `/_next/*`).

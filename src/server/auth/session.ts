@@ -14,23 +14,51 @@ export interface SessionUser {
   name: string | null
 }
 
+function toSessionUser(id: string, email: unknown, metadata: unknown): SessionUser | null {
+  if (typeof email !== "string" || !email) return null
+  const fullName =
+    metadata && typeof metadata === "object" ? (metadata as { full_name?: unknown }).full_name : undefined
+  return {
+    id,
+    email,
+    name: typeof fullName === "string" && fullName.trim() ? fullName.trim() : null,
+  }
+}
+
 /**
- * `cache()` dedupes the Supabase round trip across a single render pass, so a
- * layout and five server components share one call.
+ * The signed-in user for pages, layouts and Server Actions.
+ *
+ * Verifies the access token locally (`getClaims()`: signature against the
+ * project's asymmetric JWKS, plus expiry) instead of asking Supabase Auth
+ * again. That is safe only because `src/proxy.ts` already called `getUser()` —
+ * the revocation-aware check — on this same request: every page and every
+ * Server Action (they post to the page's URL) passes through it. It saved one
+ * Auth round trip, ~300 ms from a remote region, on every navigation
+ * (PERFORMANCE_AUDIT.md §12).
+ *
+ * A path the proxy does not gate (`/api/*`, public pages) must use
+ * `getVerifiedSessionUser()` instead.
+ *
+ * `cache()` dedupes it across a single render pass.
  */
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
+  const supabase = await createClient()
+  const { data, error } = await supabase.auth.getClaims()
+  if (error || !data) return null
+  const { sub, email, user_metadata: metadata } = data.claims
+  return typeof sub === "string" ? toSessionUser(sub, email, metadata) : null
+})
+
+/**
+ * The signed-in user, checked against Supabase Auth (sees revoked sessions).
+ * For request paths the proxy does not gate, such as Route Handlers under `/api`.
+ */
+export const getVerifiedSessionUser = cache(async (): Promise<SessionUser | null> => {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
-  if (!user?.email) return null
-  const fullName = user.user_metadata?.full_name
-  return {
-    id: user.id,
-    email: user.email,
-    name: typeof fullName === "string" && fullName.trim() ? fullName.trim() : null,
-  }
+  return user ? toSessionUser(user.id, user.email, user.user_metadata) : null
 })
 
 export async function requireUser(): Promise<SessionUser> {

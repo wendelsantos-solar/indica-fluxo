@@ -73,9 +73,13 @@ export function stripeBadgeStatus(state: StripeConnectionState): "connected" | "
   }
 }
 
-/** Whether the setup wizard (rather than the connected summary) is shown. */
+/**
+ * Whether the setup wizard (rather than the connected summary) is shown. The
+ * wizard stays until an event proves the endpoint works: its last step waits
+ * for that first event.
+ */
 export function needsSetup(state: StripeConnectionState): boolean {
-  return state === "notStarted" || state === "awaitingSecret"
+  return state === "notStarted" || state === "awaitingSecret" || state === "awaitingFirstEvent"
 }
 
 const UNITS: Array<[Intl.RelativeTimeFormatUnit, number]> = [

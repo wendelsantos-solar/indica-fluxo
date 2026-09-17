@@ -2008,7 +2008,7 @@
         "error": "Error"
       },
       "steps": {
-        "label": "Stripe setup in 3 steps",
+        "label": "Stripe setup in 4 steps",
         "status": "Step {index}, {status, select, done {done} current {current} other {up next}}:",
         "locked": "Available after step 1.",
         "account": {
@@ -2019,12 +2019,32 @@
         },
         "webhook": {
           "title": "Add the webhook in Stripe",
-          "description": "In your Stripe dashboard, under <strong>Developers → Webhooks</strong>, add an endpoint with this URL — it is unique to this workspace — and select the events below. Do it with test mode on and, when you go live, in live mode too: each mode has its own endpoint and its own secret.",
-          "events": "Events to select"
+          "description": "In your Stripe dashboard, under <strong>Developers → Webhooks</strong>, create an endpoint with this URL — it is unique to this workspace — and select the events below.",
+          "events": "Events to select",
+          "modes": "Start with Stripe's test mode on. For production, repeat it in live mode: each mode has its own endpoint and its own secret.",
+          "openStripe": "Open webhooks in Stripe",
+          "copyEvents": "Copy events",
+          "confirm": "I've created the endpoint",
+          "summary": "Endpoint created in Stripe",
+          "httpsWarning": "Stripe only delivers events to public HTTPS URLs, and this URL uses HTTP.",
+          "groups": {
+            "payments": "Payments",
+            "refunds": "Refunds and disputes",
+            "subscriptions": "Subscriptions"
+          }
         },
         "secret": {
           "title": "Paste the signing secret",
-          "description": "On each endpoint's page, reveal the <strong>Signing secret</strong> and paste it into the field for that mode. One is enough to start; the other can be saved later."
+          "description": "On the endpoint's page, reveal the <strong>Signing secret</strong> and paste it under the matching mode. One mode is enough to start."
+        },
+        "progress": "Step {current} of {total}",
+        "review": "Review",
+        "collapse": "Collapse",
+        "verify": {
+          "title": "Confirm delivery",
+          "waiting": "Waiting for the first event…",
+          "body": "Make a test payment in Stripe — for example with the card <code>4242 4242 4242 4242</code> — or run <code>stripe trigger invoice.paid</code>. This step completes on its own when the event arrives.",
+          "checkNow": "Check now"
         }
       },
       "health": {
@@ -2042,11 +2062,13 @@
       "secretEnvironments": {
         "test": {
           "label": "Test endpoint secret",
-          "hint": "From the endpoint created with Stripe's test mode on. Starts with whsec_; stored encrypted and never shown again."
+          "hint": "From the endpoint created with Stripe's test mode on.",
+          "tab": "Test"
         },
         "live": {
           "label": "Live endpoint secret",
-          "hint": "From the endpoint created in Stripe's live mode. Starts with whsec_; stored encrypted and never shown again."
+          "hint": "From the endpoint created in Stripe's live mode.",
+          "tab": "Live"
         }
       },
       "secretMissingEnvironment": "Not saved — events from this mode are rejected.",
@@ -2056,6 +2078,11 @@
         "lastRecorded": "{environment, select, live {Last live payment recorded} other {Last test payment recorded}} {when}",
         "failed": "{environment, select, live {Last live event failed} other {Last test event failed}} {when}",
         "none": "{environment, select, live {No live events received yet.} other {No test events received yet.}}"
+      },
+      "secretPrefix": "The signing secret starts with whsec_.",
+      "secretStatus": {
+        "saved": "saved",
+        "missing": "not saved"
       }
     },
     "affiliateActions": {

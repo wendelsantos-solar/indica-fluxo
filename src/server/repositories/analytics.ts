@@ -149,7 +149,7 @@ function commissionLedgerSql(workspaceId: string, environment: ViewEnvironment, 
 
 /** Whether the workspace holds any live program — `resolveViewEnvironment`'s input. */
 export async function workspaceHasLivePrograms(tx: DbClient, workspaceId: string): Promise<boolean> {
-  const [row] = await tx.execute<{ found: boolean }>(sql`
+  const { rows: [row] } = await tx.execute<{ found: boolean }>(sql`
     select exists (
       select 1 from programs where workspace_id = ${workspaceId} and environment = 'live'
     ) as found
@@ -197,7 +197,7 @@ export async function getDashboardOverview(
   const start = instant(window.start)
 
   // Independent statements, sent together (pipelined on the transaction's connection).
-  const [[counts], money] = await Promise.all([
+  const [{ rows: [counts] }, { rows: money }] = await Promise.all([
     tx.execute<{
       default_currency: string | null
       active_affiliates: number
@@ -388,7 +388,7 @@ export async function getRevenueSeries(
   const lastDay = window.keys[window.keys.length - 1]!
   const start = instant(window.start)
 
-  const rows = await tx.execute<{
+  const { rows } = await tx.execute<{
     day: string
     revenue_minor: string
     commission_minor: string
@@ -416,7 +416,7 @@ export async function getRevenueSeries(
     order by s.day
   `)
 
-  const others = await tx.execute<{ currency: string }>(sql`
+  const { rows: others } = await tx.execute<{ currency: string }>(sql`
     select distinct currency from (
       select currency from (${referredMoneySql(workspaceId, environment, sql`and t.occurred_at >= ${start}`)}) referred
       union
@@ -460,7 +460,7 @@ export async function getConversionFunnel(
 ): Promise<FunnelStep[]> {
   const window = resolveWindow(period)
   const start = instant(window.start)
-  const [row] = await tx.execute<{
+  const { rows: [row] } = await tx.execute<{
     clicks: number
     identified: number
     trials: number
@@ -524,7 +524,7 @@ export async function getTopAffiliates(
   environment: ViewEnvironment,
   limit = 5,
 ): Promise<TopAffiliate[]> {
-  const rows = await tx.execute<{
+  const { rows } = await tx.execute<{
     participation_id: string
     affiliate_id: string
     name: string
@@ -626,7 +626,7 @@ export async function listConversions(
 
   const rows = await selectConversions(tx, params, sort, limit, offset)
   // Same joins and filters as the page query, so the count can never disagree with the rows.
-  const [count] = await tx.execute<{ total: number }>(sql`
+  const { rows: [count] } = await tx.execute<{ total: number }>(sql`
     select count(*)::int as total
     ${conversionsFrom(params)}
   `)
@@ -664,7 +664,7 @@ async function selectConversions(
       ? sql`t.gross_amount_minor ${direction}, t.occurred_at desc, c.id`
       : sql`t.occurred_at ${direction}, c.id`
 
-  const rows = await tx.execute<{
+  const { rows } = await tx.execute<{
     id: string
     affiliate_id: string
     affiliate_name: string
@@ -730,7 +730,7 @@ export async function getAffiliateSeries(
   // `sql.param` is required around the id list: interpolating an array directly
   // renders it as a row constructor — `($1, $2)` — which is not an array, and
   // for a single participation `($1)::uuid[]` fails outright with 22P02.
-  const rows = await tx.execute<{ day: string; clicks: number; commission_minor: string }>(sql`
+  const { rows } = await tx.execute<{ day: string; clicks: number; commission_minor: string }>(sql`
     with today as (select (now() at time zone 'UTC')::date as day),
     series as (
       select generate_series(

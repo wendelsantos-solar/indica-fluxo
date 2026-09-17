@@ -95,7 +95,7 @@ export async function portalParticipationStats(
 
   const effective = effectiveCommissionStatusSql("c")
   // `sql.param` keeps the id list one array parameter (see `getAffiliateSeries`).
-  const rows = await tx.execute<{
+  const { rows } = await tx.execute<{
     participation_id: string
     clicks: number
     customers: number

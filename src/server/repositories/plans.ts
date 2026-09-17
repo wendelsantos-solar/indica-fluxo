@@ -49,7 +49,7 @@ export function toSnapshot(row: WorkspaceSubscriptionRow | null): SubscriptionSn
  * treating that as zero usage would let every limit pass.
  */
 export async function countPlanUsage(tx: DbClient, workspaceId: string): Promise<Record<PlanLimit, number>> {
-  const rows = await tx.execute<{
+  const { rows } = await tx.execute<{
     live_programs: number
     test_programs: number
     affiliates: number

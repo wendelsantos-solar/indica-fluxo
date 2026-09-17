@@ -1,24 +1,37 @@
 import "server-only"
 
 import { sql } from "drizzle-orm"
-import { drizzle } from "drizzle-orm/postgres-js"
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
-import postgres from "postgres"
+import { drizzle } from "drizzle-orm/node-postgres"
+import type { NodePgDatabase } from "drizzle-orm/node-postgres"
+import { Pool } from "pg"
 
 import { env } from "@/lib/env/server"
 
 import * as schema from "./schema"
 
 declare global {
-  var __dbPool: ReturnType<typeof postgres> | undefined
+  var __dbPool: Pool | undefined
 }
 
+/**
+ * node-postgres, not postgres.js. Every query here is parameterised, and
+ * Drizzle's postgres.js driver sends each one as Parse+Describe, waits, then
+ * Bind+Execute: two network round trips per statement. node-postgres sends the
+ * whole extended-protocol exchange in one flight — one round trip. Against a
+ * remote database that halves every query (PERFORMANCE_AUDIT.md BE-2, §12).
+ *
+ * `idleTimeoutMillis`: a fresh connection to the pooler costs seconds (TLS,
+ * pooler auth), so a long-lived server keeps idle connections for five minutes
+ * instead of dropping them after a short pause (BE-3). `keepAlive` stops NAT
+ * and pooler middleboxes from silently killing them in between.
+ */
 function pool() {
   if (!globalThis.__dbPool) {
-    globalThis.__dbPool = postgres(env().DATABASE_URL, {
+    globalThis.__dbPool = new Pool({
+      connectionString: env().DATABASE_URL,
       max: process.env.NODE_ENV === "production" ? 10 : 4,
-      idle_timeout: 20,
-      prepare: false,
+      idleTimeoutMillis: 300_000,
+      keepAlive: true,
     })
   }
   return globalThis.__dbPool
@@ -33,9 +46,9 @@ function pool() {
  * `withUser()`, which downgrades to the `authenticated` role so that Postgres
  * policies — not application code — are the boundary.
  */
-let instance: PostgresJsDatabase<typeof schema> | null = null
+let instance: NodePgDatabase<typeof schema> | null = null
 
-function getDb(): PostgresJsDatabase<typeof schema> {
+function getDb(): NodePgDatabase<typeof schema> {
   if (!instance) instance = drizzle(pool(), { schema })
   return instance
 }
@@ -45,8 +58,8 @@ function getDb(): PostgresJsDatabase<typeof schema> {
  * the environment. `next build` collects page data by importing route modules;
  * without this, a production build would demand real database credentials.
  */
-export const db: PostgresJsDatabase<typeof schema> = new Proxy(
-  {} as PostgresJsDatabase<typeof schema>,
+export const db: NodePgDatabase<typeof schema> = new Proxy(
+  {} as NodePgDatabase<typeof schema>,
   {
     get(_target, property, receiver) {
       const target = getDb() as unknown as Record<string | symbol, unknown>

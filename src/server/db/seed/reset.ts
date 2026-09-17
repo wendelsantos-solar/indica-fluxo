@@ -31,7 +31,7 @@ export async function resetDemo(): Promise<{ workspaces: number; users: number }
 
 async function resetWorkspace(slug: string): Promise<number> {
   return db.transaction(async (tx) => {
-    const found = await tx.execute<{ id: string }>(
+    const { rows: found } = await tx.execute<{ id: string }>(
       sql`select id from workspaces where slug = ${slug}`,
     )
     const ids = found.map((row) => row.id)

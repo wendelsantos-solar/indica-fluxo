@@ -493,7 +493,7 @@ competing rules document and must not be removed.
 | `@radix-ui/react-select` | select | **0 imports** | native `<select>` in `program-form.tsx` | **remove** |
 | `@radix-ui/react-separator` | separator | **0 imports** | `border-t` utilities | **remove** |
 | `@radix-ui/react-switch` | switch | **0 imports** | none | **remove** |
-| `@types/pg` | types for `pg` | **0 imports** | driver is `postgres` (postgres.js), not `pg` | **remove** |
+| `@types/pg` | types for `pg` | used by `src/server/db/index.ts` | driver switched to `pg` (PERFORMANCE_AUDIT.md §12) | keep |
 | `@vitejs/plugin-react` | JSX in Vitest | **0 imports** | `vitest.config.ts` does not register it; no `.tsx` tests | **remove** — re-add with the first component test |
 | `vite-tsconfig-paths` | path aliases in Vitest | **0 imports** | `vitest.config.ts` uses built-in `resolve.tsconfigPaths` | **remove** |
 | `@radix-ui/react-{dialog,dropdown-menu,slot,tabs,tooltip}` | primitives | **used** | — | keep |

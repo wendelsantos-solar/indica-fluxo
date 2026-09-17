@@ -610,7 +610,7 @@ export async function isAffiliateCountedTowardPlan(
   workspaceId: string,
   affiliateId: string,
 ): Promise<boolean> {
-  const [row] = await tx.execute<{ counted: boolean }>(sql`
+  const { rows: [row] } = await tx.execute<{ counted: boolean }>(sql`
     select exists (
       select 1
         from ${affiliates} a

@@ -298,7 +298,7 @@ async function leftovers() {
   const ws = s.workspaceId || "00000000-0000-0000-0000-000000000000"
   const users = [s.owner.id, s.affiliateUser.id].filter(Boolean)
   const count = async (query: ReturnType<typeof sql>) => {
-    const rows = await db.execute<{ n: number }>(query)
+    const { rows } = await db.execute<{ n: number }>(query)
     return Number(rows[0]?.n ?? 0)
   }
   return {

@@ -175,7 +175,7 @@ Format: problem · evidence · impact · cause · solution · risk · status.
   awaited before the pipelined reads); RLS unchanged.
 
 **BE-2 — Every parameterised statement costs two round trips.**
-*Not changed — no safe lever in this stack.*
+*Fixed in §12 — driver switched to node-postgres.*
 - Evidence: 285 ms vs 140 ms for a raw postgres.js query (§2.2); `track-reject`
   p50 288 ms against `health` 146 ms under load (§6.3).
 - Cause: postgres.js sends an unnamed statement with parameters as
@@ -241,7 +241,7 @@ Format: problem · evidence · impact · cause · solution · risk · status.
 - Index: `customers (workspace_id, environment, email_hash) WHERE email_hash IS NOT NULL`.
 
 **BE-4 — Two Supabase Auth network calls per authenticated navigation (proxy + page).**
-*Not changed.*
+*Fixed in §12 — pages verify the JWT locally after the proxy's `getUser()`.*
 - `getClaims()` (local JWT verification) would remove one, but it does not see
   server-side session revocation. That is a security trade-off, not a
   performance fix. Measured cost: ~60 ms each from here; less in-region.
@@ -460,13 +460,14 @@ pnpm build && pnpm start -p 3100            # production server
 pnpm perf:vitals http://localhost:3100/pt-br 7
 pnpm perf:load http://localhost:3100 health 10 15
 pnpm perf:load http://localhost:3100 track-reject 20 15
-pnpm perf:dashboard acme 20                 # interleaved before/after, statements
-BENCH_PREPARE=1 pnpm perf:dashboard acme 20 # shows the pool's `prepare` has no effect via Drizzle (BE-2)
+pnpm perf:navigation acme 10                # one dashboard navigation through the app's own db module
 pnpm perf:explain                           # plans at synthetic volume, rolled back
 RLS_MIGRATION=0013_rls_set_membership pnpm perf:explain   # predicate equivalence on a DB without 0013
 ```
 
-`perf:explain` and `perf:dashboard` are for development databases only.
+`perf:explain` and `perf:navigation` are for development databases only.
+(`perf:dashboard` and its pre-audit copy were removed in §12: they injected a
+postgres.js pool, which the app no longer uses.)
 
 ---
 
@@ -489,3 +490,60 @@ SCALABILITY_RISK=MEDIUM
   31k commissions under RLS.
 - **Scalability MEDIUM**: connection lifecycle, per-instance rate limiting, and
   `referral_clicks` growth — each has a measured trigger in §9.
+
+---
+
+## 12. Second pass (2026-09-16): "the app feels slow on `next start`"
+
+Same laptop, same Supabase project (`aws-0-us-east-2` pooler). DB RTT had
+drifted to **~185 ms** (`select 1`), Supabase Auth to **~320 ms** per call.
+
+### 12.1 Measured anatomy
+
+| Shape | postgres.js (Drizzle) | node-postgres (Drizzle) |
+| --- | --- | --- |
+| `select 1` (no params) | 187 ms | 182 ms |
+| one parameterised query | **380 ms** (2 round trips) | **183 ms** (1) |
+| `withUser` + one query | 1 020 ms | 781 ms |
+
+node-postgres sends Parse/Bind/Describe/Execute/Sync in one flight; Drizzle's
+postgres.js path waits for Describe first (BE-2).
+
+### 12.2 Changes
+
+| Change | Where | Why |
+| --- | --- | --- |
+| Driver postgres.js → `pg` (node-postgres) | `src/server/db/index.ts`; `execute()` now returns `{ rows }` at every raw-SQL call site | BE-2: one round trip per statement |
+| Pool keeps idle connections 5 min, TCP keep-alive | same | BE-3: a fresh pooler connection costs seconds; 20 s idle dropped it between clicks |
+| `getSessionUser()` uses `getClaims()` (local ES256 verification) | `src/server/auth/session.ts` | BE-4: the proxy already ran the revocation-aware `getUser()` on the same request; the page no longer repeats it. `/api` routes (not proxied) use `getVerifiedSessionUser()` |
+| Client router keeps dynamic pages 30 s (`staleTimes.dynamic`) | `next.config.ts` | Back/forward to a page seen moments ago re-ran every query. Server Actions still clear it (`revalidatePath`, cookie writes, `router.refresh`) |
+| `perf:navigation` bench through the app's own db module | `scripts/perf/bench-navigation.ts` | Driver-agnostic before/after |
+
+Migrations (`src/server/db/migrate.ts`) and `perf:explain` still use postgres.js;
+they are not on a request path.
+
+### 12.3 Before / after (`pnpm perf:navigation acme 8`, data only)
+
+| Scenario | Before p50 | After p50 | Δ |
+| --- | --- | --- | --- |
+| layout (shell) | 3 566 ms | 2 428 ms | −32% |
+| overview page | 6 806 ms | 4 359 ms | −36% |
+| layout + overview (one navigation) | **6 886 ms** | **4 244 ms** | **−38%** |
+
+Plus one Supabase Auth call (~320 ms here) removed from every navigation.
+
+### 12.4 What remains, honestly
+
+- **Geography is still most of the wait.** ~25 statements × ~185 ms. Run the
+  app in the database's region (or move the database next to the users) and the
+  same navigation is a few hundred milliseconds; no code change gets close.
+- `pg` does not pipeline: `Promise.all` inside one transaction now queues on
+  the connection (postgres.js pipelined it). The net is still −38%, but pg 8
+  prints a one-time deprecation warning for it and pg 9 will refuse it; those
+  call sites (analytics, integration health) must be serialised explicitly
+  before upgrading to pg 9.
+- **Security, found in passing:** `DATABASE_URL` has no `sslmode`, and neither
+  driver enables TLS by default, so the connection to the pooler is very
+  likely unencrypted. Fix: download the Supabase CA certificate and connect
+  with `sslmode=verify-full` (`ssl: { ca }`). Not changed here: it needs the
+  certificate, and TLS adds handshake cost that should be measured with it.

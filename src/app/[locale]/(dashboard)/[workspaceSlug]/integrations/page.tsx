@@ -45,6 +45,8 @@ export default async function IntegrationsPage({
   ])
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+  // Resolved with `URL`, so a trailing slash in the env value never yields `//api`.
+  const absolute = (path: string) => new URL(path, appUrl).toString()
   const now = new Date()
   const relative = (value: Date | null) => (value ? formatRelativeTime(locale, value, now) : null)
 
@@ -81,7 +83,7 @@ export default async function IntegrationsPage({
             environments={{ test: evidence("test"), live: evidence("live") }}
             // Only admins see the secret forms, and only admins load keys.
             liveModeAvailable={keys?.liveModeAvailable ?? true}
-            webhookUrl={setup ? `${appUrl}${stripeWebhookPath(setup.integrationId)}` : null}
+            webhookUrl={setup ? absolute(stripeWebhookPath(setup.integrationId)) : null}
             lastEvent={
               lastEventWhen && health.stripe.lastEventType
                 ? { when: lastEventWhen, type: health.stripe.lastEventType }
@@ -98,7 +100,7 @@ export default async function IntegrationsPage({
               workspaceSlug={workspaceSlug}
               keys={keys.keys}
               liveModeAvailable={keys.liveModeAvailable}
-              trackerUrl={`${appUrl}${TRACKER_PATH}`}
+              trackerUrl={absolute(TRACKER_PATH)}
               lastClickWhen={lastClickWhen}
             />
           ) : (

@@ -47,7 +47,7 @@ export async function getIntegrationHealth(userId: string, workspaceId: string):
     // Authorise first; the reads below go out together (pipelined on this connection).
     await requireMembership(tx, workspaceId, userId)
 
-    const [[integration], [clicks], events, environments] = await Promise.all([
+    const [[integration], [clicks], { rows: events }, environments] = await Promise.all([
       tx
         .select({
           status: integrations.status,
@@ -102,7 +102,7 @@ async function environmentEvidence(
   workspaceId: string,
 ): Promise<Record<"test" | "live", EnvironmentEvidence>> {
   const read = async (environment: "test" | "live"): Promise<EnvironmentEvidence> => {
-    const rows = await tx.execute<LatestWebhookEventRow>(
+    const { rows } = await tx.execute<LatestWebhookEventRow>(
       sql`select received_at, event_type, status
             from public.latest_webhook_event(${workspaceId}, ${environment}::public.environment)`,
     )
