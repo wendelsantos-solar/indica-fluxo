@@ -1,9 +1,12 @@
 import "server-only"
 
-import { and, desc, eq, inArray, isNotNull, isNull, ne, notExists, or, sql } from "drizzle-orm"
+import { and, eq, inArray, isNotNull, isNull, ne, notExists, or, sql } from "drizzle-orm"
 
 import { hashEmail, hashPayload } from "@/lib/crypto/hash"
 import { logger } from "@/lib/logger"
+import { ConnectorFetchError } from "@/lib/billing/connector"
+import { attributionCustomerKey, guestCustomerId } from "@/lib/billing/identity-key"
+import { EXPECTED_REASONS, type ReasonCode } from "@/lib/billing/reasons"
 import type {
   BillingEnvironment,
   BillingProvider,
@@ -24,17 +27,39 @@ import {
   transactionReferences,
   transactions,
 } from "@/server/db/schema"
-import { calculateCommission, isFullyRefunded, planReversal } from "@/server/domain/commission"
+import { calculateCommission, isFullyRefunded, planReversal, shouldRestoreChargeback } from "@/server/domain/commission"
 import { toProgramRules } from "@/server/repositories/programs"
 import { toParticipationRules } from "@/server/repositories/affiliates"
 import { claimWebhookEvent, markWebhookEvent } from "@/server/repositories/webhook-events"
+
+import {
+  bindAttributionToken,
+  commissionsForBoundCustomer,
+  type BindOutcome,
+} from "./attribution-bridge"
+import { customerByExternalId, customerByIdentity, linkBillingIdentity } from "./billing-identity"
+import { commissionForTransaction } from "./commission-writer"
 
 import { canUseFeature, getWorkspaceEntitlements } from "./entitlements"
 
 export type EventOutcome =
   | { status: "duplicate" }
-  | { status: "ignored"; reason: string }
-  | { status: "processed"; commissionId?: string; detail: string }
+  | { status: "ignored"; reason: string; code?: ReasonCode }
+  | { status: "processed"; commissionId?: string; detail: string; code?: ReasonCode }
+
+/** Where an event came from, beyond what the provider said. */
+export interface EventContext {
+  /** The billing connection that delivered it; `null` for simulations and legacy rows. */
+  integrationId?: string | null
+}
+
+
+/**
+ * The `ignored` reason of a payment that carried no Stripe customer. Counted by
+ * `webhook_payments_without_customer` (migration 0015), which matches this exact
+ * string — change both together.
+ */
+export const PAYMENT_WITHOUT_CUSTOMER = "payment has no customer"
 
 /**
  * A refund or dispute whose payment is not in the ledger yet. Stripe does not
@@ -90,6 +115,30 @@ export async function workspaceForProviderAccount(
   return row?.workspaceId ?? null
 }
 
+/**
+ * `workspaceForProviderAccount`, plus which connection it is — the legacy
+ * platform endpoint uses it so its events are attributed to a connection too.
+ */
+export async function connectionForProviderAccount(
+  provider: BillingProviderId,
+  providerAccountId: string | null,
+): Promise<{ workspaceId: string; integrationId: string | null } | null> {
+  const workspaceId = await workspaceForProviderAccount(provider, providerAccountId)
+  if (!workspaceId) return null
+  const [row] = await db
+    .select({ id: integrations.id })
+    .from(integrations)
+    .where(
+      and(
+        eq(integrations.workspaceId, workspaceId),
+        eq(integrations.provider, provider),
+        providerAccountId ? eq(integrations.providerAccountId, providerAccountId) : isNull(integrations.encryptedCredentials),
+      ),
+    )
+    .limit(1)
+  return { workspaceId, integrationId: row?.id ?? null }
+}
+
 export type IngestResult =
   | { status: "duplicate" }
   | { status: "ignored"; reason?: "live_mode_inactive" }
@@ -101,30 +150,45 @@ const liveSkipLoggedAt = new Map<string, number>()
 const LIVE_SKIP_LOG_INTERVAL_MS = 60 * 60 * 1000
 
 /**
- * Everything after signature verification, shared by the legacy platform
- * endpoint and the per-workspace endpoints (ARCHITECTURE.md §3.3):
- *   0. a live event for a workspace without live mode is acknowledged and NOT
- *      claimed — no `webhook_events` row — so it can be re-sent from the
- *      Stripe dashboard once the plan is active again (docs/PLANS.md §2)
+ * Everything after signature verification, shared by every billing endpoint —
+ * Stripe's two and the generic connector route (ARCHITECTURE.md §3.3):
+ *   0. a delivery for the other environment than its connection is recorded as
+ *      `TEST_LIVE_MISMATCH` and processes nothing
+ *   0b. a live event for a workspace without live mode is acknowledged and NOT
+ *      claimed — no `webhook_events` row — so it can be re-sent once the plan
+ *      is active again (docs/PLANS.md §2)
  *   1. claim (scope, provider, event id): a redelivery of a processed event is
- *      a no-op; a redelivery of a FAILED one is claimed again and retried
- *   2. normalise, then hand a provider-free event to the domain
- *   3. record how the claim ended
+ *      a no-op; a redelivery of a FAILED one is claimed again and retried.
+ *      Stripe event ids are globally unique (documented) and are claimed as
+ *      they are; every other provider's id is scoped to its connection
+ *      (`<integration>:<id>`), because none documents global uniqueness.
+ *   2. normalise — to zero, one or several provider-free facts — and hand each
+ *      to the domain
+ *   3. record how the claim ended, with a reason code
  *
- * `workspaceId` is decided by the caller — from the endpoint for a
- * per-workspace integration, from `event.account` on the legacy route.
+ * `workspaceId` is decided by the caller — from the endpoint's connection, or
+ * from `event.account` on the legacy route.
  */
 export async function ingestVerifiedWebhook(params: {
-  provider: BillingProvider
+  provider: Pick<BillingProvider, "id"> & Partial<Pick<BillingProvider, "normalizeEvent">>
   verified: VerifiedWebhook
   rawBody: string
   workspaceId: string | null
+  /** The connection the delivery arrived on. */
+  integrationId?: string | null
+  /** The connection's own environment (API-key connectors); Stripe connections span both. */
+  connectionEnvironment?: BillingEnvironment | null
+  /** Connector normalisation (async, plural). Defaults to the Stripe adapter's `normalizeEvent`. */
+  normalize?: () => Promise<NormalizedBillingEvent[]>
 }): Promise<IngestResult> {
   const { provider, verified, rawBody, workspaceId } = params
-  const environment = verified.environment
-  const log = logger.child({ provider: provider.id, eventId: verified.providerEventId })
+  const integrationId = params.integrationId ?? null
+  const connectionEnvironment = params.connectionEnvironment ?? null
+  const environment = verified.environment ?? connectionEnvironment
+  const log = logger.child({ provider: provider.id, eventId: verified.providerEventId, integrationId })
+  const mismatched = Boolean(verified.environment && connectionEnvironment && verified.environment !== connectionEnvironment)
 
-  if (workspaceId && environment === "live" && !(await liveModeActive(workspaceId))) {
+  if (!mismatched && workspaceId && environment === "live" && !(await liveModeActive(workspaceId))) {
     const last = liveSkipLoggedAt.get(workspaceId) ?? 0
     if (Date.now() - last > LIVE_SKIP_LOG_INTERVAL_MS) {
       liveSkipLoggedAt.set(workspaceId, Date.now())
@@ -136,11 +200,15 @@ export async function ingestVerifiedWebhook(params: {
   const claim = await claimWebhookEvent(db, {
     scope: "customer_billing",
     provider: provider.id,
-    providerEventId: verified.providerEventId,
+    providerEventId:
+      provider.id === "stripe" || !integrationId
+        ? verified.providerEventId
+        : `${integrationId}:${verified.providerEventId}`.slice(0, 500),
     eventType: verified.rawType,
     payloadHash: hashPayload(rawBody),
     workspaceId,
     environment,
+    integrationId,
   })
 
   // Already received, processed or ignored by an earlier delivery — acknowledge and stop.
@@ -150,37 +218,88 @@ export async function ingestVerifiedWebhook(params: {
   }
 
   if (!workspaceId) {
-    await markWebhookEvent(db, claim.id, "ignored", "no workspace for connected account")
+    await markWebhookEvent(db, claim.id, "ignored", "no workspace for connected account", "NO_CONNECTION")
     log.warn("webhook for an unconnected account")
     return { status: "ignored" }
   }
 
-  const normalized = provider.normalizeEvent(verified)
-  if (!normalized) {
-    await markWebhookEvent(db, claim.id, "ignored", `unhandled type ${verified.rawType}`)
+  if (mismatched) {
+    // A test event on a live connection (or the reverse): never processed as
+    // the other ledger. Acknowledged, so the provider stops retrying it.
+    await markWebhookEvent(db, claim.id, "ignored", "event environment does not match its connection", "TEST_LIVE_MISMATCH")
+    log.warn("webhook environment does not match its connection", { workspaceId })
+    return { status: "ignored" }
+  }
+
+  let normalized: NormalizedBillingEvent[]
+  try {
+    normalized = params.normalize
+      ? await params.normalize()
+      : [provider.normalizeEvent?.(verified) ?? null].filter((event): event is NormalizedBillingEvent => event !== null)
+  } catch (error) {
+    await markWebhookEvent(db, claim.id, "failed", "event could not be normalised", "PROCESSING_ERROR")
+    log.error(error instanceof ConnectorFetchError ? "provider fetch failed during normalisation" : "webhook normalisation failed", {
+      workspaceId,
+      error,
+    })
+    return { status: "failed" }
+  }
+
+  if (normalized.length === 0) {
+    await markWebhookEvent(db, claim.id, "ignored", `unhandled type ${verified.rawType}`, "UNSUPPORTED_EVENT")
     return { status: "ignored" }
   }
 
   try {
-    const outcome = await handleBillingEvent(workspaceId, normalized)
-    await markWebhookEvent(
-      db,
-      claim.id,
-      outcome.status === "ignored" ? "ignored" : "processed",
-      outcome.status === "ignored" ? outcome.reason : undefined,
-    )
+    const outcomes: EventOutcome[] = []
+    for (const event of normalized) {
+      if (connectionEnvironment && event.environment !== connectionEnvironment) {
+        outcomes.push({ status: "ignored", reason: "event environment does not match its connection", code: "TEST_LIVE_MISMATCH" })
+        continue
+      }
+      outcomes.push(await handleBillingEvent(workspaceId, event, new Date(), db, { integrationId }))
+    }
+    const summary = summarizeOutcomes(outcomes)
+    await markWebhookEvent(db, claim.id, summary.status, summary.message, summary.code)
 
-    log.info("webhook processed", { workspaceId, outcome: outcome.status })
+    log.info("webhook processed", {
+      workspaceId,
+      outcome: summary.status,
+      reason: summary.code ?? null,
+      normalizedEventType: normalized.map((event) => event.type).join(","),
+    })
     return { status: "processed" }
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown error"
-    await markWebhookEvent(db, claim.id, "failed", message)
+    const code: ReasonCode = error instanceof PaymentNotRecordedYetError ? "PAYMENT_NOT_RECORDED_YET" : "PROCESSING_ERROR"
+    await markWebhookEvent(db, claim.id, "failed", message, code)
     if (error instanceof PaymentNotRecordedYetError) {
       log.warn("webhook deferred until its payment is recorded", { workspaceId })
     } else {
       log.error("webhook processing failed", { workspaceId, error })
     }
     return { status: "failed" }
+  }
+}
+
+/**
+ * How a claim ends when one delivery yielded several facts: processed if any
+ * fact was, and the reason that matters most — a fault before an expected
+ * outcome (an organic customer is not news; a dropped payment is).
+ */
+export function summarizeOutcomes(outcomes: EventOutcome[]): {
+  status: "processed" | "ignored"
+  message: string | undefined
+  code: ReasonCode | undefined
+} {
+  const codes = outcomes.flatMap((outcome) => ("code" in outcome && outcome.code ? [outcome.code] : []))
+  const code = codes.find((candidate) => !EXPECTED_REASONS.has(candidate)) ?? codes[0]
+  const processed = outcomes.some((outcome) => outcome.status === "processed")
+  const ignored = outcomes.find((outcome): outcome is Extract<EventOutcome, { status: "ignored" }> => outcome.status === "ignored")
+  return {
+    status: processed ? "processed" : "ignored",
+    message: processed ? undefined : ignored?.reason,
+    code,
   }
 }
 
@@ -205,19 +324,27 @@ export async function handleBillingEvent(
   event: NormalizedBillingEvent,
   now = new Date(),
   client: Pick<Transaction, "transaction"> = db,
+  context: EventContext = {},
 ): Promise<EventOutcome> {
   return client.transaction(async (tx) => {
     switch (event.type) {
       case "subscription.updated":
-        return upsertSubscription(tx, workspaceId, event)
+        return upsertSubscription(tx, workspaceId, event, context)
       case "subscription.cancelled":
         return cancelSubscription(tx, workspaceId, event)
       case "payment.succeeded":
-        return recordPayment(tx, workspaceId, event, now)
+        return recordPayment(tx, workspaceId, event, now, context)
       case "payment.referenced":
         return recordReferences(tx, workspaceId, event, now)
       case "payment.refunded":
         return recordRefund(tx, workspaceId, event, now)
+      case "payment.disputeWon":
+        return restoreWonDispute(tx, workspaceId, event, now)
+      case "attribution.bind":
+        return bindCheckoutReference(tx, workspaceId, event, now, context)
+      case "payment.failed":
+        // No money moved. Kept on the event row so diagnostics can show it.
+        return { status: "ignored", reason: `payment failed${event.reason ? `: ${event.reason}` : ""}`, code: "PAYMENT_FAILED" }
     }
   })
 }
@@ -228,29 +355,68 @@ interface ResolvedCustomer {
   externalId: string | null
 }
 
+interface CustomerSignals {
+  environment: BillingEnvironment
+  provider: BillingProviderId
+  providerCustomerId: string | null
+  email: string | null
+  /** The SaaS's own customer id, from server-set checkout metadata. */
+  externalCustomerId?: string | null
+  integrationId?: string | null
+}
+
 /**
- * Finds the customer a provider event belongs to, in the event's environment.
+ * Finds the customer a provider event belongs to, in the event's environment —
+ * one deterministic order (UNIVERSAL_ATTRIBUTION_ARCHITECTURE.md §3):
  *
- * 1. By provider customer id — what identify stores when the founder sends it.
- * 2. Otherwise by e-mail hash, when the payload has an e-mail: a customer that
- *    identify recorded with that e-mail and no provider id (or this same one)
- *    in this workspace. Exactly one must match; an ambiguous e-mail matches
- *    nothing. The provider id is then back-filled — onto the customer only if
- *    its column is still empty, and onto its bound attributions — so later
- *    payments without an e-mail match by id. A different provider id is never
- *    overwritten. (DOCS_TECHNICAL_FINDINGS.md T3.)
- * 3. Otherwise a new customer with no attribution.
+ * 1. The provider identity (`billing_identities`), any provider.
+ * 2. The legacy provider id on `customers` (rows from before identities) — and
+ *    the identity is written, so step 1 finds it next time.
+ * 3. The SaaS's own id carried by the checkout (`externalCustomerId`): the
+ *    provider-switch path — a Mercado Pago payer reaches the customer a Stripe
+ *    subscription already had.
+ * 4. The e-mail hash rule, unchanged: a customer that identify recorded with
+ *    that e-mail and no provider id (or this same one) in this workspace.
+ *    Exactly one must match; an ambiguous e-mail matches nothing. The provider
+ *    id is then back-filled — onto the customer only if its column is still
+ *    empty, and onto its bound attributions — so later payments without an
+ *    e-mail match by id. A different provider id is never overwritten.
+ *    (DOCS_TECHNICAL_FINDINGS.md T3.)
+ * 5. Otherwise a new customer with no attribution.
+ *
+ * A reference token on the event is bound BEFORE this runs (the bridge), and
+ * the bridge itself links the identity when the token's visitor was identified.
+ * No step merges customers by e-mail or moves an identity silently.
  */
 async function resolveCustomer(
   tx: Transaction,
   workspaceId: string,
-  environment: BillingEnvironment,
-  provider: BillingProviderId,
-  providerCustomerId: string | null,
-  email: string | null,
+  signals: CustomerSignals,
 ): Promise<ResolvedCustomer | null> {
+  const { environment, provider, providerCustomerId, email } = signals
   if (!providerCustomerId) return null
+  const key = { workspaceId, environment, provider, providerCustomerId }
+  const link = (customerId: string, repoint = false) =>
+    linkBillingIdentity(tx, key, customerId, { integrationId: signals.integrationId, repoint })
+  const externalCustomerId = signals.externalCustomerId?.trim() || null
 
+  // 1. A known identity.
+  const known = await customerByIdentity(tx, key)
+  if (known?.externalId || (known && !externalCustomerId)) return known
+
+  // 3 (early, when the identity is known but anonymous): the checkout named the
+  // SaaS's customer. A placeholder row the webhook created is superseded.
+  if (known && externalCustomerId) {
+    const named = await customerByExternalId(tx, workspaceId, environment, externalCustomerId)
+    if (named) {
+      await link(named.id, true)
+      return named
+    }
+    const claimed = await claimExternalId(tx, known.id, externalCustomerId)
+    return claimed ? { id: known.id, externalId: externalCustomerId } : known
+  }
+
+  // 2. The legacy provider id on `customers`.
   const [byProvider] = await tx
     .select({ id: customers.id, externalId: customers.externalId })
     .from(customers)
@@ -264,8 +430,31 @@ async function resolveCustomer(
     )
     .limit(1)
 
-  if (byProvider?.externalId) return byProvider
+  if (byProvider?.externalId) {
+    await link(byProvider.id)
+    return byProvider
+  }
 
+  // 3. The SaaS's own id.
+  if (externalCustomerId) {
+    const named = await customerByExternalId(tx, workspaceId, environment, externalCustomerId)
+    if (named) {
+      const owner = await link(named.id, true)
+      return owner === named.id ? named : ((await customerByIdentity(tx, key)) ?? named)
+    }
+    if (byProvider) {
+      const claimed = await claimExternalId(tx, byProvider.id, externalCustomerId)
+      await link(byProvider.id)
+      return { id: byProvider.id, externalId: claimed ? externalCustomerId : null }
+    }
+    const created = await createCustomer(tx, workspaceId, signals, email ? hashEmail(email) : null, externalCustomerId)
+    if (created) {
+      await link(created.id)
+      return created
+    }
+  }
+
+  // 4. The e-mail hash rule.
   const emailHash = email ? hashEmail(email) : null
   const identified = emailHash
     ? await identifiedCustomerByEmail(tx, workspaceId, environment, provider, emailHash, providerCustomerId)
@@ -281,7 +470,7 @@ async function resolveCustomer(
 
     await tx
       .update(attributions)
-      .set({ providerCustomerId, updatedAt: new Date() })
+      .set({ providerCustomerId: attributionCustomerKey(provider, providerCustomerId), updatedAt: new Date() })
       .where(
         and(
           eq(attributions.customerExternalId, identified.externalId),
@@ -299,19 +488,43 @@ async function resolveCustomer(
     logger.info("customer matched by e-mail hash", { workspaceId, provider })
     // A row the webhook created earlier (e.g. from a subscription event with no
     // e-mail) keeps owning the ledger rows; the attribution comes from identify.
-    return { id: byProvider?.id ?? identified.id, externalId: identified.externalId }
+    const owner = byProvider?.id ?? identified.id
+    await link(owner)
+    return { id: owner, externalId: identified.externalId }
   }
 
-  if (byProvider) return byProvider
+  if (byProvider) {
+    await link(byProvider.id)
+    return byProvider
+  }
 
-  // Two events of a new customer processed at once (a PaymentIntent and its
-  // invoice) both get here: the loser waits for the winner's row and reads it.
+  // 5. A new customer. Two events of a new customer processed at once (a
+  // PaymentIntent and its invoice) both get here: the loser reads the winner's row.
+  const created = await createCustomer(tx, workspaceId, signals, emailHash, null)
+  if (!created) return null
+  await link(created.id)
+  return created
+}
+
+/**
+ * Inserts the customer row for a provider id (and, when known, the SaaS's own
+ * id). On a race it returns the row the winner wrote.
+ */
+async function createCustomer(
+  tx: Transaction,
+  workspaceId: string,
+  signals: CustomerSignals,
+  emailHash: string | null,
+  externalId: string | null,
+): Promise<ResolvedCustomer | null> {
+  const { environment, provider, providerCustomerId } = signals
+  if (!providerCustomerId) return null
   const [created] = await tx
     .insert(customers)
-    .values({ workspaceId, environment, provider, providerCustomerId, emailHash })
+    .values({ workspaceId, environment, provider, providerCustomerId, emailHash, externalId })
     .onConflictDoNothing()
-    .returning({ id: customers.id })
-  if (created) return { id: created.id, externalId: null }
+    .returning({ id: customers.id, externalId: customers.externalId })
+  if (created) return created
 
   const [winner] = await tx
     .select({ id: customers.id, externalId: customers.externalId })
@@ -320,12 +533,31 @@ async function resolveCustomer(
       and(
         eq(customers.workspaceId, workspaceId),
         eq(customers.environment, environment),
-        eq(customers.provider, provider),
-        eq(customers.providerCustomerId, providerCustomerId),
+        or(
+          and(eq(customers.provider, provider), eq(customers.providerCustomerId, providerCustomerId)),
+          externalId ? eq(customers.externalId, externalId) : sql`false`,
+        ),
       ),
     )
     .limit(1)
   return winner ?? null
+}
+
+/**
+ * Writes the SaaS's id onto a customer that has none, when no other row of the
+ * same workspace and environment holds it. A concurrent writer loses on the
+ * unique key, which fails the event and lets the provider's retry see the winner.
+ */
+async function claimExternalId(tx: Transaction, customerId: string, externalId: string): Promise<boolean> {
+  const [target] = await tx
+    .select({ workspaceId: customers.workspaceId, environment: customers.environment, externalId: customers.externalId })
+    .from(customers)
+    .where(eq(customers.id, customerId))
+    .limit(1)
+  if (!target || target.externalId) return false
+  if (await customerByExternalId(tx, target.workspaceId, target.environment, externalId)) return false
+  await tx.update(customers).set({ externalId, updatedAt: new Date() }).where(eq(customers.id, customerId))
+  return true
 }
 
 async function identifiedCustomerByEmail(
@@ -545,19 +777,23 @@ async function upsertSubscription(
   tx: Transaction,
   workspaceId: string,
   event: Extract<NormalizedBillingEvent, { type: "subscription.updated" }>,
+  context: EventContext,
 ): Promise<EventOutcome> {
   const sub = event.subscription
-  const customer = await resolveCustomer(
-    tx,
-    workspaceId,
-    event.environment,
-    event.provider,
-    sub.providerCustomerId,
-    event.customerEmail,
-  )
+  // Strategy D: the founder put the reference on the subscription itself.
+  await bindTokenIfPresent(tx, workspaceId, event.environment, event.provider, event.attributionToken, sub.providerCustomerId, context)
+
+  const customer = await resolveCustomer(tx, workspaceId, {
+    environment: event.environment,
+    provider: event.provider,
+    providerCustomerId: sub.providerCustomerId || null,
+    email: event.customerEmail,
+    externalCustomerId: event.externalCustomerId,
+    integrationId: context.integrationId,
+  })
   const customerId = customer?.id
 
-  if (!customerId) return { status: "ignored", reason: "subscription has no customer" }
+  if (!customerId) return { status: "ignored", reason: "subscription has no customer", code: "CUSTOMER_NOT_LINKED" }
 
   await tx
     .insert(subscriptions)
@@ -616,42 +852,125 @@ async function cancelSubscription(
  * visitor id identified later, say), so renewals keep paying the affiliate
  * who converted the customer. Otherwise the most recent attribution.
  */
-async function findAttribution(
+
+/**
+ * Binds a reference a money event carried in its own payload, when it carried
+ * one. Never fails the event: a reference that does not resolve leaves the
+ * payment exactly where it would have been without this rework — recorded,
+ * possibly unattributed — and the outcome is logged for diagnostics rather than
+ * thrown (INTEGRATION_ARCHITECTURE_V2.md §9).
+ */
+async function bindTokenIfPresent(
   tx: Transaction,
   workspaceId: string,
   environment: BillingEnvironment,
-  customerId: string,
+  provider: BillingProviderId,
+  token: string | null | undefined,
   providerCustomerId: string | null,
-  customerExternalId: string | null,
-) {
-  if (!providerCustomerId && !customerExternalId) return null
+  context: EventContext = {},
+): Promise<BindOutcome | null> {
+  if (!token || !providerCustomerId) return null
+  const outcome = await bindAttributionToken(tx, {
+    workspaceId,
+    environment,
+    provider,
+    token,
+    providerCustomerId,
+    integrationId: context.integrationId,
+  })
+  if (outcome.status !== "bound" && outcome.status !== "already_bound") {
+    logger.info("attribution reference on a payment did not resolve", { workspaceId, status: outcome.status })
+  }
+  return outcome
+}
 
-  const predicates = []
-  if (providerCustomerId) predicates.push(eq(attributions.providerCustomerId, providerCustomerId))
-  if (customerExternalId) predicates.push(eq(attributions.customerExternalId, customerExternalId))
-
-  const [row] = await tx
-    .select({
-      id: attributions.id,
-      programId: attributions.programId,
-      programAffiliateId: attributions.programAffiliateId,
-      attributedAt: attributions.attributedAt,
-      expiresAt: attributions.expiresAt,
+/**
+ * A checkout said who its customer is and carried our reference — Stripe's
+ * `checkout.session.completed`, which covers hosted Checkout and Payment Links
+ * (INTEGRATION_ARCHITECTURE_V2.md §4).
+ *
+ * This is the event that makes `POST /api/identify` optional: it binds the
+ * visitor's attribution to the Stripe customer without the founder writing a
+ * line of backend code. It moves no money and creates no transaction, so it
+ * cannot duplicate a payment — the invoice or PaymentIntent event still records
+ * it, exactly as before.
+ *
+ * Because Stripe orders nothing, the payment may already be in the ledger with
+ * no commission. `commissionsForBoundCustomer` closes that case.
+ */
+async function bindCheckoutReference(
+  tx: Transaction,
+  workspaceId: string,
+  event: Extract<NormalizedBillingEvent, { type: "attribution.bind" }>,
+  now: Date,
+  context: EventContext,
+): Promise<EventOutcome> {
+  let bound: BindOutcome | null = null
+  if (event.attributionToken) {
+    bound = await bindAttributionToken(tx, {
+      workspaceId,
+      environment: event.environment,
+      provider: event.provider,
+      token: event.attributionToken,
+      providerCustomerId: event.providerCustomerId,
+      integrationId: context.integrationId,
     })
-    .from(attributions)
-    .innerJoin(programs, eq(programs.id, attributions.programId))
-    .where(and(eq(programs.workspaceId, workspaceId), eq(programs.environment, environment), or(...predicates)))
-    .orderBy(
-      desc(sql`exists (
-        select 1 from ${commissions}
-         where ${commissions.programAffiliateId} = ${attributions.programAffiliateId}
-           and ${commissions.customerId} = ${customerId}
-           and ${commissions.reversalOfCommissionId} is null)`),
-      desc(attributions.attributedAt),
-    )
-    .limit(1)
+  }
 
-  return row ?? null
+  // The checkout named the SaaS's own customer (server-set metadata): the
+  // provider customer is that customer, whatever the token said.
+  const customer = event.externalCustomerId
+    ? await resolveCustomer(tx, workspaceId, {
+        environment: event.environment,
+        provider: event.provider,
+        providerCustomerId: event.providerCustomerId,
+        email: null,
+        externalCustomerId: event.externalCustomerId,
+        integrationId: context.integrationId,
+      })
+    : null
+
+  const resolved =
+    customer ??
+    (bound && (bound.status === "bound" || bound.status === "already_bound")
+      ? { id: bound.customerId, externalId: null }
+      : null)
+
+  if (!resolved) {
+    const status = bound?.status ?? "token_unknown"
+    return { status: "ignored", reason: `attribution reference ${status}`, code: bindReason(status) }
+  }
+
+  const created = await commissionsForBoundCustomer(
+    tx,
+    workspaceId,
+    {
+      customerId: resolved.id,
+      environment: event.environment,
+      provider: event.provider,
+      providerCustomerId: event.providerCustomerId,
+      customerExternalId: resolved.externalId,
+    },
+    now,
+  )
+
+  return {
+    status: "processed",
+    detail: `attribution ${bound?.status ?? "customer linked"}${created > 0 ? `, ${created} commission(s) backfilled` : ""}`,
+  }
+}
+
+function bindReason(status: BindOutcome["status"]): ReasonCode | undefined {
+  switch (status) {
+    case "token_unknown":
+      return "TOKEN_UNKNOWN"
+    case "token_expired":
+      return "TOKEN_EXPIRED"
+    case "token_conflict":
+      return "TOKEN_CONFLICT"
+    default:
+      return undefined
+  }
 }
 
 async function recordPayment(
@@ -659,6 +978,7 @@ async function recordPayment(
   workspaceId: string,
   event: Extract<NormalizedBillingEvent, { type: "payment.succeeded" }>,
   now: Date,
+  context: EventContext = {},
 ): Promise<EventOutcome> {
   const ids = [event.providerTransactionId, ...event.providerReferences]
   await lockPaymentIds(tx, workspaceId, event.provider, ids)
@@ -687,14 +1007,28 @@ async function recordPayment(
     }
   }
 
-  const customer = await resolveCustomer(
-    tx,
-    workspaceId,
-    event.environment,
-    event.provider,
-    event.providerCustomerId,
-    event.customerEmail,
-  )
+  // Guest checkout (Flow B): the provider named no customer, but the payment
+  // carried a reference or the SaaS's id. The payment itself becomes the
+  // identity, so the reference can still be honoured. Without either, the
+  // payment stays out of the ledger exactly as before.
+  const providerCustomerId =
+    event.providerCustomerId ??
+    (event.attributionToken || event.externalCustomerId ? guestCustomerId(event.providerTransactionId) : null)
+
+  // Strategies C and D: a custom checkout carried the reference in metadata on
+  // the PaymentIntent, the subscription or the invoice. Binding before the
+  // customer is resolved means `findAttribution` below sees the attribution
+  // this very payment created the link for — no second event, no backfill.
+  await bindTokenIfPresent(tx, workspaceId, event.environment, event.provider, event.attributionToken, providerCustomerId, context)
+
+  const customer = await resolveCustomer(tx, workspaceId, {
+    environment: event.environment,
+    provider: event.provider,
+    providerCustomerId,
+    email: event.customerEmail,
+    externalCustomerId: event.externalCustomerId,
+    integrationId: context.integrationId,
+  })
 
   if (!customer) {
     // Nothing to attach it to, so it is not in the ledger. Its ids are kept so a
@@ -710,7 +1044,7 @@ async function recordPayment(
         })),
       )
       .onConflictDoNothing()
-    return { status: "ignored", reason: "payment has no customer" }
+    return { status: "ignored", reason: PAYMENT_WITHOUT_CUSTOMER, code: "CUSTOMER_NOT_LINKED" }
   }
   const customerId = customer.id
 
@@ -726,6 +1060,7 @@ async function recordPayment(
       type: "payment",
       status: "succeeded",
       environment: event.environment,
+      integrationId: context.integrationId ?? null,
       currency: event.currency,
       grossAmountMinor: event.amountMinor,
       occurredAt: event.occurredAt,
@@ -741,117 +1076,26 @@ async function recordPayment(
     return { status: "processed", detail: "transaction already recorded" }
   }
 
-  const attribution = await findAttribution(
+  const commission = await commissionForTransaction(
     tx,
     workspaceId,
-    event.environment,
-    customerId,
-    event.providerCustomerId,
-    customer.externalId,
-  )
-  if (!attribution) {
-    return { status: "processed", detail: "payment recorded without attribution" }
-  }
-
-  const [program] = await tx.select().from(programs).where(eq(programs.id, attribution.programId)).limit(1)
-
-  const [participation] = await tx
-    .select({
-      id: programAffiliates.id,
-      programId: programAffiliates.programId,
-      affiliateId: programAffiliates.affiliateId,
-      status: programAffiliates.status,
-      customCommissionType: programAffiliates.customCommissionType,
-      customCommissionValue: programAffiliates.customCommissionValue,
-    })
-    .from(programAffiliates)
-    .where(eq(programAffiliates.id, attribution.programAffiliateId))
-    .limit(1)
-
-  if (!program || !participation) {
-    return { status: "processed", detail: "attribution points at a missing program" }
-  }
-
-  // The engine needs to know whether this is the first commissioned payment,
-  // which is what drives the recurrence window. The anchor is the *payment*
-  // date of that first commission, not the moment its row happened to be
-  // written: a backfill or a delayed webhook would otherwise restart a
-  // twelve-month clock that really started months ago.
-  const [firstCommission] = await tx
-    .select({ occurredAt: transactions.occurredAt })
-    .from(commissions)
-    .innerJoin(transactions, eq(transactions.id, commissions.transactionId))
-    .where(
-      and(
-        eq(commissions.programAffiliateId, participation.id),
-        eq(commissions.customerId, customerId),
-        isNull(commissions.reversalOfCommissionId),
-      ),
-    )
-    .orderBy(transactions.occurredAt)
-    .limit(1)
-
-  const result = calculateCommission({
-    program: toProgramRules(program),
-    participation: toParticipationRules(participation),
-    transaction: {
-      id: transaction.id,
-      type: "payment",
+    {
+      transactionId: transaction.id,
+      customerId,
+      environment: event.environment,
+      provider: event.provider,
+      providerCustomerId,
+      customerExternalId: customer.externalId,
       currency: event.currency,
       grossAmountMinor: event.amountMinor,
       occurredAt: event.occurredAt,
-    },
-    attribution: {
-      id: attribution.id,
-      programAffiliateId: attribution.programAffiliateId,
-      attributedAt: attribution.attributedAt,
-      expiresAt: attribution.expiresAt,
-      firstCommissionedAt: firstCommission?.occurredAt ?? null,
+      eventId: event.providerEventId,
     },
     now,
-  })
-
-  if (result.kind === "skipped") {
-    logger.info("commission skipped", {
-      workspaceId,
-      provider: event.provider,
-      eventId: event.providerEventId,
-      reason: result.reason,
-    })
-    return { status: "processed", detail: `no commission: ${result.reason}` }
-  }
-
-  const [commission] = await tx
-    .insert(commissions)
-    .values({
-      workspaceId,
-      programId: program.id,
-      programAffiliateId: participation.id,
-      customerId,
-      transactionId: transaction.id,
-      currency: result.currency,
-      baseAmountMinor: result.baseAmountMinor,
-      commissionRate: result.commissionRate,
-      commissionAmountMinor: result.commissionAmountMinor,
-      status: result.eligibleAt <= now ? "available" : "pending",
-      eligibleAt: result.eligibleAt,
-      ruleApplied: result.ruleApplied,
-    })
-    .onConflictDoNothing()
-    .returning({ id: commissions.id })
-
-  // Keep the customer attached to the program that earned it, for reporting.
-  await tx
-    .update(customers)
-    .set({ programId: program.id })
-    .where(and(eq(customers.id, customerId), isNull(customers.programId)))
-
-  return {
-    status: "processed",
-    commissionId: commission?.id,
-    detail: `commission ${result.commissionAmountMinor} ${result.currency}`,
-  }
+  )
+  return { status: "processed", commissionId: commission.commissionId, detail: commission.detail, code: commission.code }
 }
+
 
 /**
  * `invoice_payment.paid`: links an invoice to the PaymentIntent and charge that
@@ -1055,7 +1299,30 @@ async function recordRefund(
   }
 
   const type = event.isChargeback ? "chargeback" : "refund"
-  const refundedMinor = Math.abs(event.amountMinor)
+  let refundedMinor = Math.abs(event.amountMinor)
+  let providerTransactionId = event.providerTransactionId
+
+  // A provider that reports the running refunded total (Mercado Pago, Asaas,
+  // AbacatePay): record only what is not recorded yet, under an id derived
+  // from the total — so every redelivery, and every later notification of the
+  // same state, is the same row. Serialised by the payment locks above.
+  if (event.cumulativeRefundedMinor !== undefined && !event.isChargeback) {
+    const [recorded] = await tx
+      .select({ minor: sql<number>`coalesce(sum(-${transactions.grossAmountMinor}), 0)::bigint`.mapWith(Number) })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.workspaceId, workspaceId),
+          eq(transactions.provider, event.provider),
+          eq(transactions.providerParentTransactionId, original.providerTransactionId),
+          eq(transactions.type, "refund"),
+        ),
+      )
+    const delta = Math.abs(event.cumulativeRefundedMinor) - (recorded?.minor ?? 0)
+    if (delta <= 0) return { status: "processed", detail: "refund already recorded" }
+    refundedMinor = delta
+    providerTransactionId = `${original.providerTransactionId}:refund:${Math.abs(event.cumulativeRefundedMinor)}`
+  }
 
   const [refundTransaction] = await tx
     .insert(transactions)
@@ -1064,7 +1331,7 @@ async function recordRefund(
       customerId: original.customerId,
       subscriptionId: original.subscriptionId,
       provider: event.provider,
-      providerTransactionId: event.providerTransactionId,
+      providerTransactionId,
       providerParentTransactionId: original.providerTransactionId,
       type,
       status: "succeeded",
@@ -1105,15 +1372,20 @@ async function recordRefund(
     return { status: "processed", detail: "refund recorded; no commission to reverse" }
   }
 
+  // Refunded so far, net of won disputes: their `won_` adjustment is positive
+  // and gives the disputed amount back.
   const [refundedBefore] = await tx
-    .select({ minor: sql<number>`coalesce(sum(abs(${transactions.grossAmountMinor})), 0)::bigint`.mapWith(Number) })
+    .select({ minor: sql<number>`coalesce(sum(-${transactions.grossAmountMinor}), 0)::bigint`.mapWith(Number) })
     .from(transactions)
     .where(
       and(
         eq(transactions.workspaceId, workspaceId),
         eq(transactions.provider, event.provider),
         eq(transactions.providerParentTransactionId, original.providerTransactionId),
-        inArray(transactions.type, ["refund", "chargeback"]),
+        or(
+          inArray(transactions.type, ["refund", "chargeback"]),
+          and(eq(transactions.type, "adjustment"), sql`left(${transactions.providerTransactionId}, 4) = ${WON_DISPUTE}`),
+        ),
         ne(transactions.id, refundTransaction.id),
       ),
     )
@@ -1122,6 +1394,7 @@ async function recordRefund(
     .select({ minor: sql<number>`coalesce(sum(abs(${commissions.commissionAmountMinor})), 0)::bigint`.mapWith(Number) })
     .from(commissions)
     .where(eq(commissions.reversalOfCommissionId, originalCommission.id))
+  const restoredBefore = await restoredCommissionMinor(tx, workspaceId, event.provider, original.providerTransactionId)
 
   const [program] = await tx.select().from(programs).where(eq(programs.id, originalCommission.programId)).limit(1)
 
@@ -1165,7 +1438,7 @@ async function recordRefund(
       baseAmountMinor: originalCommission.baseAmountMinor,
       currency: originalCommission.currency,
       refundedBeforeMinor: refundedBefore?.minor ?? 0,
-      reversedBeforeMinor: reversedBefore?.minor ?? 0,
+      reversedBeforeMinor: (reversedBefore?.minor ?? 0) - restoredBefore,
     },
     now,
   })
@@ -1213,5 +1486,171 @@ async function recordRefund(
     status: "processed",
     commissionId: reversal?.id,
     detail: `reversed ${-result.commissionAmountMinor} ${result.currency}${plan.flipOriginal ? " (full)" : ""}`,
+  }
+}
+
+/** Prefix of the adjustment that gives a won dispute's money back: `won_<dispute id>`. */
+const WON_DISPUTE = "won_"
+
+/** Commission given back by won disputes of the payment recorded as `providerTransactionId`. */
+async function restoredCommissionMinor(
+  tx: Transaction,
+  workspaceId: string,
+  provider: BillingProviderId,
+  providerTransactionId: string,
+): Promise<number> {
+  const [row] = await tx
+    .select({ minor: sql<number>`coalesce(sum(${commissions.commissionAmountMinor}), 0)::bigint`.mapWith(Number) })
+    .from(commissions)
+    .innerJoin(transactions, eq(transactions.id, commissions.transactionId))
+    .where(
+      and(
+        eq(transactions.workspaceId, workspaceId),
+        eq(transactions.provider, provider),
+        eq(transactions.type, "adjustment"),
+        eq(transactions.providerParentTransactionId, providerTransactionId),
+        sql`left(${transactions.providerTransactionId}, 4) = ${WON_DISPUTE}`,
+      ),
+    )
+  return row?.minor ?? 0
+}
+
+/**
+ * A dispute closed in the merchant's favour. The chargeback stays in the ledger
+ * as it happened (CLAUDE.md rule 9); a positive `won_<dispute>` adjustment gives
+ * the money back and, when the chargeback actually took something from the
+ * affiliate (`shouldRestoreChargeback`), a new commission row gives back the
+ * reversed amount — `pending` again under the program's hold, as if just earned.
+ * Idempotent through the adjustment's own id.
+ *
+ * A dispute whose chargeback is not recorded yet throws
+ * `PaymentNotRecordedYetError`, so Stripe retries once `charge.dispute.created`
+ * has gone through; one of a payment left out of the ledger is ignored.
+ */
+async function restoreWonDispute(
+  tx: Transaction,
+  workspaceId: string,
+  event: Extract<NormalizedBillingEvent, { type: "payment.disputeWon" }>,
+  now: Date,
+): Promise<EventOutcome> {
+  await lockPaymentIds(tx, workspaceId, event.provider, event.paymentReferences)
+  const original = await findPaymentByReferences(tx, workspaceId, event.provider, event.paymentReferences)
+
+  if (!original) {
+    const targets = await linkedTargets(tx, workspaceId, event.provider, event.paymentReferences)
+    if (targets.length > 0 && targets.every((target) => target.startsWith(UNRECORDED))) {
+      return { status: "ignored", reason: "won dispute of a payment recorded without a customer" }
+    }
+    throw new PaymentNotRecordedYetError(event.providerDisputeId)
+  }
+
+  const [chargeback] = await tx
+    .select({ id: transactions.id, grossAmountMinor: transactions.grossAmountMinor, currency: transactions.currency })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.workspaceId, workspaceId),
+        eq(transactions.provider, event.provider),
+        eq(transactions.providerTransactionId, event.providerDisputeId),
+        eq(transactions.type, "chargeback"),
+      ),
+    )
+    .limit(1)
+
+  if (!chargeback) throw new PaymentNotRecordedYetError(event.providerDisputeId)
+
+  const [adjustment] = await tx
+    .insert(transactions)
+    .values({
+      workspaceId,
+      customerId: original.customerId,
+      subscriptionId: original.subscriptionId,
+      provider: event.provider,
+      providerTransactionId: `${WON_DISPUTE}${event.providerDisputeId}`,
+      providerParentTransactionId: original.providerTransactionId,
+      type: "adjustment",
+      status: "succeeded",
+      environment: event.environment,
+      currency: chargeback.currency,
+      grossAmountMinor: Math.abs(chargeback.grossAmountMinor),
+      occurredAt: event.occurredAt,
+    })
+    .onConflictDoNothing({
+      target: [transactions.workspaceId, transactions.provider, transactions.providerTransactionId],
+    })
+    .returning({ id: transactions.id })
+
+  if (!adjustment) return { status: "processed", detail: "won dispute already recorded" }
+
+  const [reversal] = await tx
+    .select({
+      programId: commissions.programId,
+      programAffiliateId: commissions.programAffiliateId,
+      customerId: commissions.customerId,
+      currency: commissions.currency,
+      baseAmountMinor: commissions.baseAmountMinor,
+      commissionRate: commissions.commissionRate,
+      commissionAmountMinor: commissions.commissionAmountMinor,
+      status: commissions.status,
+      reversedAt: commissions.reversedAt,
+      reversalOfCommissionId: commissions.reversalOfCommissionId,
+    })
+    .from(commissions)
+    .where(and(eq(commissions.transactionId, chargeback.id), isNotNull(commissions.reversalOfCommissionId)))
+    .limit(1)
+
+  if (!reversal?.reversalOfCommissionId) {
+    return { status: "processed", detail: "won dispute recorded; no commission to restore" }
+  }
+
+  const [originalCommission] = await tx
+    .select({ id: commissions.id, status: commissions.status, reversedAt: commissions.reversedAt })
+    .from(commissions)
+    .where(eq(commissions.id, reversal.reversalOfCommissionId))
+    .limit(1)
+    .for("update")
+
+  const restore =
+    originalCommission &&
+    shouldRestoreChargeback({
+      reversalStatus: reversal.status,
+      reversalReversedAt: reversal.reversedAt ?? now,
+      originalStatus: originalCommission.status,
+      originalReversedAt: originalCommission.reversedAt,
+    })
+
+  if (!restore) {
+    return { status: "processed", detail: "won dispute recorded; the chargeback took nothing to restore" }
+  }
+
+  const [program] = await tx
+    .select({ commissionHoldDays: programs.commissionHoldDays })
+    .from(programs)
+    .where(eq(programs.id, reversal.programId))
+    .limit(1)
+  const eligibleAt = new Date(now.getTime() + (program?.commissionHoldDays ?? 0) * 24 * 60 * 60 * 1000)
+
+  const [restored] = await tx
+    .insert(commissions)
+    .values({
+      workspaceId,
+      programId: reversal.programId,
+      programAffiliateId: reversal.programAffiliateId,
+      customerId: reversal.customerId,
+      transactionId: adjustment.id,
+      currency: reversal.currency,
+      baseAmountMinor: Math.abs(reversal.baseAmountMinor),
+      commissionRate: reversal.commissionRate,
+      commissionAmountMinor: Math.abs(reversal.commissionAmountMinor),
+      status: "pending",
+      eligibleAt,
+      ruleApplied: `dispute ${event.providerDisputeId} won; restores its chargeback reversal`,
+    })
+    .returning({ id: commissions.id })
+
+  return {
+    status: "processed",
+    commissionId: restored?.id,
+    detail: `restored ${Math.abs(reversal.commissionAmountMinor)} ${reversal.currency} after a won dispute`,
   }
 }

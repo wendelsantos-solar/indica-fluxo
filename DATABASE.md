@@ -56,7 +56,7 @@ erDiagram
 | Table | Purpose | Key constraints |
 | --- | --- | --- |
 | `profiles` | app-level user data; `id` references `auth.users(id)` | PK = auth user id |
-| `workspaces` | the tenant | `slug` UNIQUE |
+| `workspaces` | the tenant; `acquisition` (jsonb, nullable, migration 0017) holds the founder's first touch — channel, landing path, referring host, UTM — written once at creation (`src/lib/seo/acquisition.ts`) | `slug` UNIQUE |
 | `workspace_members` | membership + role (`owner`/`admin`/`member`) | UNIQUE `(workspace_id, user_id)` |
 | `workspace_invites` | pending team invitations, claimed by e-mail at sign-up or, for existing accounts, at sign-in (migration 0008) | UNIQUE `(workspace_id, lower(email))` where unaccepted (migration 0002) |
 
@@ -183,6 +183,14 @@ Rules:
   the original. No new status exists for this.
 - A `paid` commission is never rewritten. Its reversal row is recorded as
   `reversed` and nothing is clawed back — an open gap.
+- A dispute later **won** (`charge.dispute.closed`, `won`/`warning_closed`)
+  leaves the chargeback and its reversal as they happened. A positive
+  `adjustment` transaction `won_<dispute id>` gives the money back and, only
+  when the chargeback actually took something (its reversal was payable or
+  paid, or it reversed the whole commission — `shouldRestoreChargeback`), a new
+  positive commission row returns the reversed amount as `pending` under the
+  program's hold. Later refunds of that payment count the adjustment as money
+  given back. Revenue analytics add it back as well.
 - `UNIQUE (transaction_id, program_affiliate_id)` where
   `reversal_of_commission_id IS NULL` — one commission per transaction per
   affiliate, whatever the webhook does.
@@ -206,6 +214,64 @@ cannot retroactively change a historical payout.
 | `audit_logs` | `entity_type`, `entity_id`, `action`, `metadata jsonb`, `actor_user_id`. Append-only. |
 
 ---
+
+### `attribution_tokens`
+
+The public attribution reference (`INTEGRATION_ARCHITECTURE_V2.md` §2, §7) —
+the only value of ours that is allowed to travel through a payment provider.
+
+| Column | Notes |
+| --- | --- |
+| `workspace_id`, `environment` | the scope a reference resolves in. A live event never resolves a test reference |
+| `visitor_id` | what the reference resolves **to**. Nothing else |
+| `token_hash` | `sha256(token + HASH_PEPPER)`, UNIQUE. **The plaintext is never stored** — it lives in the founder's first-party cookie and in Stripe |
+| `token_prefix` | `ifx_qN7dR2`, for diagnostics. Never enough to use |
+| `expires_at` | the attribution window of the program whose click issued it |
+| `bound_provider_customer_id`, `bound_at` | first bind wins; a later bind with another customer is a conflict, not a move |
+
+Issued by `recordClick` only for a click that produced an eligible attribution,
+so a reference existing already means "this visitor was referred". The tracker
+sends back the one it holds, so the table stays at roughly one row per visitor
+per window rather than one per click.
+
+RLS: `SELECT` for workspace members, and **no write policy at all** — writes go
+through the service connection on the ingest paths, like `referral_clicks`.
+Deliberately not keyed by integration, so a workspace with a second Stripe
+account later needs no migration.
+
+### Billing connections & identities (migration 0018)
+
+**`integrations` is the billing-connection table** (evolved, not renamed). One
+row per provider **account**: `UNIQUE (workspace_id, provider,
+provider_account_id) WHERE provider_account_id IS NOT NULL` replaced
+`UNIQUE (workspace_id, provider)`, so "Stripe Brasil + Stripe EUA" and two Asaas
+accounts coexist. New columns: `display_name`, `environment` (NULL = spans both
+modes, as a Stripe connection does), `last_verified_at`, `status_reason`
+(closed code). New status `pending`: being set up, nothing confirmed.
+`encrypted_credentials` holds each connector's own JSON (Asaas `{apiKey,
+authToken, webhookId}`, AbacatePay `{apiKey, webhookSecret, webhookId}`, Mercado
+Pago `{accessToken, webhookSecret}`), AES-256-GCM, dropped on disconnect.
+
+**`billing_identities`** — `(workspace_id, customer_id, environment, provider,
+provider_customer_id, integration_id, created_at, last_seen_at)`. UNIQUE
+`(workspace_id, environment, provider, provider_customer_id)`: the provider is
+part of the key (Stripe "123" ≠ Mercado Pago "123"); the account is not, because
+every supported provider issues global customer ids. Backfilled 1:1 from
+`customers.provider_customer_id`; `customers.provider / provider_customer_id`
+keep being written (dual write). Written only by `linkBillingIdentity`
+(`server/services/billing-identity.ts`) on the service connection.
+`attributions.provider_customer_id` and `attribution_tokens.bound_provider_customer_id`
+store Stripe ids bare (every existing row) and other providers' ids as
+`<provider>:<id>` (`src/lib/billing/identity-key.ts`).
+
+**`billing_setup_selections`** — `(workspace_id PK, providers text[], updated_by,
+updated_at)`: the wizard's "how do you get paid?". Its own table so affiliates,
+who may read a program's `workspaces` row, never see billing setup.
+
+**`webhook_events`** gains `integration_id` (FK, SET NULL) and `reason_code`
+(closed list, `src/lib/billing/reasons.ts`). Non-Stripe event ids are claimed as
+`<integration_id>:<provider id>`. **`transactions`** gains `integration_id`
+(provenance; written once at insert, NULL before 0018 and for simulations).
 
 ## 4. Money & rounding
 
@@ -318,6 +384,18 @@ table stays `permission denied`. `server/services/integration-health.ts` calls i
 under `withUser()`. Verified against the dev database with `request.jwt.claims`
 set as a member (1 row), as a non-member (0 rows) and as `anon` (denied).
 
+Migration `0015` adds a second, equally narrow one, so Integrations can say
+"receiving, but payments are being dropped" instead of a green "receiving":
+
+```sql
+public.webhook_payments_without_customer(p_workspace_id uuid, p_environment environment, p_since timestamptz)
+  returns bigint
+  -- SECURITY DEFINER, STABLE, SET search_path = '', member-only like the above
+  -- counts customer_billing events marked ignored with the exact reason
+  -- `billing-events.ts` writes (PAYMENT_WITHOUT_CUSTOMER) — a number, never the text
+  -- EXECUTE granted to indica_app only
+```
+
 Writes are additionally narrowed: only `owner`/`admin` may mutate programs,
 integrations, API keys and payouts. Affiliates have **no** `INSERT`, `UPDATE` or
 `DELETE` on any financial table — an affiliate cannot approve their own
@@ -364,6 +442,34 @@ the class of defect that test would have caught.
 
 ---
 
+### Migration 0019 (connection key includes the environment)
+
+`integrations_workspace_account_key` now covers only rows with
+`environment IS NULL` (Stripe: one row spans test and live, one per `acct_…`),
+and a new `integrations_workspace_account_env_key` covers
+`(workspace_id, provider, provider_account_id, environment)` for rows with an
+environment (API-key connectors). Why: a Mercado Pago seller's `TEST-…` and
+`APP_USR-…` tokens share one `user_id`; under 0018 the second connection could
+not record its account. Events never mix: non-Stripe deliveries are routed by
+the connection id in the URL and refused as `TEST_LIVE_MISMATCH` when the
+environment differs. Stripe `ON CONFLICT` targets use
+`WHERE provider_account_id IS NOT NULL AND environment IS NULL`. DB-tested in
+`multi-provider.db.test.ts` ("one provider account holds a test and a live
+connection"). Rollback in the migration header.
+
+### Migration 0018 (billing connections)
+
+| Object | Policy |
+| --- | --- |
+| `billing_identities` | `SELECT` for members (`member_workspace_ids()`); **no write policy** — service connection only; `indica_app` SELECT; nothing for `anon`/`authenticated` |
+| `billing_setup_selections` | `SELECT` members, `ALL` owners/admins (`admin_workspace_ids()`); `indica_app` SELECT/INSERT/UPDATE |
+| `billing_connection_events(ws, since)` | SECURITY DEFINER, member only: per connection last event time/type/status/reason and counts — never error text or payload |
+| `billing_connection_recent_events(ws, connection, limit)` | SECURITY DEFINER, member only, ≤ 50 rows: time, type, status, reason code, environment, provider event id |
+
+Tested (`multi-provider.db.test.ts`): another workspace's owner and an
+affiliate of the workspace read nothing from any of these; a member cannot
+insert an identity.
+
 ## 7. Data protection (LGPD / GDPR)
 
 - No raw IP addresses. `ip_hash = sha256(ip + HASH_PEPPER)` (`lib/crypto/hash.ts`),
@@ -375,6 +481,9 @@ the class of defect that test would have caught.
   deletable: removing an affiliate anonymises the row and preserves the ledger,
   which is a legitimate-interest financial record.
 - `audit_logs.metadata` must never contain secrets, tokens or full payloads.
+- `workspaces.acquisition` holds no identifier and no full URL: a channel, the
+  landing *path* (query stripped), the referring *host* and UTM values, from a
+  first-party `_acq` cookie (90 days, HttpOnly) that is deleted once used.
 
 ---
 

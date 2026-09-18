@@ -1,3 +1,4 @@
+import { BRAND } from "@/lib/brand"
 import { cn } from "@/lib/utils"
 
 /**
@@ -30,7 +31,7 @@ export function Logo({
       {!compact ? (
         // 510, not 590: the brand names the frame, it is not the loudest text on screen.
         <span className={cn("truncate text-caption font-medium text-foreground", labelClassName)}>
-          IndicaFluxo
+          {BRAND.name}
         </span>
       ) : null}
     </span>

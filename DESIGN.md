@@ -492,23 +492,58 @@ outcomes. A form that can show inline success must not fire a toast.
 - Marketing: 1200px max-width (`max-w-page`), 24px gutter, 80–112px section
   rhythm. The landing is a sales narrative in a fixed order — hero, click →
   commission flow, problem, how it works, product stories, founder/affiliate
-  sides, integrations, principles, pricing preview, closing CTA — and its only
+  sides, integrations, principles, pricing preview, FAQ, closing CTA — and its only
   imagery is the product, rebuilt from tokens in
   `(marketing)/_components/visuals.tsx`. One primary action per viewport; mock
   buttons inside visuals are secondary. Claims must be true in the code
   (Stripe only; no invented customers, logos or numbers).
+- Search-intent pages (`/pt-br/programa-de-afiliados-saas` and siblings,
+  `features/marketing/content-page.tsx`): same marketing frame. Breadcrumb,
+  eyebrow pill, one H1 (`text-heading-sm` → `text-heading`, never
+  `heading-lg`, which stays the landing hero's), lead, primary + secondary
+  CTA. Below a hairline, the article (H2 = `text-subheading` per section,
+  prose `text-body-sm`/`text-body` capped at `max-w-reading`) and, from `lg`,
+  a sticky 14rem "Neste guia" outline. Blocks: prose, a points grid (hairline
+  on top, H3 `text-ui`), numbered steps in one panel, a comparison table that
+  scrolls inside its own focusable region below 672px, and a closing note in
+  muted text. Then the FAQ (visible, H3 per question), a "Continue lendo" row
+  of three linked cards, and the closing CTA panel. Server-rendered only — no
+  client component on these pages. Copy is product-specific and verifiable;
+  the H1 names the category, the brand stays in the navbar.
 - Docs: own route group. Docs bar (brand / Docs, language, theme, Painel, one
   primary sign-up), then at `max-w-docs` (1440px) a sticky section sidebar
-  (14rem) · reading column (48rem) · "Nesta página" outline (12rem, from `xl`);
-  below `lg` the sidebar is a drawer. Every H2/H3 is anchored with a hover
-  copy-link. Code samples use `CodeBlock`/`CodeTabs` (Shiki at build time,
-  `--shiki-token-*` colour tokens per theme, copy in the header), identifiers
+  (14rem) · content column (`max-w-detail`, 880px; running text capped at
+  `max-w-reading`, 720px, so code and tables get the width, prose keeps its
+  measure) · "Nesta página" outline (13rem, from `xl`); below `lg` the sidebar
+  is a drawer. Every H2/H3 is anchored with a hover copy-link. The "Como
+  funciona" flow has an owner legend (Seu SaaS / Refvia) and turns from
+  rows into five columns only when its container is ≥ 768px. Code samples use
+  `CodeBlock`/`CodeTabs` (Shiki at build time, `--shiki-token-*` colour tokens
+  per theme, language label and copy in every header), identifiers
   in prose use `InlineCode`, and `Callout` (info/success/warning/danger) is
   rationed. Compact footer. No search box until search exists.
 - Auth: from 1024px a split — product statement and a decorative
   click → commission proof on the canvas, the form on `surface-1` behind a
   hairline; below, one column. Login, sign-up, check-your-e-mail, forgot and
   reset password share it.
+- Integrations: four link tabs under the page header — Visão geral ·
+  Pagamentos · Rastreamento · API — instead of sidebar items. Overview: a
+  four-cell hairline strip (tracker, customer identity, providers, health; a
+  status dot + a sentence each), the setup checklist (steps tick themselves off
+  from evidence, a quiet `AutoRefresh` re-reads the page while something is
+  awaited), the multi-select "how do you get paid?" as real checkboxes styled as
+  cards, the connection cards, and "test the integration". A provider is a
+  neutral monogram tile + its name (no provider logos until each brand's
+  guidelines are cleared). A connection card is one link: provider, account
+  name · mode, one health badge, the last event or the first issue — never a
+  client id, webhook id or secret. The detail page reads top-down: status,
+  "needs attention" (what happened / what it affects / what to do, one block
+  per issue), stages, latest payments with their pipeline (dots + labels,
+  organic payments neutral, never red), recent events, capabilities ("—" for
+  what the provider cannot do), then a folded "Configurações avançadas" with
+  identifiers, endpoint, rename, key rotation and disconnect (its confirm dialog
+  states that the ledger is kept). Nothing turns green until the backend says
+  so; a pending action names the real step it is waiting on.
 - Onboarding: canvas, slim top bar, a three-step stepper (Workspace → Programa
   → Pronto) and progressive disclosure for expert settings; "Pronto" is the
   activation checklist on the overview.

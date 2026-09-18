@@ -4,19 +4,19 @@ import { buildInviteLinks, checkMemberChange, classifyInviteMailError } from "..
 
 describe("buildInviteLinks", () => {
   const base = {
-    appUrl: "https://app.indicafluxo.com",
+    appUrl: "https://app.refvia.com",
     signupPath: "/pt-br/criar-conta",
     loginPath: "/pt-br/entrar",
   }
 
   it("builds a localised sign-up link with the address and the invite flag", () => {
     const { inviteUrl } = buildInviteLinks({ ...base, email: "ana@acme.com" })
-    expect(inviteUrl).toBe("https://app.indicafluxo.com/pt-br/criar-conta?email=ana%40acme.com&invite=1")
+    expect(inviteUrl).toBe("https://app.refvia.com/pt-br/criar-conta?email=ana%40acme.com&invite=1")
   })
 
   it("builds a sign-in link with the address and no invite flag", () => {
     const { loginUrl } = buildInviteLinks({ ...base, email: "ana@acme.com" })
-    expect(loginUrl).toBe("https://app.indicafluxo.com/pt-br/entrar?email=ana%40acme.com")
+    expect(loginUrl).toBe("https://app.refvia.com/pt-br/entrar?email=ana%40acme.com")
   })
 
   it("normalises the address the way invitations are claimed (trimmed, lower case)", () => {
@@ -38,7 +38,7 @@ describe("buildInviteLinks", () => {
       loginPath: "/en/login",
       email: "x@y.z",
     })
-    expect(new URL(inviteUrl).origin).toBe("https://app.indicafluxo.com")
+    expect(new URL(inviteUrl).origin).toBe("https://app.refvia.com")
     expect(new URL(loginUrl).pathname).toBe("/en/login")
   })
 })

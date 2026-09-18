@@ -56,7 +56,7 @@ export function createPlatformBillingGateway(client: Stripe, prices: PlatformPri
       if (input.change) {
         const subscription = await client.subscriptions.retrieve(input.change.subscriptionId)
         const items = subscription.items.data
-        // The confirm flow updates exactly one item; IndicaFluxo sells one per subscription.
+        // The confirm flow updates exactly one item; Refvia sells one per subscription.
         if (items.length !== 1) {
           throw new Error(`Subscription has ${items.length} items; a plan change needs exactly one.`)
         }

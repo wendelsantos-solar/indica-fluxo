@@ -5,6 +5,7 @@ import { cache } from "react"
 
 import type { Locale } from "@/i18n/routing"
 import { logger } from "@/lib/logger"
+import type { Acquisition } from "@/lib/seo/acquisition"
 import { slugify } from "@/lib/utils"
 import { db, withUser } from "@/server/db"
 import { workspaceInvites, workspaceMembers, workspaces } from "@/server/db/schema"
@@ -31,6 +32,8 @@ export interface CreateWorkspaceInput {
   name: string
   defaultCurrency: string
   timezone: string
+  /** Where the founder first came from, if the proxy kept it (src/lib/seo/acquisition.ts). */
+  acquisition?: Acquisition | null
 }
 
 /**
@@ -56,6 +59,9 @@ export async function createWorkspace(
         slug,
         defaultCurrency: input.defaultCurrency.toUpperCase(),
         timezone: input.timezone,
+        // Only named when known, so the column (migration 0017) is never
+        // written as an explicit NULL that would read as "measured: nothing".
+        ...(input.acquisition ? { acquisition: input.acquisition } : {}),
       })
       .returning({ id: workspaces.id, slug: workspaces.slug })
 

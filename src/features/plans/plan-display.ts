@@ -21,6 +21,7 @@ import {
   type PlanLimit,
 } from "@/lib/plans"
 import type { PlatformSubscriptionStatus, Standing } from "@/server/domain/entitlements"
+import type { BillingProviderId } from "@/lib/billing/types"
 
 // ---------------------------------------------------------------------------
 // Status
@@ -210,7 +211,7 @@ export function planOptions(billing: {
   standing: Standing
   configured: boolean
   canManageBilling: boolean
-  provider: "stripe" | "paddle" | "manual" | null
+  provider: BillingProviderId | null
 }): PlanOption[] {
   const subscribed = billing.standing === "sandbox" ? "sandbox" : billing.subscribedPlan
 

@@ -7,7 +7,7 @@ import { type DbClient } from "@/server/db"
 import { planUpgradeRequests, workspaceSubscriptions } from "@/server/db/schema"
 import type { SubscriptionSnapshot } from "@/server/domain/entitlements"
 
-/** The workspace's subscription to IndicaFluxo, or `null` (Sandbox). Readable by members. */
+/** The workspace's subscription to Refvia, or `null` (Sandbox). Readable by members. */
 export async function findWorkspaceSubscription(tx: DbClient, workspaceId: string) {
   const [row] = await tx
     .select({

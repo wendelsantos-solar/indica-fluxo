@@ -10,6 +10,7 @@ import { attributions, programAffiliates, programs, referralClicks, referralLink
 import { resolveAttribution } from "@/server/domain/attribution"
 import { NotFoundError } from "@/server/policies/errors"
 
+import { issueAttributionToken } from "./attribution-bridge"
 import { canUseFeature, getWorkspaceEntitlements } from "./entitlements"
 
 export interface RecordClickInput {
@@ -32,6 +33,12 @@ export interface RecordClickInput {
   ip?: string | null
   country?: string | null
   occurredAt?: Date
+  /**
+   * The public attribution reference the tracker already holds, if any. Sent
+   * back so a returning visitor keeps one reference instead of minting one per
+   * click (INTEGRATION_ARCHITECTURE_V2.md §2).
+   */
+  attributionToken?: string | null
 }
 
 export type RecordClickResult =
@@ -41,6 +48,12 @@ export type RecordClickResult =
       programId: string
       programAffiliateId: string
       attributionAction: "create" | "replace" | "touch" | "ignore"
+      /**
+       * The reference to carry to the checkout. `null` when the click earned no
+       * eligible attribution (a paused program, a participation not approved):
+       * a token that cannot pay anyone is never handed out.
+       */
+      attributionToken: string | null
     }
   /** A live key on a workspace without live mode: nothing was written (docs/PLANS.md §2). */
   | { recorded: false; reason: "live_mode_inactive" }
@@ -102,7 +115,7 @@ export async function recordClick(
       programAffiliateId: match.participationId,
     }
 
-    if (!trackable) return { ...recorded, attributionAction: "ignore" as const }
+    if (!trackable) return { ...recorded, attributionAction: "ignore" as const, attributionToken: null }
 
     // One decision at a time per (program, visitor). The advisory lock covers
     // the first click, when there is no row to lock yet; `FOR UPDATE` covers
@@ -143,7 +156,20 @@ export async function recordClick(
         workspaceId: input.workspaceId,
         programId: match.programId,
       })
-      return { ...recorded, programAffiliateId: current.programAffiliateId, attributionAction: "touch" as const }
+      return {
+        ...recorded,
+        programAffiliateId: current.programAffiliateId,
+        attributionAction: "touch" as const,
+        attributionToken: (
+          await issueAttributionToken(tx, {
+            workspaceId: input.workspaceId,
+            environment: input.environment,
+            visitorId: input.visitorId,
+            presented: input.attributionToken,
+            windowDays: match.attributionWindowDays,
+          })
+        ).token,
+      }
     }
 
     const decision = resolveAttribution({
@@ -188,7 +214,22 @@ export async function recordClick(
       reason: decision.reason,
     })
 
-    return { ...recorded, programAffiliateId: decision.programAffiliateId, attributionAction: decision.action }
+    // Minted last, and only here: by this point the click has produced an
+    // attribution someone could actually be paid for.
+    const reference = await issueAttributionToken(tx, {
+      workspaceId: input.workspaceId,
+      environment: input.environment,
+      visitorId: input.visitorId,
+      presented: input.attributionToken,
+      windowDays: match.attributionWindowDays,
+    })
+
+    return {
+      ...recorded,
+      programAffiliateId: decision.programAffiliateId,
+      attributionAction: decision.action,
+      attributionToken: reference.token,
+    }
   })
 }
 

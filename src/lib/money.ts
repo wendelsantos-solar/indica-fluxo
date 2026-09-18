@@ -25,6 +25,26 @@ export function majorToMinor(amount: number, currency: Currency): number {
   return Math.round(amount * 10 ** minorUnitExponent(currency))
 }
 
+/**
+ * An exact decimal amount from a provider payload ("94.51", 94.51, "1500") to
+ * integer minor units, without float multiplication: the digits are shifted as
+ * text. Mercado Pago and Asaas send decimals; `94.51 * 100` is 9450.999… in
+ * binary floating point, which is exactly the bug this avoids.
+ *
+ * Returns `null` for anything that is not a plain, finite, non-negative decimal
+ * with no more fractional digits than the currency has.
+ */
+export function decimalToMinor(value: unknown, currency: Currency): number | null {
+  const text = typeof value === "number" ? (Number.isFinite(value) ? String(value) : "") : typeof value === "string" ? value.trim() : ""
+  const match = /^(\d+)(?:\.(\d+))?$/.exec(text)
+  if (!match) return null
+  const exponent = minorUnitExponent(currency)
+  const fraction = (match[2] ?? "").replace(/0+$/, "")
+  if (fraction.length > exponent) return null
+  const minor = Number(`${match[1]}${fraction.padEnd(exponent, "0")}`)
+  return Number.isSafeInteger(minor) ? minor : null
+}
+
 /** The inverse, for pre-filling a form field with a stored amount. */
 export function minorToMajor(amountMinor: number, currency: Currency): number {
   return amountMinor / 10 ** minorUnitExponent(currency)

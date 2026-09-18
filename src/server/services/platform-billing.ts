@@ -25,9 +25,10 @@ import { findWorkspaceSubscription } from "@/server/repositories/plans"
 import { claimWebhookEvent, markWebhookEvent } from "@/server/repositories/webhook-events"
 
 import { getWorkspaceEntitlements } from "./entitlements"
+import type { BillingProviderId } from "@/lib/billing/types"
 
 /**
- * IndicaFluxo charging workspaces for Launch/Growth — docs/PLANS.md §5–§6.
+ * Refvia charging workspaces for Launch/Growth — docs/PLANS.md §5–§6.
  * Completely separate from customer billing (`billing-events.ts`), which reads
  * the founders' own Stripe. Stripe itself stays behind
  * `PlatformBillingGateway`; nothing here sees a Stripe type.
@@ -382,7 +383,7 @@ export interface BillingOverview {
   endsAt: Date | null
   graceEndsAt: Date | null
   trialEndsAt: Date | null
-  provider: "stripe" | "paddle" | "manual" | null
+  provider: BillingProviderId | null
   /** A Stripe customer exists, so the Billing Portal can open. */
   canManageBilling: boolean
   /** The viewer is owner or admin: may start checkout or open the portal. */

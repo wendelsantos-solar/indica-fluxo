@@ -1,7 +1,7 @@
 import type { PlanCode } from "@/lib/plans"
 
 /**
- * Provider-free shapes for IndicaFluxo's own billing (docs/PLANS.md §5).
+ * Provider-free shapes for Refvia's own billing (docs/PLANS.md §5).
  * Services depend on these, never on Stripe's types: everything Stripe-shaped
  * stays inside `src/lib/platform-billing/stripe/`.
  */

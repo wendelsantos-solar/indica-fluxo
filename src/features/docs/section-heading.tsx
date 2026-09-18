@@ -16,11 +16,14 @@ export function SectionHeading({
   level,
   children,
   step,
+  badge,
   className,
 }: {
   id: string
   level: 2 | 3
   children: string
+  /** A status beside the title ("Estável", "Beta"). Not part of the copied link's name. */
+  badge?: React.ReactNode
   /** Quickstart step number, shown before the title. */
   step?: number
   className?: string
@@ -40,7 +43,9 @@ export function SectionHeading({
       id={id}
       className={cn(
         "group flex scroll-mt-20 items-baseline gap-2.5 text-foreground",
-        level === 2 ? "text-subheading" : "text-title",
+        // An H3 opens a sub-part of the section: 16px more air above it than
+        // between blocks, so the outline reads without extra dividers.
+        level === 2 ? "text-subheading" : "pt-4 text-title",
         className,
       )}
     >
@@ -50,6 +55,7 @@ export function SectionHeading({
         </span>
       ) : null}
       <span className="text-balance">{children}</span>
+      {badge ? <span className="self-center">{badge}</span> : null}
       <a
         href={`#${id}`}
         aria-label={t("copyLink", { title: children })}

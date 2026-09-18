@@ -32,9 +32,17 @@ const REDACTED_KEYS = new Set([
   "encryptedcredentials",
   "email",
   "stripe-signature",
+  "x-signature",
+  "x-webhook-signature",
+  "asaas-access-token",
+  "webhooksecret",
+  "authtoken",
+  "accesstoken",
 ])
 
-const SECRET_PATTERN = /\b(sk|pk|rk|whsec|ey[A-Za-z0-9])[-_A-Za-z0-9]{8,}/g
+// Stripe (sk_/pk_/rk_/whsec_), JWTs (ey…), Mercado Pago access tokens
+// (APP_USR-/TEST-), Asaas ($aact_…) and AbacatePay (abc_prod_/abc_dev_) keys.
+const SECRET_PATTERN = /(\b(sk|pk|rk|whsec|ey[A-Za-z0-9])|\bAPP_USR|\bTEST-|\$aact|\babc_(?:prod|dev))[-_A-Za-z0-9]{8,}/g
 
 function scrubString(value: string): string {
   return value.replace(SECRET_PATTERN, "[redacted]")

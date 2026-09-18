@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   deriveStripeState,
   formatRelativeTime,
+  attributionIssue,
   needsSetup,
   stripeBadgeStatus,
   type StripeStatusInput,
@@ -95,5 +96,24 @@ describe("formatRelativeTime", () => {
 
   it("says now for anything under a minute", () => {
     expect(formatRelativeTime("en", new Date(t0.getTime() - 20_000), t0)).toBe("now")
+  })
+})
+
+describe("attributionIssue", () => {
+  const evidence = { payments: 0, paymentsWithCommission: 0, paymentsWithoutCustomer: 0 }
+
+  it("is nothing to report with no payments yet, or with payments that earn", () => {
+    expect(attributionIssue(evidence)).toBeNull()
+    expect(attributionIssue({ ...evidence, payments: 3, paymentsWithCommission: 1 })).toBeNull()
+  })
+
+  it("flags payments that arrive but none earns a commission", () => {
+    expect(attributionIssue({ ...evidence, payments: 2 })).toBe("noCommissions")
+  })
+
+  it("puts dropped payments first, even when others earn", () => {
+    expect(attributionIssue({ payments: 5, paymentsWithCommission: 5, paymentsWithoutCustomer: 1 })).toBe(
+      "paymentsWithoutCustomer",
+    )
   })
 })

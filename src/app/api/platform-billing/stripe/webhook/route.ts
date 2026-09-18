@@ -10,8 +10,8 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 /**
- * IndicaFluxo's own billing webhook (docs/PLANS.md §5): the endpoint in
- * IndicaFluxo's Stripe account, verified with `PLATFORM_STRIPE_WEBHOOK_SECRET`.
+ * Refvia's own billing webhook (docs/PLANS.md §5): the endpoint in
+ * Refvia's Stripe account, verified with `PLATFORM_STRIPE_WEBHOOK_SECRET`.
  * Never the founders' endpoints under `/api/webhooks/stripe`.
  *
  * Service connection (RLS bypassed) inside `platform-billing` — an ingest path

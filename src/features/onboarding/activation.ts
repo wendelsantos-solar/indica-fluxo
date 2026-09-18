@@ -7,12 +7,25 @@
 export const ACTIVATION_STEPS = [
   "workspace",
   "program",
-  "stripe",
   "affiliate",
   "testConversion",
   "tracking",
+  "identity",
+  "stripe",
   "liveMode",
 ] as const
+
+/**
+ * The journey in three phases, so ten things to do read as three
+ * (brief §29): see a commission first, then connect the SaaS once, then go live.
+ * `stripe` is the historical key of "a payment method is connected and sends
+ * events" — any provider, not only Stripe (migration 0018).
+ */
+export const ACTIVATION_PHASES = [
+  { key: "try", steps: ["workspace", "program", "affiliate", "testConversion"] },
+  { key: "connect", steps: ["tracking", "identity", "stripe"] },
+  { key: "live", steps: ["liveMode"] },
+] as const satisfies ReadonlyArray<{ key: string; steps: readonly ActivationStepKey[] }>
 
 /**
  * The Sandbox journey (docs/PLANS.md §2): prove a conversion in test, then
@@ -22,7 +35,15 @@ export const ACTIVATION_STEPS = [
  */
 export const SANDBOX_STEPS = ["testConversion", "liveMode"] as const
 
-export type ActivationStepKey = (typeof ACTIVATION_STEPS)[number]
+export type ActivationStepKey =
+  | "workspace"
+  | "program"
+  | "affiliate"
+  | "testConversion"
+  | "tracking"
+  | "identity"
+  | "stripe"
+  | "liveMode"
 
 export interface ActivationSignals {
   hasProgram: boolean
@@ -36,6 +57,11 @@ export interface ActivationSignals {
   hasAffiliate: boolean
   /** At least one referral click recorded, ever — proof the tracker is live. */
   hasClick: boolean
+  /**
+   * A customer was identified by the SaaS (`/api/identify`), ever. `undefined`
+   * leaves the step out, so a caller that does not read it keeps the old list.
+   */
+  hasIdentity?: boolean
   /** A test-program commission exists, ever (a simulated or test-mode conversion). */
   hasTestCommission?: boolean
   /** A live-program commission exists, ever: the pipeline is proven in production. */
@@ -66,6 +92,8 @@ export interface Activation {
 export interface ActivationHealth {
   stripe: { configured: boolean; lastEventAt: Date | null }
   tracking: { lastClickAt: Date | null }
+  /** Optional: when present, the customer-identity step joins the checklist. */
+  attribution?: Record<"test" | "live", { lastIdentifyAt: Date | null }>
 }
 
 /**
@@ -95,6 +123,11 @@ export function activationSignals(input: {
       input.health.tracking.lastClickAt !== null ||
       input.programs.some((program) => Number(program.clickCount) > 0),
   }
+  if (input.health.attribution) {
+    signals.hasIdentity = Boolean(
+      input.health.attribution.test.lastIdentifyAt || input.health.attribution.live.lastIdentifyAt,
+    )
+  }
   if (input.liveMode === undefined) return signals
 
   const earned = (environment: "test" | "live") =>
@@ -110,11 +143,19 @@ export function activationSignals(input: {
 }
 
 /**
- * Order follows dependency, not importance: tracking can only be verified by a
- * click, and a click needs an affiliate's link — so "invite" comes before
- * "install tracking", or the checklist would point at a step the founder has
- * already finished but cannot yet prove. A test conversion needs an approved
- * affiliate too; live mode comes last, once the whole path is proven in test.
+ * Order follows dependency first and value second, in that order.
+ *
+ * Dependency: tracking can only be verified by a click, and a click needs an
+ * affiliate's link — so "invite" comes before "install tracking", or the
+ * checklist would point at a step the founder has already finished but cannot
+ * yet prove. A test conversion needs an approved affiliate too.
+ *
+ * Value: the simulated conversion runs through the real services and needs no
+ * Stripe and no code at all (`src/server/services/sandbox.ts`), so it comes
+ * **before** Stripe. A founder should see a commission calculated — the one
+ * thing that proves the product — before being asked to connect an account or
+ * deploy anything (INTEGRATION_ARCHITECTURE_V2.md §10). Live mode stays last,
+ * once the whole path is proven in test.
  */
 export function getActivation(signals: ActivationSignals): Activation {
   const done: Record<ActivationStepKey, boolean> = {
@@ -126,12 +167,15 @@ export function getActivation(signals: ActivationSignals): Activation {
     // A live commission proves more than a test one: nothing left to rehearse.
     testConversion: Boolean(signals.hasTestCommission || signals.hasLiveCommission),
     tracking: signals.hasClick,
+    identity: Boolean(signals.hasIdentity),
     liveMode: Boolean(signals.liveMode),
   }
 
   const withSandbox = signals.liveMode !== undefined
+  const withIdentity = signals.hasIdentity !== undefined
   const keys = ACTIVATION_STEPS.filter(
-    (key) => withSandbox || !(SANDBOX_STEPS as readonly string[]).includes(key),
+    (key) =>
+      (withSandbox || !(SANDBOX_STEPS as readonly string[]).includes(key)) && (withIdentity || key !== "identity"),
   )
 
   const steps = keys.map((key) => ({

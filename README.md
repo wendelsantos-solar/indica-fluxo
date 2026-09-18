@@ -1,4 +1,4 @@
-# indica-fluxo
+# Refvia
 
 Affiliate and referral tracking for SaaS. Next.js App Router, Supabase Postgres
 with row-level security, Drizzle ORM, Stripe billing.
@@ -29,7 +29,7 @@ Every variable is documented in `.env.example`. The split matters:
 | `ENCRYPTION_KEY`, `HASH_PEPPER` | **server only** | |
 | `STRIPE_SECRET_KEY`, `STRIPE_CONNECT_CLIENT_ID` | **server only** | optional; Stripe API calls and Connect OAuth |
 | `STRIPE_WEBHOOK_SECRET` | **server only** | optional; only the legacy platform endpoint `/api/webhooks/stripe` (Connect, `stripe listen` in development) |
-| `PLATFORM_STRIPE_SECRET_KEY`, `PLATFORM_STRIPE_WEBHOOK_SECRET` | **server only** | optional as a set with the two below; IndicaFluxo's own Stripe account, charging workspaces (see **Platform billing**) |
+| `PLATFORM_STRIPE_SECRET_KEY`, `PLATFORM_STRIPE_WEBHOOK_SECRET` | **server only** | optional as a set with the two below; Refvia's own Stripe account, charging workspaces (see **Platform billing**) |
 | `STRIPE_LAUNCH_PRICE_ID`, `STRIPE_GROWTH_PRICE_ID` | **server only** | the Prices behind Launch and Growth |
 
 Validation lives in `src/lib/env/client.ts` (browser-safe) and
@@ -62,11 +62,11 @@ that `stripe listen` prints into that workspace's Integrations page.
 
 ## Platform billing
 
-IndicaFluxo charges workspaces for Launch and Growth through **its own** Stripe
+Refvia charges workspaces for Launch and Growth through **its own** Stripe
 account — not a founder's (docs/PLANS.md §5). Without all four variables below,
 Checkout is unavailable and Settings falls back to the manual plan request.
 
-1. **Products and prices.** In IndicaFluxo's Stripe account create two products,
+1. **Products and prices.** In Refvia's Stripe account create two products,
    *Launch* and *Growth*, each with one recurring **monthly BRL** Price equal to
    `PLAN_OFFERS` in `src/lib/plans.ts` (R$ 99 and R$ 197). Put the Price ids in
    `STRIPE_LAUNCH_PRICE_ID` and `STRIPE_GROWTH_PRICE_ID`. A subscription on any
@@ -100,6 +100,35 @@ stripe listen --forward-to localhost:3000/api/platform-billing/stripe/webhook \
   --events checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,invoice.paid,invoice.payment_failed
 # copy the printed whsec_… into PLATFORM_STRIPE_WEBHOOK_SECRET
 ```
+
+## Connecting a founder's Stripe account
+
+Two supported ways, and the manual one is unchanged and still the default.
+
+**Manual.** The founder enters `acct_…`, creates an endpoint in their own Stripe
+dashboard, selects the listed events and pastes the `whsec_…` (see *Stripe
+webhooks* above). Needs nothing from Refvia's Stripe account.
+
+**OAuth (Connect).** With `STRIPE_CONNECT_CLIENT_ID` set, Integrations shows
+*Conectar com a Stripe*: the founder authorises Refvia on their own account
+with `scope=read_only`, and Stripe then delivers that account's events to the
+platform **Connect** endpoint `/api/webhooks/stripe`, which routes by
+`event.account`. No endpoint to create, no events to select, no secret to copy
+(`INTEGRATION_ARCHITECTURE_V2.md` §6).
+
+To enable it in a Stripe account:
+
+1. Enable Connect, then switch on OAuth under **Connect → Onboarding options → OAuth**.
+2. Register `<APP_URL>/api/integrations/stripe/oauth/callback` as a redirect URI.
+3. Put the `ca_…` client id in `STRIPE_CONNECT_CLIENT_ID` (test and live have
+   separate ids).
+4. Add a webhook endpoint with **Connected accounts** as its scope (`connect: true`)
+   pointing at `<APP_URL>/api/webhooks/stripe`, and put its signing secret in
+   `STRIPE_WEBHOOK_SECRET`.
+
+`read_only` is deliberate: Refvia reads events and never charges,
+transfers or pays out on a founder's account. Without `STRIPE_CONNECT_CLIENT_ID`
+the button is not rendered and nothing changes.
 
 ## Supabase security
 
@@ -146,7 +175,7 @@ And under **Authentication → Emails**:
 
 - *Confirm signup* and *Reset password* templates must link to
   `{{ .ConfirmationURL }}`, so the `?code=` reaches the callback. Write them in
-  Portuguese and English and sign them as IndicaFluxo.
+  Portuguese and English and sign them as Refvia.
 - The links only work in the browser that requested them (PKCE). A link opened
   elsewhere shows the "link expired" notice on the login page.
 - The resend button on "Confira seu e-mail" waits 60 seconds, matching

@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * The record of what the program owner says they paid. IndicaFluxo moves no
+ * The record of what the program owner says they paid. Refvia moves no
  * money, so the page never implies it did: a payout is "paid" on the date the
  * owner marked it, and the reference is theirs.
  */

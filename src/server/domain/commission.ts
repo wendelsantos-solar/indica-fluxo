@@ -299,6 +299,35 @@ export function planReversal(original: StoredCommissionStatus, fullyRefunded: bo
     : { rowStatus: "available", rowEligibleAt: "now", flipOriginal: false, settlePriorReversals: false }
 }
 
+/**
+ * Whether a won dispute gives the affiliate back what its chargeback took. Only
+ * when that chargeback actually came off what they are owed:
+ *
+ * - its reversal row is still netting (`pending`/`available`/`approved`) or was
+ *   deducted in a payout (`paid`) — restore;
+ * - it was settled `reversed` together with the original, flipped by this
+ *   chargeback or a later refund (the original was reversed after the row was
+ *   written) — restore, the flip zeroed the rest of the commission too;
+ * - otherwise the row was `reversed` from the start: the original was already
+ *   paid (no clawback), rejected or reversed, so nothing was ever taken — a
+ *   restoration would pay twice.
+ */
+export function shouldRestoreChargeback(input: {
+  reversalStatus: StoredCommissionStatus
+  /** When the chargeback's reversal row was written — the same clock the original's flip uses. */
+  reversalReversedAt: Date
+  originalStatus: StoredCommissionStatus
+  originalReversedAt: Date | null
+}): boolean {
+  if (input.reversalStatus !== "reversed" && input.reversalStatus !== "rejected") return true
+  if (input.reversalStatus === "rejected") return false
+  return (
+    input.originalStatus === "reversed" &&
+    input.originalReversedAt !== null &&
+    input.originalReversedAt.getTime() >= input.reversalReversedAt.getTime()
+  )
+}
+
 function describeRule(rate: ResolvedRate, program: ProgramRules): string {
   const shape =
     rate.type === "percentage"

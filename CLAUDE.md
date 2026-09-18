@@ -27,7 +27,7 @@ Operating rules for any AI agent (or human) working in this repository.
 6. **Never import `stripe` outside `src/lib/billing/stripe/` and
    `src/lib/platform-billing/stripe/`.** The first reads the founders' Stripe;
    the commission engine must only ever see a `NormalizedBillingEvent`. The
-   second is IndicaFluxo's own billing; services only see
+   second is Refvia's own billing; services only see
    `PlatformBillingEvent` / `PlatformBillingGateway`. The two never share a
    client or a key (docs/PLANS.md §5).
 7. **Never store money in a float.** Integer minor units only
@@ -91,6 +91,12 @@ This project uses Supabase's current API-key model, never the legacy
 - **Never import `Link`, `redirect`, `usePathname` or `useRouter` from `next/*`
   inside a localised route.** Use `@/i18n/navigation`, or the locale prefix is
   dropped and the link 404s. See ARCHITECTURE.md §6b.
+- **Never write the product name.** Code reads `BRAND.name`
+  (`src/lib/brand.ts`); catalogues write `{brand}`. The domain comes from
+  `NEXT_PUBLIC_SITE_URL` / `NEXT_PUBLIC_APP_URL` via `src/lib/site.ts`.
+- **A page is indexable only if it is in `src/lib/seo/pages.ts`** and builds its
+  metadata with `pageMetadata()`. Everything else inherits the root `noindex`.
+  Copy on public pages states only what the code does (SEO_STRATEGY.md §8).
 - **No `text-[13px]`, no `rounded-[8px]`.** The type scale and the radius
   vocabulary in `src/design/theme.css` are the whole set. See DESIGN.md §3, §5.
 
@@ -105,6 +111,8 @@ pnpm test          # vitest
 pnpm db:generate   # generate a drizzle migration from schema changes
 pnpm db:migrate    # apply migrations (includes handwritten RLS migrations)
 pnpm db:seed       # demo workspace + affiliates + ledger
+pnpm seo:check     # indexability check against a running server (BASE_URL)
+pnpm seo:funnel    # acquisition → activation → paid, by first touch
 ```
 
 A change is not done until `pnpm lint && pnpm typecheck && pnpm test && pnpm build` all pass.

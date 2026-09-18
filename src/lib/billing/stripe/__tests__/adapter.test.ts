@@ -118,7 +118,108 @@ describe("StripeAdapter — payment references (T6)", () => {
     expect(event).toMatchObject({ providerTransactionId: "dp_2", paymentReferences: ["ch_9"] })
   })
 
+  it("reads a won dispute (or a closed inquiry) as money given back, and ignores a lost one", () => {
+    const dispute = { id: "dp_3", amount: 4900, currency: "brl", charge: "ch_3", payment_intent: "pi_3" }
+    expect(normalize("charge.dispute.closed", { ...dispute, status: "won" })).toMatchObject({
+      type: "payment.disputeWon",
+      providerDisputeId: "dp_3",
+      paymentReferences: ["pi_3", "ch_3"],
+    })
+    expect(normalize("charge.dispute.closed", { ...dispute, status: "warning_closed" })).toMatchObject({
+      type: "payment.disputeWon",
+    })
+    expect(normalize("charge.dispute.closed", { ...dispute, status: "lost" })).toBeNull()
+  })
+
   it("no longer reads charge.refunded, whose amount is the charge's running total", () => {
     expect(normalize("charge.refunded", { id: "ch_1", amount_refunded: 1000, currency: "brl" })).toBeNull()
+  })
+})
+
+describe("StripeAdapter — attribution references", () => {
+  const TOKEN = `ifx_${"aB3-_".repeat(8)}`.slice(0, 47)
+
+  it("turns a Checkout Session with our client_reference_id into a bind, never into money", () => {
+    const event = normalize("checkout.session.completed", {
+      id: "cs_1",
+      mode: "subscription",
+      client_reference_id: TOKEN,
+      customer: "cus_1",
+      subscription: "sub_1",
+    })
+    expect(event).toMatchObject({
+      type: "attribution.bind",
+      attributionToken: TOKEN,
+      providerCustomerId: "cus_1",
+      providerSubscriptionId: "sub_1",
+    })
+    // The invoice or PaymentIntent event records the payment; this one must not.
+    expect(event).not.toHaveProperty("amountMinor")
+  })
+
+  it("falls back to session metadata when client_reference_id holds the founder's own id", () => {
+    expect(
+      normalize("checkout.session.completed", {
+        id: "cs_2",
+        mode: "payment",
+        client_reference_id: "cart_9182",
+        metadata: { indicafluxo_ref: TOKEN },
+        customer: "cus_2",
+      }),
+    ).toMatchObject({ type: "attribution.bind", attributionToken: TOKEN, providerCustomerId: "cus_2" })
+  })
+
+  it("ignores a session with no reference of ours, and one with no customer", () => {
+    expect(
+      normalize("checkout.session.completed", { id: "cs_3", client_reference_id: "cart_1", customer: "cus_3" }),
+    ).toBeNull()
+    expect(
+      normalize("checkout.session.completed", { id: "cs_4", client_reference_id: TOKEN, customer: null }),
+    ).toBeNull()
+  })
+
+  it("reads the reference from PaymentIntent metadata (Elements / custom checkout)", () => {
+    expect(
+      normalize("payment_intent.succeeded", {
+        id: "pi_m",
+        amount: 4900,
+        amount_received: 4900,
+        currency: "brl",
+        customer: "cus_m",
+        metadata: { indicafluxo_ref: TOKEN },
+      }),
+    ).toMatchObject({ type: "payment.succeeded", attributionToken: TOKEN })
+  })
+
+  it("reads the reference from the subscription an invoice belongs to (Subscription API)", () => {
+    expect(
+      normalize("invoice.paid", {
+        id: "in_m",
+        amount_paid: 4900,
+        currency: "brl",
+        customer: "cus_m",
+        parent: { subscription_details: { subscription: "sub_m", metadata: { indicafluxo_ref: TOKEN } } },
+      }),
+    ).toMatchObject({ type: "payment.succeeded", attributionToken: TOKEN })
+  })
+
+  it("reads the reference from the subscription itself", () => {
+    expect(
+      normalize("customer.subscription.created", {
+        id: "sub_n",
+        customer: "cus_n",
+        status: "active",
+        currency: "brl",
+        metadata: { indicafluxo_ref: TOKEN },
+        items: { data: [{ price: { unit_amount: 4900, recurring: { interval: "month" } } }] },
+        start_date: 1_760_000_000,
+      }),
+    ).toMatchObject({ type: "subscription.updated", attributionToken: TOKEN })
+  })
+
+  it("leaves a payment without a reference exactly as it was", () => {
+    expect(
+      normalize("payment_intent.succeeded", { id: "pi_p", amount: 100, currency: "brl", customer: "cus_p" }),
+    ).toMatchObject({ type: "payment.succeeded", attributionToken: null })
   })
 })

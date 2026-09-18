@@ -19,6 +19,12 @@ export const routing = defineRouting({
   defaultLocale: "pt-br",
   localePrefix: "always",
 
+  // next-intl would otherwise emit a `Link` response header with an alternate
+  // for every route — including private ones, and with its own `x-default`.
+  // Alternates are declared once, in each indexable page's metadata
+  // (`src/lib/seo/metadata.ts`), and only where an equivalent exists.
+  alternateLinks: false,
+
   // Persisted so a returning visitor lands where they left off, rather than
   // being re-negotiated by a browser header they may not control.
   localeCookie: {
@@ -33,6 +39,28 @@ export const routing = defineRouting({
     // Marketing
     "/pricing": { "pt-br": "/precos", en: "/pricing" },
     "/docs": { "pt-br": "/documentacao", en: "/docs" },
+    // Beta payment methods: documented, never indexed (SEO_STRATEGY.md §8, not in seo/pages.ts).
+    "/docs/beta": { "pt-br": "/documentacao/beta", en: "/docs/beta" },
+
+    // Legal
+    "/terms": { "pt-br": "/termos", en: "/terms" },
+    "/privacy": { "pt-br": "/privacidade", en: "/privacy" },
+    "/cookies": { "pt-br": "/cookies", en: "/cookies" },
+
+    // Search-intent pages (SEO_CONTENT_MAP.md). Each pair is one intent written
+    // for each market, so the two slugs are chosen per language, not translated.
+    "/saas-affiliate-program": {
+      "pt-br": "/programa-de-afiliados-saas",
+      en: "/affiliate-software-for-saas",
+    },
+    "/affiliate-software": {
+      "pt-br": "/software-de-afiliados-saas",
+      en: "/affiliate-management-software",
+    },
+    "/stripe-affiliates": {
+      "pt-br": "/afiliados-stripe",
+      en: "/stripe-affiliate-software",
+    },
 
     // Auth
     "/login": { "pt-br": "/entrar", en: "/login" },
@@ -103,6 +131,10 @@ export const routing = defineRouting({
     "/[workspaceSlug]/integrations": {
       "pt-br": "/[workspaceSlug]/integracoes",
       en: "/[workspaceSlug]/integrations",
+    },
+    "/[workspaceSlug]/integrations/[connectionId]": {
+      "pt-br": "/[workspaceSlug]/integracoes/[connectionId]",
+      en: "/[workspaceSlug]/integrations/[connectionId]",
     },
     "/[workspaceSlug]/settings": {
       "pt-br": "/[workspaceSlug]/configuracoes",

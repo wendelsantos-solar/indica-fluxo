@@ -12,6 +12,7 @@ const LANGUAGE_LABEL: Record<CodeLanguage, string> = {
   typescript: "TypeScript",
   json: "JSON",
   bash: "cURL",
+  shell: "Shell",
   text: "Text",
 }
 
@@ -25,6 +26,7 @@ export async function CodeBlock({
   code,
   language,
   filename,
+  title,
   copy = true,
   className,
   bare = false,
@@ -33,6 +35,8 @@ export async function CodeBlock({
   language: CodeLanguage
   /** Shown instead of the language label when the sample belongs in a file. */
   filename?: string
+  /** A plain-language label (not a file) shown before the language. */
+  title?: string
   copy?: boolean
   className?: string
   /** No header or frame — for the body of a `CodeTabs` panel. */
@@ -49,9 +53,13 @@ export async function CodeBlock({
       <figcaption className="flex h-10 items-center justify-between gap-3 border-b border-border pl-4 pr-1.5">
         <span className="flex min-w-0 items-center gap-2 text-meta text-muted-foreground">
           {filename ? <span className="truncate font-mono text-foreground-secondary">{filename}</span> : null}
-          {filename && language === "text" ? null : (
-            <span className={cn(filename && "text-faint-foreground")}>{LANGUAGE_LABEL[language]}</span>
-          )}
+          {title && !filename ? <span className="truncate text-foreground-secondary">{title}</span> : null}
+          {filename || title ? (
+            <span aria-hidden="true" className="text-faint-foreground">
+              ·
+            </span>
+          ) : null}
+          <span className={cn("shrink-0", (filename || title) && "text-faint-foreground")}>{LANGUAGE_LABEL[language]}</span>
         </span>
         {copy ? <CopyCode code={code} sourceId={id} /> : null}
       </figcaption>
@@ -81,7 +89,7 @@ function CodeLines({ id, lines }: { id?: string; lines: Awaited<ReturnType<typeo
       id={id}
       data-slot="scrollable"
       tabIndex={0}
-      className="overflow-x-auto px-4 py-3.5 font-mono text-caption leading-relaxed text-(--shiki-foreground) outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      className="overflow-x-auto px-4 py-4 font-mono text-caption leading-relaxed text-(--shiki-foreground) outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
     >
       <code>
         {lines.map((line, index) => (

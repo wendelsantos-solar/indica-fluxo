@@ -7,14 +7,21 @@ import { identifyBodySchema } from "@/lib/api/contract"
 import { STRIPE_HANDLED_EVENTS } from "@/lib/billing/stripe/events"
 import { applyBasisPoints } from "@/lib/money"
 import { trackerSource } from "@/lib/tracking/script"
+import { VISITOR_COOKIE } from "@/lib/tracking/constants"
 import { isValidVisitorId } from "@/lib/tracking/visitor"
 
 import {
   COMMISSION_EXAMPLE,
   IDENTIFY_EXAMPLE,
+  STRIPE_TRIGGER_COMMAND,
+  customerFirstSnippet,
   identifyCurl,
+  identifyEndpoint,
   identifyTypeScript,
+  stripeEventsText,
   trackerSnippet,
+  visitorIdFromCookie,
+  visitorIdFromForm,
   webhookUrl,
 } from "../snippets"
 
@@ -24,7 +31,7 @@ import {
  * attribute, a new required field or a dropped Stripe event fails CI instead
  * of silently breaking someone's integration.
  */
-const APP = "https://app.indicafluxo.test"
+const APP = "https://app.refvia.test"
 
 describe("tracker snippet", () => {
   it("loads the served tracker path with the attribute the script reads", () => {
@@ -60,7 +67,43 @@ describe("identify examples", () => {
   })
 })
 
+describe("visitor id samples", () => {
+  it("read the cookie the tracker writes, and the value it exposes", () => {
+    const source = trackerSource(`${APP}/api/track`)
+    expect(visitorIdFromCookie()).toContain(`${VISITOR_COOKIE}=`)
+    expect(source).toContain(`var COOKIE = "${VISITOR_COOKIE}"`)
+    expect(visitorIdFromForm()).toContain("window.Referral.visitorId")
+    expect(source).toContain("window.Referral = {")
+  })
+
+  it("the cookie regex extracts a valid visitor id from a Cookie header", () => {
+    const pattern = visitorIdFromCookie().match(/match\((\/.+\/)\)/)?.[1]
+    expect(pattern).toBeDefined()
+    const regex = new RegExp(pattern!.slice(1, -1))
+    const header = `theme=dark; ${VISITOR_COOKIE}=v_k3n9q2x7m4p8r1t6w5z0; other=1`
+    const value = header.match(regex)?.[1]
+    expect(isValidVisitorId(value)).toBe(true)
+  })
+})
+
+describe("identify reference", () => {
+  it("names the identify route", () => {
+    expect(identifyEndpoint(APP)).toBe(`POST ${APP}/api/identify`)
+    expect(existsSync(join(process.cwd(), "src/app/api/identify/route.ts"))).toBe(true)
+  })
+})
+
 describe("webhook", () => {
+  it("the copyable event list is exactly the handled events", () => {
+    const types = STRIPE_HANDLED_EVENTS.map((event) => event.type)
+    expect(stripeEventsText(types).split("\n")).toEqual(types)
+  })
+
+  it("the CLI test event is one the adapter handles", () => {
+    const type = STRIPE_TRIGGER_COMMAND.replace("stripe trigger ", "")
+    expect(STRIPE_HANDLED_EVENTS.map((event) => event.type)).toContain(type)
+  })
+
   it("points at the per-integration Stripe webhook route", () => {
     expect(webhookUrl(APP, "INTEGRATION_ID")).toBe(`${APP}/api/webhooks/stripe/INTEGRATION_ID`)
     expect(
@@ -79,5 +122,20 @@ describe("commission example", () => {
   it("uses the engine's own arithmetic", () => {
     expect(COMMISSION_EXAMPLE.commissionMinor).toBe(applyBasisPoints(4900, 3000))
     expect(COMMISSION_EXAMPLE.commissionMinor).toBe(1470)
+  })
+})
+
+describe("customer-first sample", () => {
+  it("calls the real identify route with fields the schema knows and the tracker's cookie", () => {
+    const sample = customerFirstSnippet(APP)
+    expect(sample).toContain(`${APP}/api/identify`)
+    expect(sample).toContain(VISITOR_COOKIE)
+    const body = sample.slice(sample.indexOf("JSON.stringify({"), sample.indexOf("}),"))
+    const sent = [...body.matchAll(/^\s{6}(\w+)[,:]/gm)].map((match) => match[1])
+    expect(sent).toEqual(["visitorId", "externalId", "email"])
+    for (const field of sent) expect(Object.keys(identifyBodySchema.shape)).toContain(field)
+    // The same regex a founder copies must read a real cookie header.
+    const regex = new RegExp(sample.match(/\.match\(\/(.+)\/\)/)![1]!)
+    expect("a=1; " + VISITOR_COOKIE + "=v_abc; b=2").toMatch(regex)
   })
 })

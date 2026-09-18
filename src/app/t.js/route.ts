@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 
+import { appUrl } from "@/lib/site"
 import { TRACK_API_PATH } from "@/lib/tracking/constants"
 import { trackerSource } from "@/lib/tracking/script"
 
@@ -12,14 +13,15 @@ export const revalidate = 3600
  * baked in here is only a fallback: the script posts to the host it was
  * loaded from, so a static build made without `NEXT_PUBLIC_APP_URL` does not
  * freeze a localhost endpoint into production.
+ *
+ * Not `immutable`: the URL carries no version, so a tracker fix must reach
+ * sites that already embed it once the cache expires.
  */
 export function GET() {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
-
-  return new NextResponse(trackerSource(`${appUrl}${TRACK_API_PATH}`), {
+  return new NextResponse(trackerSource(new URL(TRACK_API_PATH, appUrl()).toString()), {
     headers: {
       "content-type": "application/javascript; charset=utf-8",
-      "cache-control": "public, max-age=3600, s-maxage=86400, immutable",
+      "cache-control": "public, max-age=3600, s-maxage=86400",
       "access-control-allow-origin": "*",
       "x-content-type-options": "nosniff",
     },

@@ -22,7 +22,7 @@ export type StripeConnectionState =
 
 export interface StripeStatusInput {
   integration: {
-    status: "connected" | "disconnected" | "error"
+    status: "connected" | "disconnected" | "error" | "pending"
     secretSaved: boolean
     secretSavedAt: Date | null
     lastRejectedAt: Date | null
@@ -71,6 +71,23 @@ export function stripeBadgeStatus(state: StripeConnectionState): "connected" | "
     case "error":
       return "failed"
   }
+}
+
+/**
+ * Why events arrive but earn nothing, from one Stripe mode's recent evidence.
+ * Dropped payments come first: they are lost for good, and fixing them (a
+ * Stripe setting) differs from fixing unattributed ones (the identify call).
+ */
+export type AttributionIssue = "paymentsWithoutCustomer" | "noCommissions"
+
+export function attributionIssue(evidence: {
+  payments: number
+  paymentsWithCommission: number
+  paymentsWithoutCustomer: number
+}): AttributionIssue | null {
+  if (evidence.paymentsWithoutCustomer > 0) return "paymentsWithoutCustomer"
+  if (evidence.payments > 0 && evidence.paymentsWithCommission === 0) return "noCommissions"
+  return null
 }
 
 /**

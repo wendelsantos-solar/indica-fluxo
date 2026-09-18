@@ -5,12 +5,14 @@
  * (`src/features/docs/__tests__/snippets.test.ts`).
  */
 export const STRIPE_HANDLED_EVENTS = [
+  { type: "checkout.session.completed", records: "checkoutReference" },
   { type: "invoice.payment_succeeded", records: "payment" },
   { type: "invoice.paid", records: "payment" },
   { type: "payment_intent.succeeded", records: "oneOffPayment" },
   { type: "invoice_payment.paid", records: "paymentLink" },
   { type: "refund.created", records: "refund" },
   { type: "charge.dispute.created", records: "chargeback" },
+  { type: "charge.dispute.closed", records: "disputeWon" },
   { type: "customer.subscription.created", records: "subscription" },
   { type: "customer.subscription.updated", records: "subscription" },
   { type: "customer.subscription.deleted", records: "subscriptionCancelled" },

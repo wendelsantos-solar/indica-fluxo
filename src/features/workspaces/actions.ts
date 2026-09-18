@@ -5,6 +5,7 @@ import { getLocale, getTranslations } from "next-intl/server"
 
 import { redirect } from "@/i18n/navigation"
 import { revalidatePath } from "next/cache"
+import { cookies } from "next/headers"
 import { z } from "zod"
 
 import type { Locale } from "@/i18n/routing"
@@ -20,6 +21,7 @@ import {
   updateWorkspace,
 } from "@/server/services/workspaces"
 import { DASHBOARD_LAYOUT } from "@/lib/revalidate"
+import { ACQUISITION_COOKIE, decodeAcquisition } from "@/lib/seo/acquisition"
 
 /** What an invite form shows after success: whether an e-mail went out, and the links. */
 export type InviteOutcome = InviteDelivery & { email: string }
@@ -53,10 +55,17 @@ export async function createWorkspaceAction(
       fieldErrors: await fieldErrorsFrom(parsed.error),
     }
 
+  // First touch, kept by the proxy since the founder's first page view. Parsed
+  // as untrusted input; a missing or tampered cookie just stores nothing.
+  const cookieStore = await cookies()
+  const acquisition = decodeAcquisition(cookieStore.get(ACQUISITION_COOKIE)?.value)
+
   let slug: string
   try {
-    const workspace = await createWorkspace(user.id, parsed.data)
+    const workspace = await createWorkspace(user.id, { ...parsed.data, acquisition })
     slug = workspace.slug
+    // Spent: a second workspace by the same person was not brought by that visit.
+    if (acquisition) cookieStore.delete(ACQUISITION_COOKIE)
   } catch (error) {
     return { error: await actionError(error, "workspaceNotCreated") }
   }

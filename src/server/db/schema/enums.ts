@@ -3,13 +3,13 @@ import { pgEnum } from "drizzle-orm/pg-core"
 export const workspaceRoleEnum = pgEnum("workspace_role", ["owner", "admin", "member"])
 
 /**
- * The plan codes of IndicaFluxo's own offer. What each includes lives in code
+ * The plan codes of Refvia's own offer. What each includes lives in code
  * (`src/lib/plans.ts`), the single source enforcement reads; see docs/PLANS.md.
  * `scale` exists so the model accepts a third plan; it is not sold yet.
  */
 export const planCodeEnum = pgEnum("plan_code", ["sandbox", "launch", "growth", "scale"])
 
-/** State of a workspace's subscription to IndicaFluxo (not its customers'). */
+/** State of a workspace's subscription to Refvia (not its customers'). */
 export const platformSubscriptionStatusEnum = pgEnum("platform_subscription_status", [
   "free",
   "trialing",
@@ -26,7 +26,7 @@ export const platformSubscriptionStatusEnum = pgEnum("platform_subscription_stat
  */
 export const environmentEnum = pgEnum("environment", ["test", "live"])
 
-/** Whose webhook: a founder's billing (their customers) or IndicaFluxo's own. */
+/** Whose webhook: a founder's billing (their customers) or Refvia's own. */
 export const webhookScopeEnum = pgEnum("webhook_scope", ["customer_billing", "platform_billing"])
 
 export const programStatusEnum = pgEnum("program_status", [
@@ -57,7 +57,19 @@ export const programAffiliateStatusEnum = pgEnum("program_affiliate_status", [
   "suspended",
 ])
 
-export const billingProviderEnum = pgEnum("billing_provider", ["stripe", "paddle", "manual"])
+/**
+ * Every billing provider a connection, customer identity or transaction can
+ * belong to. `paddle` is reserved and unused; `manual` is the sandbox. The
+ * connectors themselves live in `src/lib/billing/` (catalog + registry).
+ */
+export const billingProviderEnum = pgEnum("billing_provider", [
+  "stripe",
+  "paddle",
+  "manual",
+  "mercado_pago",
+  "abacatepay",
+  "asaas",
+])
 
 export const subscriptionStatusEnum = pgEnum("subscription_status", [
   "trialing",
@@ -111,10 +123,16 @@ export const payoutItemStatusEnum = pgEnum("payout_item_status", [
   "cancelled",
 ])
 
+/**
+ * What the founder configured, not whether it works — health is derived from
+ * evidence (`src/features/integrations/health.ts`). `pending`: being set up,
+ * nothing confirmed by the provider yet (migration 0018).
+ */
 export const integrationStatusEnum = pgEnum("integration_status", [
   "connected",
   "disconnected",
   "error",
+  "pending",
 ])
 
 export const apiKeyTypeEnum = pgEnum("api_key_type", ["publishable", "secret"])

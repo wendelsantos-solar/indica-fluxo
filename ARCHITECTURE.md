@@ -147,7 +147,31 @@ The tracker is plain TypeScript compiled to a standalone script served from
 so the whole endpoint can be lifted to an edge worker later without touching
 `server/domain/attribution.ts`.
 
-### 3.2 Binding a visitor to a customer (identify)
+### 3.2 Binding a visitor to a customer
+
+There are two ways in, and they write the same thing:
+`attributions.provider_customer_id`, which is how the webhook later finds the
+affiliate. Everything below that column is unchanged by which one was used.
+
+**(a) The attribution reference — the default.** `recordClick` issues a public,
+opaque, server-side reference (`attribution_tokens`, `ifx_…`) for a click that
+produced an eligible attribution. The tracker keeps it in a first-party cookie,
+exposes it as `window.Referral.attributionToken`, and appends it to Stripe
+Payment Link hrefs by itself. The founder carries it through their checkout —
+`client_reference_id` on a Checkout Session, `metadata[indicafluxo_ref]` on a
+PaymentIntent or Subscription — and the webhook hands it back.
+`src/server/services/attribution-bridge.ts` resolves it and binds. **No backend
+code, no second deploy.** Full design: `INTEGRATION_ARCHITECTURE_V2.md`.
+
+The reference is a correlation handle, not a credential: resolving one yields a
+`visitor_id` inside one workspace and one environment and grants nothing else.
+First bind wins — a second bind to a different customer is refused and recorded,
+the same rule as the renewal lock in `tracking.ts`.
+
+**(b) `POST /api/identify` — the advanced path.** Unchanged, still supported,
+now optional. It is what a founder uses when the customer exists before the
+checkout, when their flow carries no reference, or when they want their own user
+id tied to the customer.
 
 A click alone proves nothing. The SaaS customer's **server** calls:
 
@@ -161,7 +185,7 @@ Authorization: Bearer sk_live_…   (or sk_test_… for test programs)
 - `email` is hashed (`sha256(lower(trim(email)) + workspace pepper)`) before
   storage; the plaintext is never written.
 - Creates/updates a `customers` row and stamps `attributions.customer_external_id`
-  and `provider_customer_id`, which is how the webhook later finds the affiliate.
+  and `provider_customer_id`.
 
 Trusting a `customerId` posted from a browser would let anyone reassign
 commissions. That is why identify is server-to-server, full stop.
@@ -171,6 +195,14 @@ separate per environment, only attributions of programs in that environment are
 bound, and a live key on a workspace without live mode answers
 `402 LIVE_MODE_REQUIRED` (docs/PLANS.md §2). Re-identifying never clears a stored
 provider customer id or e-mail hash.
+
+Because Stripe orders nothing, a bind can arrive **after** the payment it
+belongs to. `commissionsForBoundCustomer()` then walks that customer's payments
+that carry no commission and runs the same
+`commissionForTransaction()` the payment path runs — one implementation, in
+`src/server/services/commission-writer.ts`, so both orderings produce the same
+row. The bind itself never creates a `transactions` row, so it cannot duplicate
+a payment.
 
 ### 3.3 Billing webhook → commission
 
@@ -238,6 +270,41 @@ from evidence, not from `integrations.status`: `server/services/integration-heal
 reads the latest event through `public.latest_webhook_event()` under
 `withUser()` (`DATABASE.md` §6).
 
+### 3.3b Every other billing provider (universal connectors)
+
+`UNIVERSAL_ATTRIBUTION_ARCHITECTURE.md` is the design; this is the flow.
+
+```
+Mercado Pago / AbacatePay / Asaas → POST /api/webhooks/billing/<provider>/<connectionId>
+   │  0. load the connection by id AND provider (service connection), decrypt its credentials
+   │     unknown / other provider / disabled connector / no credentials → bare 404
+   │  1. connector.verify(delivery, credentials)            ← before anything is trusted
+   │       MP: HMAC of id+request-id+ts · AbacatePay: URL secret + body HMAC · Asaas: token header
+   │  1b. MP only: learn the provider account (user_id) once; refuse another account
+   │  2. environment: the connection's (key prefix) must match the event's → else TEST_LIVE_MISMATCH
+   │  3. claim (customer_billing, provider, "<connectionId>:<event id>") — ids are scoped to the
+   │     connection because no provider but Stripe documents globally unique event ids
+   │  4. connector.normalize() → NormalizedBillingEvent[]   (async: MP fetches the payment)
+   │  5. handleBillingEvent(workspaceId, event, …, { integrationId }) for each fact
+   │  6. mark the claim with a reason code (src/lib/billing/reasons.ts)
+   ▼  200 / 401 (unauthenticated) / 404 / 500 (retry) — never 410
+```
+
+Adapters (`src/lib/billing/<provider>/connector.ts`) implement `BillingConnector`
+(`src/lib/billing/connector.ts`); what each can do is data in
+`src/lib/billing/catalog.ts`. They are stateless: a provider that reports a
+running refunded total sets `cumulativeRefundedMinor` and the core records the
+delta. Connections are managed by `server/services/billing-connections.ts`
+(connect → validate the key → register the webhook where the provider allows →
+`connected`; disconnect keeps the ledger).
+
+Customers resolve through `billing_identities` first (one customer, N provider
+identities), then the legacy provider id on `customers`, then the SaaS's own id
+carried in server-set checkout metadata (`externalCustomerId`), then the
+e-mail rule. A reference token whose visitor was identified links the new
+provider identity to that customer — which is how an attribution survives a
+provider switch.
+
 ### 3.4 Payout
 
 Payouts move no money. A batch belongs to one environment (a test batch pays
@@ -290,12 +357,19 @@ account id (`acct_…`) and the endpoint's **webhook signing secret**
 (`whsec_…`), which only proves that deliveries came from that endpoint. It is
 AES-256-GCM encrypted with `ENCRYPTION_KEY` in `integrations.encrypted_credentials`
 as `{ webhookSecret }`, dropped on disconnect, and never returned to the browser.
-Stripe Connect OAuth (`buildConnectUrl` / `exchangeConnectCode`) exists in the
-adapter but is not wired to the UI.
+Stripe Connect OAuth (`buildConnectUrl` / `exchangeConnectCode`) is wired to
+"Connect with Stripe" when `STRIPE_CONNECT_CLIENT_ID` is set.
+
+Every other provider is a `BillingConnector` (§3.3b): `verify` takes the raw
+delivery (body, headers, query) because Mercado Pago signs `id + request-id +
+ts`, AbacatePay adds a URL secret to a body HMAC and Asaas sends a token header
+— one `signature` string cannot express those. `normalize` is async and plural.
+A workspace may hold several connections of one provider
+(`UNIQUE (workspace, provider, provider_account_id)`).
 
 ### Platform billing
 
-IndicaFluxo charging workspaces for Launch/Growth is a second, separate Stripe
+Refvia charging workspaces for Launch/Growth is a second, separate Stripe
 responsibility — see the table in `docs/PLANS.md` §5. It never shares code,
 keys or tables with the founders' billing above.
 
@@ -305,7 +379,7 @@ Settings → startCheckoutAction / openBillingPortalAction   (features/billing/a
    │  PlatformBillingGateway (lib/platform-billing/stripe/gateway.ts) → Checkout / Billing Portal
    ▼  redirect to Stripe; the redirect back is not trusted
 
-Stripe (IndicaFluxo's account) → POST /api/platform-billing/stripe/webhook
+Stripe (Refvia's account) → POST /api/platform-billing/stripe/webhook
    │  1. verify with PLATFORM_STRIPE_WEBHOOK_SECRET, interpret (lib/platform-billing/stripe/normalize.ts)
    │  2. claimWebhookEvent(scope platform_billing)      ← a FAILED event is claimable again
    │  3. fetch the subscription from Stripe when the event only names it
@@ -462,3 +536,42 @@ scrubs `authorization`, `sk_*`, `pk_*`, `whsec_*`, `token`, `secret`, `password`
 at any depth. Webhook failures persist `error_message` on the `webhook_events`
 row, so a failed delivery is debuggable from the database alone. Wiring Sentry
 later means implementing one `onError` hook; nothing paid is required to run.
+
+## 10. Public site: brand, SEO and acquisition
+
+**Brand.** The product name is written once, in `src/lib/brand.ts`. Components
+read `BRAND.name`; catalogues write `{brand}`, substituted in
+`src/i18n/request.ts` before any message is formatted. Wire identifiers already
+in customers' systems (`ifx_` tokens, the `indicafluxo_ref` metadata key,
+tracker cookie names) deliberately do not follow a rename.
+
+**Origins.** `appUrl()` is where the product runs (API, tracker, OAuth);
+`siteUrl()` (`NEXT_PUBLIC_SITE_URL`, falling back to the app origin) is what
+canonical URLs, hreflang, the sitemap and Open Graph use (`src/lib/site.ts`).
+
+**Indexable registry.** `src/lib/seo/pages.ts` is the only list of indexable
+pages. It feeds `app/sitemap.ts`, the proxy's public-route set and the SEO
+tests. The root layout declares `noindex`; a page becomes indexable only by
+being registered and building its metadata with `pageMetadata()`
+(`src/lib/seo/metadata.ts`: title, description, self-canonical, `pt-BR`/`en`/
+`x-default` alternates, robots, Open Graph, Twitter). The whole site stays
+`noindex` with a closed robots.txt unless `SITE_INDEXING=on` at build time.
+
+**Structured data** (`src/lib/seo/structured-data.ts`, rendered by
+`components/seo/json-ld.tsx`): Organization, WebSite and SoftwareApplication
+(offers = `PLAN_OFFERS`) on the home page; BreadcrumbList on inner pages. No
+ratings, reviews or FAQPage.
+
+**Search-intent pages** are one Server Component
+(`features/marketing/content-page.tsx`) driven by a section map
+(`content-pages.ts`) and the `seo.pages.*` catalogue. Adding one: a pathname in
+`routing.ts`, an entry in `pages.ts`, a section map, copy in both catalogues,
+a `page.tsx` + `opengraph-image.tsx`, a row in SEO_CONTENT_MAP.md.
+
+**Acquisition.** On a public document request with no `_acq` cookie, the proxy
+records the first touch (channel from UTM / ad click id / referring host,
+landing path, locale) — `src/lib/seo/acquisition.ts`. `createWorkspaceAction`
+stores it on `workspaces.acquisition` and deletes the cookie. `pnpm seo:funnel`
+joins it to milestones the database already records (program, sandbox
+commission, real click, live commission, paid plan). No client-side analytics
+script is involved.

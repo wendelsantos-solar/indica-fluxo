@@ -31,6 +31,7 @@ const { POST } = await import("../route")
 const body = JSON.stringify({
   id: "evt_route_1",
   object: "event",
+  livemode: false,
   type: "invoice.paid",
   created: 1_760_000_000,
   // Even a Connect-style account on the event must not decide the workspace.
@@ -38,15 +39,15 @@ const body = JSON.stringify({
   data: { object: { id: "in_1", object: "invoice" } },
 })
 
-function call(integrationId: string, secret: string | null) {
+function call(integrationId: string, secret: string | null, payload = body) {
   const headers = new Headers({ "content-type": "application/json" })
   if (secret) {
-    headers.set("stripe-signature", Stripe.webhooks.generateTestHeaderString({ payload: body, secret }))
+    headers.set("stripe-signature", Stripe.webhooks.generateTestHeaderString({ payload, secret }))
   }
   const request = new NextRequest(`http://localhost/api/webhooks/stripe/${integrationId}`, {
     method: "POST",
     headers,
-    body,
+    body: payload,
   })
   return POST(request, { params: Promise.resolve({ integrationId }) })
 }
@@ -76,6 +77,16 @@ describe("POST /api/webhooks/stripe/[integrationId]", () => {
     expect(response.status).toBe(400)
     expect(await response.json()).toEqual({ error: "invalid_signature" })
     expect(services.recordWebhookRejection).toHaveBeenCalledWith(INTEGRATION_ID)
+    expect(services.ingestVerifiedWebhook).not.toHaveBeenCalled()
+  })
+
+  it("does not record a rejection for a live delivery when no live secret is saved yet", async () => {
+    const liveBody = body.replace('"livemode":false', '"livemode":true')
+    const response = await call(INTEGRATION_ID, "whsec_live_endpoint_not_saved_yet_0", liveBody)
+
+    // Still non-2xx, so Stripe retries and the retries land once the secret is saved.
+    expect(response.status).toBe(400)
+    expect(services.recordWebhookRejection).not.toHaveBeenCalled()
     expect(services.ingestVerifiedWebhook).not.toHaveBeenCalled()
   })
 

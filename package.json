@@ -1,5 +1,5 @@
 {
-  "name": "indica-fluxo",
+  "name": "refvia",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -19,7 +19,9 @@
     "perf:navigation": "tsx --conditions=react-server scripts/perf/bench-navigation.ts",
     "perf:explain": "tsx --conditions=react-server scripts/perf/explain-at-scale.ts",
     "perf:load": "node scripts/perf/load.mjs",
-    "perf:vitals": "node scripts/perf/lab-vitals.mjs"
+    "perf:vitals": "node scripts/perf/lab-vitals.mjs",
+    "seo:check": "node scripts/seo/check.mjs",
+    "seo:funnel": "tsx scripts/seo/funnel.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",
@@ -61,6 +63,9 @@
     "tsx": "^4.23.13",
     "typescript": "^5",
     "vitest": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=24.0.0"
   },
   "packageManager": "pnpm@11.11.0"
 }

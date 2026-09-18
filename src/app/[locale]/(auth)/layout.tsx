@@ -5,6 +5,7 @@ import { clientMessages } from "@/i18n/client-messages"
 import { Link } from "@/i18n/navigation"
 
 import { LocaleSwitcher } from "@/components/layout/locale-switcher"
+import { LegalLinks } from "@/components/layout/legal-links"
 import { Logo } from "@/components/layout/logo"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { AuthProof } from "@/features/auth/auth-proof"
@@ -72,8 +73,11 @@ export default async function AuthLayout({ children, params }: LayoutProps<"/[lo
 
           {/* Kept in the flow (invisible) from 1024px so both halves have the
               same header and footer heights and centre on one baseline. */}
-          <footer className="px-4 py-6 text-center text-meta text-faint-foreground sm:px-6 lg:invisible">
-            {chrome("tagline")}
+          {/* Legal links stay visible at every width; the tagline repeats the
+              left half's, so it is kept invisible from 1024px as before. */}
+          <footer className="space-y-2 px-4 py-6 text-center text-meta text-faint-foreground sm:px-6">
+            <p className="lg:invisible">{chrome("tagline")}</p>
+            <LegalLinks className="justify-center" />
           </footer>
         </div>
       </div>

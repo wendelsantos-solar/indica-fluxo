@@ -18,6 +18,7 @@ import {
   transactionStatusEnum,
   transactionTypeEnum,
 } from "./enums"
+import { integrations } from "./platform"
 import { programs } from "./programs"
 import { workspaces } from "./tenancy"
 
@@ -124,6 +125,8 @@ export const transactions = pgTable(
     status: transactionStatusEnum("status").notNull().default("succeeded"),
     /** From the provider event (Stripe `livemode`). */
     environment: environmentEnum("environment").notNull().default("test"),
+    /** The connection that delivered it (migration 0018); NULL before, and for simulations. */
+    integrationId: uuid("integration_id").references(() => integrations.id, { onDelete: "set null" }),
 
     currency: char("currency", { length: 3 }).notNull(),
     grossAmountMinor: bigint("gross_amount_minor", { mode: "number" }).notNull(),
@@ -175,6 +178,63 @@ export const transactionReferences = pgTable(
     uniqueIndex("transaction_references_key").on(t.workspaceId, t.provider, t.referenceId),
   ],
 )
+
+/**
+ * One customer, N provider identities (UNIVERSAL_ATTRIBUTION_ARCHITECTURE.md §2).
+ *
+ * "This Stripe `cus_…`, this Mercado Pago payer and this Asaas `cus_…` are the
+ * same customer of the SaaS." The provider is part of the key — Stripe "123" and
+ * Mercado Pago "123" are two identities — the account is not, because every
+ * supported provider issues global customer ids and a Stripe per-workspace
+ * endpoint does not always say which account an event came from.
+ *
+ * Written only on the service connection (webhook ingest, POST /api/identify),
+ * through `linkBillingIdentity` — the one writer. `customers.provider /
+ * provider_customer_id` keep being written too (dual write) until nothing reads
+ * them (MULTI_PROVIDER_INTEGRATION_AUDIT.md, MIGRATION_RISK).
+ */
+export const billingIdentities = pgTable(
+  "billing_identities",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    customerId: uuid("customer_id")
+      .notNull()
+      .references(() => customers.id, { onDelete: "cascade" }),
+    environment: environmentEnum("environment").notNull(),
+    provider: billingProviderEnum("provider").notNull(),
+    providerCustomerId: text("provider_customer_id").notNull(),
+    /** The connection that first saw it. Provenance only; not part of the key. */
+    integrationId: uuid("integration_id").references(() => integrations.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("billing_identities_provider_customer_key").on(
+      t.workspaceId,
+      t.environment,
+      t.provider,
+      t.providerCustomerId,
+    ),
+    index("billing_identities_customer_idx").on(t.customerId),
+  ],
+)
+
+/**
+ * The providers a founder said they charge through — the integration wizard's
+ * multi-select. Drives the setup progress; never gates anything. Its own table
+ * so affiliates, who can read a program's workspace row, never see billing setup.
+ */
+export const billingSetupSelections = pgTable("billing_setup_selections", {
+  workspaceId: uuid("workspace_id")
+    .primaryKey()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  providers: text("providers").array().notNull().default(sql`'{}'::text[]`),
+  updatedBy: uuid("updated_by"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
 
 export const customersRelations = relations(customers, ({ one, many }) => ({
   workspace: one(workspaces, {

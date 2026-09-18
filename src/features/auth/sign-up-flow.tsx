@@ -175,6 +175,20 @@ function SignUpForm({
         >
           {t("signup.submit")}
         </Button>
+        <p className="text-pretty text-meta text-muted-foreground">
+          {t.rich("signup.legal", {
+            terms: (chunks) => (
+              <Link href="/terms" className="text-foreground-secondary underline underline-offset-4 hover:text-foreground">
+                {chunks}
+              </Link>
+            ),
+            privacy: (chunks) => (
+              <Link href="/privacy" className="text-foreground-secondary underline underline-offset-4 hover:text-foreground">
+                {chunks}
+              </Link>
+            ),
+          })}
+        </p>
       </form>
 
       <p className="mt-6 text-caption text-muted-foreground">

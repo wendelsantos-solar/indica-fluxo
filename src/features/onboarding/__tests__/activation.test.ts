@@ -26,19 +26,22 @@ describe("getActivation", () => {
     expect(activation.next).toBe("program")
   })
 
-  it("orders stripe, then the first affiliate, then tracking", () => {
-    expect(getActivation({ ...none, hasProgram: true }).next).toBe("stripe")
-    expect(getActivation({ ...none, hasProgram: true, stripeEventReceived: true }).next).toBe(
-      "affiliate",
-    )
+  it("orders the first affiliate, then tracking, and asks for Stripe last", () => {
+    expect(getActivation({ ...none, hasProgram: true }).next).toBe("affiliate")
+    expect(getActivation({ ...none, hasProgram: true, hasAffiliate: true }).next).toBe("tracking")
     expect(
-      getActivation({ ...none, hasProgram: true, stripeEventReceived: true, hasAffiliate: true })
-        .next,
-    ).toBe("tracking")
+      getActivation({ ...none, hasProgram: true, hasAffiliate: true, hasClick: true }).next,
+    ).toBe("stripe")
   })
 
   it("does not tick Stripe for saved credentials alone — it waits for an event", () => {
-    const activation = getActivation({ ...none, hasProgram: true, stripeConfigured: true })
+    const activation = getActivation({
+      ...none,
+      hasProgram: true,
+      hasAffiliate: true,
+      hasClick: true,
+      stripeConfigured: true,
+    })
     const stripe = activation.steps.find((step) => step.key === "stripe")
     expect(stripe).toEqual({ key: "stripe", done: false, waiting: true })
     expect(activation.next).toBe("stripe")
@@ -52,9 +55,9 @@ describe("getActivation", () => {
   })
 
   it("picks the first pending step even when a later one is already done", () => {
-    const activation = getActivation({ ...none, hasProgram: true, hasAffiliate: true, hasClick: true })
-    expect(activation.next).toBe("stripe")
-    expect(activation.doneCount).toBe(4)
+    const activation = getActivation({ ...none, hasProgram: true, stripeEventReceived: true })
+    expect(activation.next).toBe("affiliate")
+    expect(activation.doneCount).toBe(3)
   })
 
   it("has no next step when everything is done", () => {
@@ -149,22 +152,22 @@ describe("Sandbox journey", () => {
     expect(getActivation(none).steps.map((step) => step.key)).toEqual([
       "workspace",
       "program",
-      "stripe",
       "affiliate",
       "tracking",
+      "stripe",
     ])
     expect(activationSignals({ programs: [], health: quiet, affiliateTotal: 0 })).not.toHaveProperty("liveMode")
   })
 
-  it("adds testing a conversion before tracking and activating live mode last", () => {
+  it("puts the simulated conversion before the technical work, and live mode last", () => {
     const activation = getActivation({ ...none, liveMode: false })
     expect(activation.steps.map((step) => step.key)).toEqual([
       "workspace",
       "program",
-      "stripe",
       "affiliate",
       "testConversion",
       "tracking",
+      "stripe",
       "liveMode",
     ])
     expect(activation.total).toBe(7)
@@ -200,5 +203,38 @@ describe("Sandbox journey", () => {
     })
     const step = getActivation(signals).steps.find((entry) => entry.key === "testConversion")
     expect(step?.done).toBe(true)
+  })
+})
+
+describe("customer identity step", () => {
+  const quiet = { stripe: { configured: false, lastEventAt: null }, tracking: { lastClickAt: null } }
+  const never = { test: { lastIdentifyAt: null }, live: { lastIdentifyAt: null } }
+
+  it("joins the checklist only when the caller reads identify evidence, between tracking and payments", () => {
+    const without = getActivation(activationSignals({ programs: [], affiliateTotal: 0, health: quiet }))
+    expect(without.steps.map((step) => step.key)).not.toContain("identity")
+
+    const withIt = getActivation(
+      activationSignals({ programs: [], affiliateTotal: 0, health: { ...quiet, attribution: never } }),
+    )
+    const keys = withIt.steps.map((step) => step.key)
+    expect(keys.indexOf("identity")).toBe(keys.indexOf("tracking") + 1)
+    expect(keys.indexOf("stripe")).toBe(keys.indexOf("identity") + 1)
+  })
+
+  it("is done once any environment identified a customer, and never blocks the payment step", () => {
+    const signals = activationSignals({
+      programs: [{ clickCount: 1 }],
+      affiliateTotal: 1,
+      health: {
+        stripe: { configured: true, lastEventAt: new Date("2026-09-01T00:00:00Z") },
+        tracking: { lastClickAt: null },
+        attribution: { test: { lastIdentifyAt: null }, live: { lastIdentifyAt: new Date("2026-09-02T00:00:00Z") } },
+      },
+    })
+    expect(signals.hasIdentity).toBe(true)
+    const activation = getActivation({ ...signals, hasIdentity: false })
+    expect(activation.next).toBe("identity")
+    expect(activation.steps.find((step) => step.key === "stripe")?.done).toBe(true)
   })
 })

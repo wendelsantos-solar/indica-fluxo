@@ -1,8 +1,8 @@
 {
   "meta": {
-    "title": "IndicaFluxo — programa de afiliados para SaaS",
-    "titleTemplate": "%s · IndicaFluxo",
-    "description": "Crie seu programa de afiliados, acompanhe cada indicação e saiba exatamente quanto pagar de comissão. Integra com Stripe. Sem taxa sobre a sua receita."
+    "title": "{brand} — Programa de afiliados para SaaS",
+    "titleTemplate": "%s | {brand}",
+    "description": "Crie e gerencie o programa de afiliados do seu SaaS: rastreamento, atribuição, comissões recorrentes e integração com Stripe. Sem percentual da sua receita."
   },
   "nav": {
     "overview": "Visão geral",
@@ -85,9 +85,9 @@
   },
   "marketing": {
     "home": {
-      "eyebrow": "Infraestrutura de afiliados para SaaS",
-      "headline": "Transforme indicações em um canal de crescimento.",
-      "subhead": "Crie seu programa de afiliados, acompanhe cada indicação e saiba exatamente quanto pagar de comissão — sem construir tudo do zero.",
+      "eyebrow": "Rastreamento, atribuição e comissões com Stripe",
+      "headline": "Programa de afiliados para o seu SaaS",
+      "subhead": "Saiba qual afiliado trouxe cada cliente, calcule comissões recorrentes a partir dos pagamentos do Stripe e reverta o que foi estornado — sem pagar percentual sobre a sua receita.",
       "ctaPrimary": "Começar grátis",
       "ctaSecondary": "Ver como funciona",
       "trust": {
@@ -127,7 +127,7 @@
           "refunds": "Estornos que revertem comissões já calculadas",
           "payouts": "Conciliação de quanto pagar a cada afiliado"
         },
-        "resolutionTitle": "O IndicaFluxo cuida dessa infraestrutura.",
+        "resolutionTitle": "O {brand} cuida dessa infraestrutura.",
         "resolutionBody": "Você define as regras do programa. Nós registramos cada clique, conversão e comissão — e mostramos exatamente quanto você deve e para quem."
       },
       "how": {
@@ -207,7 +207,8 @@
           "body": "Seu backend liga o visitante ao cliente com uma chamada."
         },
         "available": "Disponível",
-        "more": "Hoje a cobrança integrada é o Stripe."
+        "more": "Hoje a cobrança integrada é o Stripe.",
+        "guide": "Como funciona com Stripe"
       },
       "principles": {
         "eyebrow": "Transparência",
@@ -218,7 +219,7 @@
         },
         "money": {
           "title": "Não tocamos no dinheiro",
-          "body": "O IndicaFluxo calcula e registra. O pagamento aos afiliados sai da sua conta, do seu jeito."
+          "body": "O {brand} calcula e registra. O pagamento aos afiliados sai da sua conta, do seu jeito."
         },
         "privacy": {
           "title": "Dados de clientes protegidos",
@@ -239,6 +240,41 @@
         "title": "Pronto para transformar indicações em receita?",
         "body": "Lance seu programa de afiliados sem construir a infraestrutura por conta própria.",
         "secondary": "Ver planos"
+      },
+      "problemGuide": "O que um programa de afiliados para SaaS precisa ter",
+      "faq": {
+        "eyebrow": "Perguntas frequentes",
+        "title": "Antes de começar",
+        "items": {
+          "how": {
+            "question": "Como funciona um programa de afiliados para SaaS?",
+            "answer": "Cada afiliado recebe um link. O {brand} registra o clique, liga o visitante ao pagamento que ele fizer no Stripe e calcula a comissão pela regra do seu programa — inclusive nas renovações."
+          },
+          "checkout": {
+            "question": "Preciso alterar meu checkout?",
+            "answer": "Com Payment Links, não: basta a tag do tracker. Com Stripe Checkout, é um campo a mais ao criar a sessão; com checkout próprio ou API de assinaturas, um metadado."
+          },
+          "stripe": {
+            "question": "Funciona com Stripe?",
+            "answer": "Sim. Hoje o Stripe é o meio de pagamento estável: as comissões são calculadas a partir dos pagamentos, reembolsos e disputas que ele envia por webhook. Outros meios ainda estão em validação."
+          },
+          "calculation": {
+            "question": "Como são calculadas as comissões?",
+            "answer": "Percentual ou valor fixo por fatura paga, uma única vez ou recorrente por alguns meses ou para sempre. Cada comissão guarda a regra que a gerou, e um reembolso gera uma reversão."
+          },
+          "money": {
+            "question": "O {brand} movimenta pagamentos?",
+            "answer": "Não. O {brand} calcula e registra quanto você deve a cada afiliado; o pagamento sai da sua conta, pelo meio que você já usa."
+          },
+          "fee": {
+            "question": "Existe percentual sobre a minha receita?",
+            "answer": "Não. Você paga uma mensalidade fixa pela ferramenta, sem percentual e sem teto de receita. Veja os <pricing>preços</pricing>."
+          },
+          "providers": {
+            "question": "Meu SaaS usa mais de um meio de pagamento. Preciso integrar cada um separadamente?",
+            "answer": "Não. O rastreamento e a identificação do cliente são feitos uma vez. Depois você conecta as contas de cobrança que utiliza. Em checkouts sem cadastro, pode ser necessário levar a referência de atribuição até o pagamento."
+          }
+        }
       }
     },
     "preview": {
@@ -309,7 +345,7 @@
       }
     },
     "chrome": {
-      "home": "Início do IndicaFluxo",
+      "home": "Início do {brand}",
       "navLabel": "Navegação principal",
       "product": "Produto",
       "howItWorks": "Como funciona",
@@ -318,15 +354,16 @@
       "signIn": "Entrar",
       "startFree": "Começar grátis",
       "openMenu": "Abrir menu",
-      "footer": "O IndicaFluxo é a fonte de verdade das suas comissões. Você continua pagando os afiliados do seu jeito.",
+      "footer": "O {brand} é a fonte de verdade das suas comissões. Você continua pagando os afiliados do seu jeito.",
       "tagline": "Infraestrutura de afiliados para SaaS."
     },
     "footer": {
       "integrations": "Integrações",
       "account": "Conta",
       "createAccount": "Criar conta",
-      "rights": "© {year} IndicaFluxo",
-      "explore": "Explorar"
+      "rights": "© {year} {brand}",
+      "product": "Produto",
+      "resources": "Recursos"
     }
   },
   "common": {
@@ -467,7 +504,8 @@
       "inviteSubtitle": "Crie sua conta com o e-mail que recebeu o convite.",
       "inviteHint": "Recebeu o e-mail do convite? Você também pode abrir o link dele para escolher sua senha.",
       "inviteLocked": "O convite vale para este e-mail.",
-      "inviteUseAnother": "Usar outro e-mail"
+      "inviteUseAnother": "Usar outro e-mail",
+      "legal": "Ao criar sua conta, você concorda com os <terms>Termos de Uso</terms> e reconhece a <privacy>Política de Privacidade</privacy>."
     },
     "password": {
       "show": "Mostrar senha",
@@ -531,7 +569,7 @@
     }
   },
   "pricing": {
-    "metaTitle": "Preços",
+    "metaTitle": "Preços do software de afiliados",
     "title": "Preço de ferramenta, não de imposto.",
     "subtitle": "Não ficamos com um percentual da sua receita de afiliados, porque nunca tocamos no dinheiro. Você paga pela infraestrutura e fica com o ganho.",
     "plans": {
@@ -624,8 +662,8 @@
     }
   },
   "docs": {
-    "metaTitle": "Guia de integração",
-    "metaDescription": "Instale o tracker, identifique clientes no servidor, receba os pagamentos do Stripe e veja a primeira comissão registrada no IndicaFluxo.",
+    "metaTitle": "Guia de integração: tracker, atribuição e Stripe",
+    "metaDescription": "Instale o tracker, leve a referência de atribuição ao checkout do Stripe e veja a primeira comissão. Checkout, Payment Links, checkout próprio e assinaturas.",
     "header": {
       "docs": "Documentação",
       "dashboard": "Painel",
@@ -638,37 +676,64 @@
       "onThisPage": "Nesta página",
       "groups": {
         "start": "Começando",
-        "quickstart": "Guia rápido",
+        "universal": "Integração",
+        "payments": "Meios de pagamento",
         "concepts": "Conceitos",
-        "security": "Segurança",
-        "reference": "Referência"
+        "api": "API",
+        "diagnostics": "Diagnóstico",
+        "security": "Segurança"
       },
       "sections": {
         "introduction": "Introdução",
         "howItWorks": "Como funciona",
-        "prerequisites": "Antes de começar",
-        "installTracker": "Instalar o tracker",
-        "identifyCustomer": "Identificar o cliente",
-        "connectStripe": "Conectar o Stripe",
-        "commission": "Calcular a comissão",
-        "verify": "Validar a integração",
+        "installTracker": "Rastreamento",
+        "checkoutMethods": "Referência no checkout do Stripe",
+        "identifyCustomer": "Identificação do cliente",
+        "connectStripe": "Stripe",
+        "commission": "Comissão",
+        "verify": "Testar a integração",
         "attribution": "Atribuição",
         "holdPeriod": "Período de retenção",
         "apiKeys": "Chaves de API",
-        "identifyApi": "API de identificação",
-        "webhookEvents": "Eventos do Stripe",
+        "identifyApi": "Identify",
+        "webhookEvents": "Webhooks do Stripe",
         "errors": "Erros",
-        "environments": "Teste e produção"
+        "environments": "Teste e produção",
+        "quickstart": "Guia rápido",
+        "customerFirst": "Customer-first",
+        "guestCheckout": "Checkout sem cadastro",
+        "multipleProviders": "Vários meios de pagamento",
+        "multipleAccounts": "Várias contas",
+        "betaProviders": "O que é Beta",
+        "identityConcepts": "Cliente",
+        "checkoutBridge": "Referência no checkout",
+        "missingCommission": "Pagamento sem comissão",
+        "providerCredentials": "Credenciais",
+        "refunds": "Reembolsos",
+        "integrationHealth": "Saúde da integração",
+        "webhookSecurity": "Webhooks"
       },
       "subsections": {
         "trackerDetails": "O que o tracker faz",
+        "checkoutHosted": "Stripe Checkout",
+        "checkoutLinks": "Payment Links",
+        "checkoutCustom": "Checkout próprio",
+        "checkoutSubscriptions": "API de assinaturas",
         "visitorId": "De onde vem o visitorId",
         "identifyFields": "Campos",
         "commissionLifecycle": "Ciclo da comissão",
         "attributionWindow": "Janela de atribuição",
         "firstClick": "Primeiro clique",
-        "lastClick": "Último clique"
-      }
+        "lastClick": "Último clique",
+        "identifyResponse": "Resposta",
+        "goLive": "Ir para produção",
+        "prerequisites": "Antes de começar",
+        "stripeManual": "Configuração manual",
+        "programPause": "Programa pausado",
+        "advancedDiagnostics": "Diagnóstico avançado"
+      },
+      "beta": "Beta",
+      "betaGuide": "Guia dos meios em beta"
     },
     "breadcrumb": {
       "docs": "Docs",
@@ -684,22 +749,21 @@
       "copied": "Link copiado"
     },
     "footer": {
-      "rights": "© {year} IndicaFluxo",
+      "rights": "© {year} {brand}",
       "pricing": "Preços",
       "dashboard": "Painel",
       "home": "Site"
     },
     "intro": {
       "title": "Guia de integração",
-      "lead": "Integre o IndicaFluxo ao seu SaaS: registre cliques de afiliados, identifique quem virou cliente e veja a primeira comissão aparecer no painel.",
-      "outcome": "Ao final você terá um clique atribuído, um cliente identificado e uma comissão pendente em Comissões."
+      "lead": "Integre o {brand} uma vez. Depois conecte onde seu SaaS recebe pagamentos. O rastreamento e a identificação do cliente não dependem do meio de pagamento: o Stripe está disponível de forma estável, e outros meios estão em validação.",
+      "outcome": "Um clique atribuído, um cliente identificado, um meio de pagamento conectado e uma comissão pendente em Comissões.",
+      "outcomeTitle": "Ao concluir este guia"
     },
     "howItWorks": {
       "title": "Como funciona",
-      "lead": "Uma indicação passa por cinco momentos. Você cuida de dois deles com código; o resto o IndicaFluxo faz.",
+      "lead": "A indicação chega ao cliente antes do pagamento. Cada meio de pagamento conectado só precisa dizer quem pagou — o {brand} faz o resto.",
       "flowLabel": "Fluxo de uma indicação",
-      "you": "Você",
-      "platform": "IndicaFluxo",
       "steps": {
         "click": {
           "title": "Clique",
@@ -707,150 +771,409 @@
         },
         "track": {
           "title": "Registro da visita",
-          "body": "O tracker guarda um identificador de visitante e registra o clique."
+          "body": "O tracker do {brand}, instalado no seu site, guarda um identificador de visitante e registra o clique."
         },
         "identify": {
           "title": "Cadastro",
-          "body": "Seu servidor informa quem é o cliente com <code>POST /api/identify</code>."
+          "body": "Seu servidor chama <code>POST /api/identify</code> quando o visitante cria conta: a indicação passa a seguir o cliente."
         },
         "payment": {
           "title": "Pagamento",
-          "body": "O Stripe envia o pagamento por webhook."
+          "body": "O meio de pagamento conectado (Stripe, ou um meio em beta) avisa o {brand} de cada pagamento, renovação e reembolso."
         },
         "commission": {
           "title": "Comissão",
           "body": "A regra do programa calcula e registra a comissão do afiliado."
         }
+      },
+      "actorLabel": "Executado por:",
+      "actors": {
+        "visitor": "Visitante",
+        "platform": "{brand}",
+        "you": "Seu SaaS",
+        "stripe": "Meio de pagamento"
+      },
+      "flowTitle": "Quem faz cada etapa",
+      "diagram": {
+        "label": "Uma indicação, um cliente, qualquer meio de pagamento",
+        "description": "Indicação, depois rastreador, depois cliente identificado. O cliente pode pagar pelo Stripe, Mercado Pago, AbacatePay ou Asaas; qualquer um desses pagamentos vira uma transação e, pela regra do programa, uma comissão.",
+        "referral": "Indicação",
+        "tracker": "Rastreador",
+        "customer": "Cliente identificado",
+        "transaction": "Transação",
+        "commission": "Comissão",
+        "branches": "qualquer meio de pagamento conectado"
       }
     },
     "prerequisites": {
       "title": "Antes de começar",
       "items": {
-        "program": "Um <strong>programa ativo</strong> com o site do produto preenchido (Programas → Novo programa).",
+        "program": "Um <strong>programa ativo</strong> (Programas → Novo programa). Preencha o site do produto para que os afiliados tenham o link padrão.",
         "affiliate": "Pelo menos <strong>um afiliado aprovado</strong> — só participações aprovadas geram comissão.",
         "keys": "A <strong>chave pública</strong> e a <strong>chave secreta</strong> de teste, geradas em Integrações. As de produção vêm depois, com o plano ativo.",
-        "stripe": "Sua <strong>conta Stripe</strong> informada em Integrações.",
-        "access": "Acesso ao HTML do seu site e ao código do seu backend."
+        "stripe": "Acesso ao painel do <strong>seu meio de pagamento</strong> — no Stripe, com permissão para criar endpoints de webhook.",
+        "access": "Acesso ao <strong>HTML do seu site</strong> e ao <strong>código do seu backend</strong>."
       },
       "keysOnceTitle": "As chaves aparecem uma vez",
-      "keysOnceBody": "Cada chave só é exibida no momento em que é gerada. Guarde a secreta num gerenciador de segredos; se perder, gere uma nova (a anterior para de funcionar na hora)."
+      "keysOnceBody": "Cada chave só é exibida no momento em que é gerada. Guarde a secreta num gerenciador de segredos; se perder, gere uma nova (a anterior para de funcionar na hora).",
+      "lead": "Tempo estimado: cerca de 15 minutos em modo de teste, com o acesso abaixo em mãos."
     },
     "installTracker": {
       "title": "Instale o tracker no seu site",
-      "lead": "Cole a tag antes de <code>{head}</code> em todas as páginas para onde seus afiliados apontam. Use a chave pública de teste enquanto valida; em produção, troque pela chave pública de produção.",
+      "lead": "Cole a tag antes de <code>{head}</code>. O tracker é um script leve do {brand}: lê o código do afiliado na URL, cria o identificador do visitante e registra o clique.",
       "filename": "index.html",
+      "facts": {
+        "where": "Onde colar",
+        "whereValue": "Antes de <code>{head}</code> nas páginas para onde os afiliados apontam <strong>e na página de cadastro</strong> — é lá que o <code>visitorId</code> é lido.",
+        "key": "Chave",
+        "keyValue": "A <strong>chave pública</strong> no atributo <code>data-key</code>: <code>pk_test_…</code> enquanto valida, <code>pk_live_…</code> em produção.",
+        "sends": "O que envia",
+        "sendsValue": "Só quando a URL tem código de indicação: <code>POST /api/track</code> com a chave pública, o código, o <code>visitorId</code>, a URL, o referrer e os parâmetros <code>utm_*</code>."
+      },
       "detailsTitle": "O que o tracker faz",
       "details": {
         "params": "Procura o código de indicação nos parâmetros <params></params> da URL.",
-        "cookie": "Guarda um identificador de visitante (<code>v_…</code>) no cookie <code>{cookie}</code> do seu próprio domínio, por {days} dias, com <code>SameSite=Lax</code> (e <code>Secure</code> em HTTPS).",
-        "send": "Quando há código na URL, envia o clique para <code>/api/track</code> e expõe <code>window.Referral.visitorId</code> para a página.",
-        "noRef": "Sem código na URL, só renova o cookie — nada é enviado."
+        "cookie": "Guarda um identificador de visitante (<code>v_…</code>) no cookie <code>{cookie}</code> do seu próprio domínio, por {days} dias, com <code>SameSite=Lax</code> (e <code>Secure</code> em HTTPS). Navegadores com prevenção de rastreamento, como o Safari, podem encurtar esse prazo para cerca de 7 dias.",
+        "send": "Quando há código na URL, envia o clique para <code>/api/track</code>.",
+        "noRef": "Sem código na URL, só renova o cookie — nada é enviado. Em qualquer página, expõe <code>window.Referral.visitorId</code>.",
+        "subdomain": "Para compartilhar o cookie entre subdomínios (visita em <code>www.</code>, cadastro em <code>app.</code>), adicione <code>data-cookie-domain=\"seusite.com\"</code> à tag."
       },
-      "testTitle": "Teste agora",
-      "testBody": "Abra seu site com <code>?ref=</code> seguido do código de um afiliado. O clique aparece em Afiliados, na coluna Cliques."
+      "expected": {
+        "ok": "Abra <code>https://seusite.com/?ref=CODIGO</code> com o código de um afiliado aprovado num programa de teste. Em <strong>Afiliados</strong>, a coluna <strong>Cliques</strong> desse afiliado aumenta, e no console do navegador <code>window.Referral.visitorId</code> retorna <code>v_…</code>.",
+        "check": "Não apareceu? Na aba Rede do navegador, veja a resposta de <code>/api/track</code> e procure o código em <errors>Erros</errors>."
+      }
+    },
+    "checkoutMethods": {
+      "title": "Referência no checkout do Stripe",
+      "lead": "Só para <strong>guest checkout</strong> ou quando o cliente do Stripe nasce no próprio checkout. O tracker guarda uma <strong>referência de atribuição</strong> no navegador — um valor opaco que só o {brand} resolve. Escolha abaixo só o caminho que você usa.",
+      "browserFilename": "no navegador",
+      "facts": {
+        "value": "O que enviar",
+        "valueValue": "<code>window.Referral.attributionToken</code>, exposto em qualquer página com o tracker instalado.",
+        "organic": "Cliente orgânico",
+        "organicValue": "A referência é <code>null</code> quando o visitante não veio de um afiliado. Envie assim mesmo: um pagamento sem referência é registrado normalmente, apenas sem comissão.",
+        "renewal": "Renovações",
+        "renewalValue": "Você envia a referência uma vez. As renovações seguem o cliente já vinculado — não há nada a repetir."
+      },
+      "hosted": {
+        "title": "Stripe Checkout",
+        "body": "Uma linha na criação da sessão: <code>client_reference_id</code>. É o campo que a própria Stripe reserva para a sua referência interna, e ele chega no evento <code>checkout.session.completed</code>."
+      },
+      "links": {
+        "title": "Payment Links",
+        "body": "Nenhum código. O tracker encontra os links <code>buy.stripe.com</code> da página e acrescenta a referência sozinho. Um link que já tenha <code>client_reference_id</code> é deixado como está.",
+        "calloutTitle": "O pagamento precisa de um cliente na Stripe",
+        "calloutBody": "Em Payment Links e no Checkout avulso, ligue <code>customer_creation: always</code>. Um pagamento sem cliente na Stripe não entra no razão e não gera comissão — isso aparece em Integrações, não no painel da Stripe."
+      },
+      "custom": {
+        "title": "Checkout próprio (Elements / PaymentIntent)",
+        "body": "Uma chave em <code>metadata</code> do PaymentIntent. Nada mais do seu checkout muda."
+      },
+      "subscriptions": {
+        "title": "API de assinaturas",
+        "body": "Se você cria <code>Customer</code> e <code>Subscription</code> direto pela API da Stripe, ponha a referência no <code>metadata</code> da assinatura, uma única vez."
+      },
+      "expected": {
+        "ok": "Depois de uma compra de teste, a conversão aparece em <strong>Conversões</strong> com o afiliado certo, e a comissão em <strong>Comissões</strong> — sem nenhuma chamada ao seu backend além da que você já fazia para cobrar."
+      }
     },
     "identifyCustomer": {
-      "title": "Identifique o cliente no seu servidor",
-      "lead": "Um clique sozinho não gera comissão. Quando o visitante cria conta — ou quando você cria o cliente no Stripe — chame <code>POST /api/identify</code> do seu backend com a chave secreta. Isso liga o visitante ao cliente.",
-      "securityTitle": "Somente no servidor",
-      "securityBody": "Nunca envie a chave secreta ao navegador nem chame <code>/api/identify</code> pelo front-end. A rota não aceita requisições do navegador de propósito: um id de cliente vindo do browser permitiria desviar comissões.",
+      "title": "Identifique o cliente no cadastro",
+      "optionalTitle": "O passo que torna o {brand} independente do meio de pagamento",
+      "optionalBody": "Com o cliente identificado, a indicação pertence ao cliente, não a um checkout. É o caminho recomendado — veja <a>Customer-first</a>. A referência no checkout continua suportada para quem cobra antes de existir cadastro (<b>guest checkout</b>).",
+      "lead": "Um clique sozinho não gera comissão. O identify liga o visitante anônimo ao cliente do seu sistema — é por essa ligação que um pagamento, em qualquer meio conectado, chega ao afiliado.",
+      "securityTitle": "Nunca envie sua chave secreta ao navegador",
+      "securityBody": "Não chame <code>/api/identify</code> pelo front-end. A rota não envia cabeçalhos CORS de propósito: o navegador barra no preflight qualquer chamada com <code>Authorization</code> e não deixa o JavaScript ler a resposta. Um id de cliente vindo do browser permitiria desviar comissões.",
       "visitorIdTitle": "De onde vem o visitorId",
-      "visitorIdBody": "O tracker grava o cookie <code>{cookie}</code> no domínio do seu site. Se o seu backend atende o cadastro no mesmo domínio, o cookie já chega na requisição — leia o valor dele. Se não, envie <code>window.Referral?.visitorId</code> junto com o formulário de cadastro.",
-      "response": "Resposta",
-      "responseBody": "<code>attributionsBound</code> indica quantas atribuições abertas desse visitante foram ligadas ao cliente. <code>0</code> significa que o visitante não chegou por um link de afiliado ativo.",
+      "visitorIdBody": "O tracker grava o cookie <code>{cookie}</code> no domínio do seu site. Se o cadastro é atendido no <strong>mesmo domínio</strong>, o cookie chega na requisição do seu servidor. Se fica em um <strong>subdomínio</strong>, use <code>data-cookie-domain</code> na tag do tracker. Se o backend fica em <strong>outro domínio</strong>, copie <code>window.Referral.visitorId</code> para o formulário de cadastro.",
       "fieldsTitle": "Campos",
-      "stripeIdTitle": "Envie o providerCustomerId ou o e-mail",
-      "stripeIdBody": "O pagamento do Stripe encontra o afiliado pelo id do cliente no Stripe. Sem ele, usa o <strong>e-mail</strong> enviado no identify, comparado ao e-mail do pagamento: faturas trazem o e-mail do cliente no Stripe; pagamentos avulsos, só quando têm <code>receipt_email</code>. No primeiro pagamento que casar pelo e-mail, o id do Stripe é gravado e os seguintes casam por ele. Sem nenhum dos dois, o pagamento é registrado sem comissão."
+      "stripeIdTitle": "Como o pagamento reencontra o cliente",
+      "stripeIdBody": "O pagamento do Stripe encontra o afiliado pelo id do cliente no Stripe. Sem ele, usa o <strong>e-mail</strong> enviado no identify, comparado ao e-mail do pagamento (o do cliente na fatura, ou o <code>receipt_email</code> de um pagamento avulso que tenha cliente). No primeiro pagamento que casar pelo e-mail, o id do Stripe é gravado e os seguintes casam por ele. Se você chama o identify <strong>antes</strong> de criar o cliente no Stripe, envie o e-mail nessa primeira chamada: é por ele que o pagamento reencontra o cliente. O pagamento precisa ter um <strong>cliente no Stripe</strong>: sem cliente, ele não entra no registro — em Payment Links e Checkout avulso, ative <code>customer_creation: always</code>. Com cliente, mas sem id nem e-mail que case, é registrado sem comissão. Nos dois casos o Stripe recebe <code>200</code>: a perda aparece em Integrações, não no painel do Stripe.",
+      "facts": {
+        "when": "Quando chamar",
+        "whenValue": "Logo depois de criar a conta do usuário. Chame de novo quando criar o cliente no Stripe, para enviar o <code>providerCustomerId</code> — o mesmo <code>externalId</code> atualiza o mesmo cliente.",
+        "where": "Onde chamar",
+        "whereValue": "<strong>Somente no seu backend</strong>: route handler, server action, API ou job.",
+        "endpoint": "Endpoint",
+        "auth": "Autenticação",
+        "authValue": "<code>Authorization: Bearer sk_test_…</code> (chave secreta)"
+      },
+      "visitorIdTabs": {
+        "cookie": "Mesmo domínio",
+        "form": "Outro domínio"
+      },
+      "responseTitle": "Resposta",
+      "responseFields": {
+        "ok": "<code>ok</code> — sempre <code>true</code> numa resposta <code>200</code>.",
+        "customerId": "<code>customerId</code> — id do cliente no {brand}. O mesmo <code>externalId</code> devolve o mesmo id.",
+        "attributionsBound": "<code>attributionsBound</code> — quantas atribuições desse visitante estão ligadas a este cliente: as abertas que esta chamada ligou e as que já eram dele."
+      },
+      "responseErrors": "Em erro, a resposta traz <code>error</code> com um código estável e o status HTTP correspondente — veja <errors>Erros</errors>.",
+      "expected": {
+        "ok": "<code>200</code> com <code>attributionsBound</code> maior que zero — uma por programa — para um visitante que chegou por <code>?ref=</code>. Repetir a chamada para o mesmo cliente devolve o mesmo número.",
+        "zero": "<code>0</code> significa que não havia atribuição aberta para esse <code>visitorId</code> neste ambiente: o visitante não passou por um link de afiliado, a janela expirou, o <code>visitorId</code> enviado não é o do cookie, a atribuição já pertence a outro cliente, ou a chave é de outro ambiente."
+      }
     },
     "fields": {
       "name": "Campo",
       "type": "Tipo",
+      "required": "Obrigatório",
       "description": "Descrição",
-      "required": "obrigatório",
-      "optional": "opcional",
-      "visitorId": "Identificador do visitante: <code>v_</code> seguido de 16 a 48 letras minúsculas ou números.",
-      "externalId": "Id do usuário no seu sistema (até 200 caracteres). Chamadas repetidas com o mesmo valor atualizam o mesmo cliente.",
-      "providerCustomerId": "Id do cliente no Stripe (<code>cus_…</code>). Recomendado: é o jeito mais direto de ligar os pagamentos ao afiliado.",
+      "requiredValues": {
+        "yes": "Sim",
+        "no": "Não",
+        "recommended": "Recomendado"
+      },
+      "visitorId": "Identificador gerado pelo tracker: <code>v_</code> seguido de 16 a 48 letras minúsculas ou números.",
+      "externalId": "Id do usuário no seu sistema (1 a 200 caracteres). Chamadas com o mesmo valor atualizam o mesmo cliente.",
+      "providerCustomerId": "Id do cliente no meio de pagamento — <code>cus_…</code> no Stripe, até 200 caracteres (o formato não é validado). É o jeito mais direto de ligar os pagamentos ao afiliado.",
       "email": "E-mail do cliente, guardado apenas como hash. Sem <code>providerCustomerId</code>, é por ele que o pagamento do Stripe encontra o cliente — envie o mesmo endereço que o Stripe tem.",
-      "provider": "Provedor de cobrança. Padrão <code>stripe</code>, o único integrado hoje."
+      "provider": "Meio de pagamento a que o <code>providerCustomerId</code> pertence: <code>stripe</code> (padrão), <code>mercado_pago</code>, <code>abacatepay</code> ou <code>asaas</code>. Chame o identify de novo com outro meio para registrar a identidade do mesmo cliente nele."
     },
     "connectStripe": {
-      "title": "Conecte o Stripe e receba os pagamentos",
-      "lead": "É pelo webhook do Stripe que o IndicaFluxo sabe que um cliente pagou. Cada workspace tem a própria URL de webhook e o próprio segredo de assinatura. Em Integrações:",
+      "title": "Stripe",
+      "lead": "Em Integrações → Pagamentos → Adicionar meio de pagamento → Stripe. Quando o botão <strong>Autorizar no Stripe</strong> aparece, basta autorizar: o {brand} recebe os eventos sem chave e sem segredo para colar.",
+      "stepsLabel": "Passos para configurar o Stripe",
       "steps": {
-        "account": "Informe o <strong>ID da conta Stripe</strong> (<code>acct_…</code>) e continue.",
-        "webhook": "Copie a <strong>URL do webhook</strong> que aparece — ela termina no ID da sua integração. No painel do Stripe, em Desenvolvedores → Webhooks, adicione um endpoint com essa URL e selecione os eventos listados em <a>Eventos do Stripe</a>. Faça isso no modo de teste e, depois, no modo de produção.",
-        "secret": "Na página de cada endpoint, revele o <strong>segredo de assinatura</strong> (<code>whsec_…</code>) e cole em Integrações, no campo do modo correspondente — teste ou produção. Cada segredo fica guardado criptografado e não é exibido de novo."
+        "account": {
+          "title": "Informe a conta Stripe",
+          "body": "Em Integrações, informe o <strong>ID da conta Stripe</strong> (<code>acct_…</code>). Ele fica no painel do Stripe, em Configurações → Detalhes da conta."
+        },
+        "endpoint": {
+          "title": "Crie o endpoint no Stripe",
+          "body": "No painel do Stripe, em <strong>Desenvolvedores → Webhooks</strong>, adicione um endpoint com a URL que Integrações mostra — ela termina no ID da sua integração. Ao criar:",
+          "checklist": {
+            "account": "Eventos de: <strong>sua conta</strong>.",
+            "snapshot": "Formato do payload: <strong>Snapshot</strong>, não Thin.",
+            "customer": "Em Payment Links e Checkout avulso, ative <code>customer_creation: always</code> — pagamento sem cliente no Stripe não gera comissão."
+          }
+        },
+        "events": {
+          "title": "Selecione os eventos",
+          "body": "Selecione estes {count} eventos — <code>invoice_payment.paid</code> é obrigatório: é ele que liga a fatura ao pagamento e evita comissão em dobro. O que cada um registra está em <a>Eventos do Stripe</a>."
+        },
+        "secret": {
+          "title": "Cole o segredo de assinatura",
+          "body": "Na página do endpoint, revele o <strong>segredo de assinatura</strong> (<code>whsec_…</code>) e cole em Integrações, no campo do modo correspondente — teste ou produção. Ele fica guardado criptografado e não é exibido de novo."
+        },
+        "confirm": {
+          "title": "Envie um evento de teste",
+          "body": "Reenvie um evento pelo endpoint no painel do Stripe ou use a Stripe CLI:"
+        }
       },
       "urlLabel": "URL do webhook",
-      "idempotentTitle": "Reentregas não duplicam comissão",
-      "idempotentBody": "Cada evento é verificado pela assinatura e registrado uma única vez. Se o Stripe reenviar um evento já registrado, ele é reconhecido e ignorado; se o registro tinha falhado, a nova tentativa processa o evento de novo.",
-      "currencyTitle": "Mesma moeda do programa",
-      "currencyBody": "Um pagamento só gera comissão se estiver na moeda do programa. Um programa em BRL ignora pagamentos em USD.",
       "urlPlaceholder": "ID_DA_INTEGRACAO",
-      "verify": "Para confirmar, envie um evento de teste pelo Stripe. Integrações mostra <strong>Recebendo eventos</strong> com a hora do último evento; se a assinatura não conferir, mostra <strong>assinatura inválida</strong> — quase sempre um segredo de outro endpoint.",
-      "modesTitle": "Um endpoint por modo do Stripe",
-      "modesBody": "A mesma URL recebe os eventos dos dois endpoints. O campo <code>livemode</code> de cada evento decide para onde ele vai: eventos de teste só alcançam programas de teste e eventos de produção, só programas em produção. Um evento assinado pelo segredo do outro modo é recusado. Veja <a>Teste e produção</a>."
+      "eventsLabel": "Eventos para selecionar",
+      "modesTitle": "Uma URL, um endpoint por modo",
+      "modesBody": "Use a <strong>mesma URL</strong> no modo de teste e no de produção do Stripe; cada modo tem o próprio endpoint e o próprio segredo. O <code>livemode</code> de cada evento decide para onde ele vai, e um evento assinado com o segredo do outro modo é recusado. Veja <a>Teste e produção</a>.",
+      "notesTitle": "Bom saber",
+      "notes": {
+        "idempotent": "<strong>Reentregas não duplicam comissão.</strong> Cada evento é registrado uma única vez; um reenvio de evento já registrado responde <code>200</code> sem refazer nada.",
+        "retry": "<strong>Falhas são reprocessadas.</strong> Se o registro falhar, o endpoint responde <code>500</code> e o Stripe tenta de novo automaticamente.",
+        "currency": "<strong>Moeda do programa.</strong> Um pagamento só gera comissão na moeda do programa: um programa em BRL registra um pagamento em USD, mas sem comissão."
+      },
+      "expected": {
+        "ok": "Integrações mostra <strong>Recebendo eventos</strong> com a hora do último evento. Se o pagamento de teste não veio de um clique de afiliado, o selo fica <strong>Recebendo, sem comissão</strong> — é o esperado.",
+        "check": "Se mostrar <strong>Assinatura recusada</strong>, o segredo colado é de outro endpoint ou de outro modo. Os códigos que o endpoint devolve estão em <errors>Erros</errors>."
+      },
+      "status": "Estável",
+      "facts": {
+        "need": "Você precisa",
+        "needValue": "Conectar a conta e autorizar a leitura dos pagamentos. Sem a autorização disponível, faça a configuração manual abaixo (3 etapas no painel do Stripe).",
+        "does": "O {brand} faz",
+        "doesValue": "Recebe os eventos, lê cada um no mesmo formato de qualquer meio, associa o pagamento ao cliente, registra a transação e envia ao cálculo de comissão.",
+        "supported": "Suportado",
+        "supportedValue": "Assinaturas e renovações, pagamentos avulsos, reembolso total e parcial, contestações — inclusive a ganha, que devolve a comissão —, teste e produção, várias contas.",
+        "limits": "Limitações",
+        "limitsValue": "Pagamento sem cliente no Stripe não entra no registro: em Payment Links e Checkout avulso, ative <code>customer_creation: always</code>. Pagamentos recusados não são lidos. Uma comissão já paga não é cobrada de volta num reembolso — veja <a>Reembolsos</a>.",
+        "test": "Como testar",
+        "testValue": "No modo de teste do Stripe, pague com o cartão <code>4242 4242 4242 4242</code> ou rode <code>stripe trigger invoice.paid</code>."
+      },
+      "manualTitle": "Configuração manual",
+      "manualLead": "Só quando o botão <strong>Autorizar no Stripe</strong> não aparece: você cria o endpoint de eventos no painel do Stripe e cola o segredo no {brand}."
     },
     "commission": {
-      "title": "Entenda como a comissão é calculada",
+      "title": "Como a comissão é calculada",
       "lead": "Para um programa de 30%, um pagamento confirmado gera a comissão abaixo para o afiliado dono da atribuição.",
       "payment": "Pagamento",
       "rate": "Comissão",
       "result": "Resultado",
-      "implementation": "Como é armazenado",
-      "implementationBody": "Dinheiro é guardado em unidades mínimas da moeda (centavos) e percentuais em basis points (1% = 100). O arredondamento é sempre meio para cima, sobre inteiros — nunca ponto flutuante.",
+      "implementation": "Como fica registrado",
       "conditionsTitle": "A comissão só é gerada quando",
       "conditions": {
-        "approved": "a participação do afiliado está aprovada;",
+        "approved": "a participação do afiliado no programa está aprovada;",
         "currency": "o pagamento está na moeda do programa;",
-        "window": "o primeiro pagamento acontece dentro da janela de atribuição;",
-        "duration": "as renovações acontecem dentro da duração do programa (primeiro pagamento, N meses ou enquanto o cliente pagar)."
+        "amount": "o valor do pagamento é maior que zero;",
+        "window": "o primeiro pagamento acontece dentro da <a>janela de atribuição</a>;",
+        "duration": "as renovações acontecem dentro da duração do programa (só o primeiro pagamento, N meses ou enquanto o cliente pagar)."
       },
-      "lifecycleTitle": "Ciclo da comissão",
       "lifecycle": {
-        "pending": "<strong>Pendente</strong> — durante o período de retenção do programa.",
-        "available": "<strong>Disponível</strong> — pode entrar num lote de pagamento.",
-        "approved": "<strong>Em lote</strong> — está num lote aguardando pagamento.",
+        "pending": "<strong>Pendente</strong> — criada no pagamento. Fica assim até a data do pagamento somada ao <a>período de retenção</a>; com retenção de 0 dias, já nasce Disponível.",
+        "available": "<strong>Disponível</strong> — a retenção terminou; pode entrar num lote de pagamento.",
+        "approved": "<strong>Em lote</strong> — está num lote aguardando pagamento. Cancelar o lote a devolve para Disponível.",
         "paid": "<strong>Paga</strong> — o lote foi marcado como pago.",
-        "reversed": "<strong>Revertida</strong> — um estorno criou uma reversão negativa. Nada é apagado."
-      }
+        "reversed": "<strong>Revertida</strong> — um estorno ou disputa cria uma linha negativa proporcional. Estorno total de uma comissão ainda não paga a marca como Revertida; uma comissão já paga não é cobrada de volta do afiliado. Se a disputa for vencida, o valor revertido volta como Pendente, cumprindo a retenção de novo a partir da data em que a disputa foi encerrada — a não ser que a comissão já tivesse sido paga, quando nada é devolvido. Nada é apagado."
+      },
+      "units": {
+        "money": "Valores monetários ficam em <strong>unidades mínimas</strong> da moeda: <code>{minor}</code> = {amount}.",
+        "rate": "Percentuais ficam em <strong>basis points</strong> (1% = 100): <code>{bps}</code> = {rate}.",
+        "rounding": "O cálculo é feito em unidades mínimas e arredonda <strong>meio para cima</strong> (0,5 sempre para o valor maior em módulo). As reversões usam aritmética inteira exata.",
+        "fixed": "Programas com <strong>valor fixo</strong> gravam <code>commission_rate</code> vazio e pagam o valor fixo por pagamento, mesmo que ele seja maior que o pagamento. Uma taxa especial definida para o afiliado substitui a do programa."
+      },
+      "flowLabel": "Ciclo de uma comissão",
+      "refundFlowLabel": "Ciclo de uma comissão estornada",
+      "states": {
+        "pending": "Pendente",
+        "available": "Disponível",
+        "approved": "Em lote",
+        "paid": "Paga",
+        "refund": "Estorno ou disputa",
+        "reversed": "Revertida"
+      },
+      "lifecycleTitle": "Ciclo da comissão"
     },
     "verify": {
-      "title": "Valide a integração",
-      "lead": "Faça o caminho completo com um afiliado de teste:",
+      "title": "Teste a integração",
+      "lead": "Faça o caminho completo com um afiliado de teste, com <strong>Dados de teste</strong> ligado no painel. Cada etapa depende da anterior: pare na primeira que falhar.",
+      "checklistLabel": "Checklist de validação",
+      "where": "Onde ver:",
+      "ifNot": "Se não aparecer:",
       "steps": {
-        "click": "Abra seu site com <code>?ref=</code> e o código do afiliado. <strong>Afiliados</strong> mostra o clique.",
-        "identify": "Crie uma conta de teste. O identify responde <code>attributionsBound</code> maior que zero.",
-        "payment": "Faça um pagamento de teste no Stripe para esse cliente. <strong>Conversões</strong> mostra o pagamento.",
-        "commission": "<strong>Comissões</strong> mostra a comissão como Pendente."
+        "click": {
+          "title": "Clique registrado",
+          "where": "<strong>Afiliados</strong>, coluna <strong>Cliques</strong>, depois de abrir seu site com <code>?ref=</code> e o código do afiliado.",
+          "ifNot": "o tracker não carregou nessa página, o código não existe num programa de teste (<code>404</code>) ou a <code>data-key</code> é inválida (<code>401</code>)."
+        },
+        "identify": {
+          "title": "Cliente identificado",
+          "where": "a resposta do identify, com <code>attributionsBound</code> maior que zero; o funil da <strong>Visão geral</strong> conta o cadastro.",
+          "ifNot": "o <code>visitorId</code> enviado não é o do cookie do visitante, a chave secreta é de produção ou a janela de atribuição expirou."
+        },
+        "webhook": {
+          "title": "Pagamento recebido",
+          "where": "<strong>Integrações → Pagamentos</strong>: a conta passa de <strong>Aguardando eventos</strong> para <strong>Saudável</strong> depois de um pagamento de teste (no Stripe, cartão <code>4242 4242 4242 4242</code>).",
+          "ifNot": "abra a conta em Pagamentos: a seção <strong>Precisa de atenção</strong> diz o que falta — endpoint, eventos, segredo ou chave."
+        },
+        "commission": {
+          "title": "Comissão criada",
+          "where": "<strong>Comissões</strong> mostra a comissão como Pendente, e <strong>Conversões</strong> mostra o pagamento com o afiliado.",
+          "ifNot": "o pagamento não tem cliente no Stripe, o <code>providerCustomerId</code> ou o e-mail não casaram com o cliente identificado, o afiliado não está aprovado ou a moeda é diferente da do programa."
+        }
       },
       "doneTitle": "Integração concluída",
       "doneBody": "Uma comissão pendente em Comissões significa que clique, identificação, webhook e cálculo funcionaram de ponta a ponta."
     },
     "attribution": {
       "title": "Atribuição",
-      "lead": "Atribuição é a decisão de qual afiliado recebe o crédito por um cliente. Cada programa escolhe o modelo e a janela.",
+      "lead": "Atribuição é o vínculo entre um visitante e o afiliado que fica com o crédito por ele. É ela que decide quem recebe a comissão quando o visitante vira cliente e paga. Cada programa tem as próprias atribuições; se o mesmo cliente tiver atribuição em mais de um programa, o pagamento gera uma única comissão.",
+      "facts": {
+        "starts": "Quando nasce",
+        "startsValue": "No clique com código de indicação, se o programa está <strong>ativo</strong> e a participação do afiliado está <strong>aprovada</strong>. Cliques em programas que não estão ativos (rascunho, pausado ou arquivado) são registrados, mas não criam nem mudam atribuições.",
+        "binds": "Quando liga ao cliente",
+        "bindsValue": "Quando o seu servidor chama o identify com o <code>visitorId</code>, enquanto a atribuição está aberta.",
+        "pays": "Quando gera comissão",
+        "paysValue": "No primeiro pagamento dentro da janela e, depois, nas renovações dentro da duração do programa.",
+        "config": "O que é configurável",
+        "configValue": "O modelo (primeiro ou último clique) e a janela, por programa, em <strong>Programas</strong>. Programas novos começam com <strong>último clique</strong> e <strong>60 dias</strong>."
+      },
       "windowTitle": "Janela de atribuição",
-      "windowBody": "Quantos dias podem passar entre o clique e o primeiro pagamento para a venda contar para o afiliado. Depois que o cliente converte, as renovações seguem a duração do programa, não a janela. Programas novos começam com 60 dias.",
+      "windowBody": "A janela é quantos dias a atribuição fica aberta depois do clique — de 1 a 365, por programa. O cadastro e o <strong>primeiro pagamento</strong> precisam acontecer antes de ela fechar.",
+      "timelineLabel": "Exemplo de janela de atribuição de 60 dias",
+      "timeline": {
+        "click": {
+          "when": "Dia 0",
+          "title": "Clique com <code>?ref=</code>",
+          "note": "A atribuição abre e fica válida até o dia 60."
+        },
+        "signup": {
+          "when": "Dia 15",
+          "title": "Cadastro — seu servidor chama o identify",
+          "note": "A atribuição é ligada ao cliente."
+        },
+        "payment": {
+          "when": "Dia 25",
+          "title": "Primeiro pagamento",
+          "note": "Dentro da janela: gera a comissão."
+        },
+        "renewal": {
+          "when": "Dia 90",
+          "title": "Renovação",
+          "note": "A janela já fechou, mas renovações seguem a duração do programa, não a janela."
+        }
+      },
+      "windowNote": "Se o primeiro pagamento acontecesse no dia 61, não haveria comissão. O exemplo usa 60 dias, o padrão de programas novos; o valor real é o configurado no programa.",
+      "modelsTitle": "Primeiro clique e último clique",
+      "modelsLead": "O modelo decide o que acontece quando o mesmo visitante clica em links de afiliados diferentes enquanto a janela está aberta.",
+      "scenarioLabel": "Exemplo: dois afiliados, o mesmo visitante",
+      "scenario": {
+        "a": {
+          "when": "Dia 1",
+          "title": "Clique pelo link do Afiliado A"
+        },
+        "b": {
+          "when": "Dia 3",
+          "title": "Clique pelo link do Afiliado B"
+        }
+      },
       "firstClickTitle": "Primeiro clique",
-      "firstClickBody": "O primeiro afiliado que trouxe o visitante mantém o crédito enquanto a janela estiver aberta, mesmo que outro link seja clicado depois.",
+      "firstClickResult": "O Afiliado A mantém o crédito.",
+      "firstClickBody": "O primeiro afiliado fica com a atribuição enquanto a janela aberta no dia 1 durar. O clique do B é registrado, mas não muda o crédito. Depois que a janela fecha, o próximo clique abre uma atribuição nova — nos dois modelos.",
       "lastClickTitle": "Último clique",
-      "lastClickBody": "O afiliado do clique mais recente fica com o crédito, e a janela recomeça a cada novo clique. É o padrão de programas novos."
+      "lastClickResult": "O Afiliado B passa a ter o crédito.",
+      "lastClickBody": "O clique mais recente fica com a atribuição, e a janela recomeça a contar do dia 3. É o padrão de programas novos.",
+      "lockTitle": "Depois do cadastro, o afiliado não muda",
+      "lockBody": "Quando o identify liga o visitante a um cliente, um clique de outro afiliado não troca mais o crédito, em nenhum dos dois modelos. O clique ainda é registrado.",
+      "pause": {
+        "title": "Programa pausado",
+        "lead": "Pausar um programa interrompe novas atribuições. Clientes já atribuídos continuam seguindo as regras de comissão existentes até o fim da elegibilidade.",
+        "items": {
+          "clicks": "<strong>Novos cliques</strong> continuam aparecendo nos relatórios, mas não criam nem mudam atribuições.",
+          "before": "<strong>Indicações feitas antes da pausa</strong> continuam válidas até a janela expirar: quem clicou antes e se cadastra durante a pausa ainda fica com o afiliado.",
+          "customers": "<strong>Clientes já atribuídos</strong> geram comissão normalmente enquanto as demais regras valerem — janela, duração, afiliado aprovado, moeda e ambiente.",
+          "archived": "<strong>Rascunho e arquivado</strong> seguem a mesma regra: só um programa ativo cria atribuições."
+        }
+      }
     },
     "holdPeriod": {
       "title": "Período de retenção",
-      "body": "Por quantos dias uma comissão fica pendente antes de poder ser paga. Serve para cobrir estornos: se o pagamento for estornado nesse período, a comissão é revertida antes de alguém receber. Programas novos começam com 30 dias."
+      "body": "Quantos dias uma comissão fica Pendente antes de poder ser paga. Serve para cobrir estornos: se o pagamento for estornado nesse período, a comissão é revertida antes de alguém receber. Não confunda com a janela de atribuição — uma decide se há comissão, a outra decide quando ela pode ser paga.",
+      "compareLabel": "Janela de atribuição e período de retenção",
+      "head": {
+        "window": "Janela de atribuição",
+        "hold": "Período de retenção"
+      },
+      "rows": {
+        "controls": {
+          "label": "Decide",
+          "window": "<strong>Se</strong> o pagamento gera comissão para o afiliado",
+          "hold": "<strong>Quando</strong> a comissão pode ser paga"
+        },
+        "starts": {
+          "label": "Conta a partir de",
+          "window": "O clique (no último clique, recomeça a cada novo clique)",
+          "hold": "A data do pagamento"
+        },
+        "defaults": {
+          "label": "Padrão · limites",
+          "window": "60 dias · de 1 a 365",
+          "hold": "30 dias · de 0 a 180"
+        },
+        "after": {
+          "label": "Quando termina",
+          "window": "Um primeiro pagamento depois disso não gera comissão",
+          "hold": "A comissão passa de Pendente para Disponível"
+        }
+      }
     },
     "apiKeys": {
       "title": "Chaves de API",
-      "lead": "Cada workspace tem dois tipos de chave, cada um em teste e em produção, gerados em Integrações. Uma chave de teste nunca alcança um programa em produção, e vice-versa.",
+      "lead": "Cada workspace tem dois tipos de chave, cada um em teste e em produção. Uma chave de teste nunca alcança um programa em produção, e vice-versa.",
       "publishable": {
         "title": "Chave pública",
         "where": "Pode ficar no navegador",
         "uses": {
           "tracker": "No tracker do seu site (<code>data-key</code>).",
-          "clicks": "Só registra cliques; não lê nem altera dados."
+          "clicks": "Registra cliques e atribuições de visitantes; não lê dados do workspace."
         }
       },
       "secret": {
@@ -861,32 +1184,43 @@
           "env": "Em variáveis de ambiente, nunca no repositório nem no bundle do navegador."
         }
       },
-      "rotateTitle": "Gerar uma nova chave invalida a anterior",
-      "rotateBody": "A troca é imediata. Atualize o tracker (chave pública) ou as variáveis do servidor (chave secreta) logo depois."
+      "exposeTitle": "Nunca exponha a chave secreta",
+      "exposeBody": "Nada de chave secreta no navegador, em Client Components, em variáveis <code>NEXT_PUBLIC_*</code>, em bundles públicos ou no repositório. Quem tem a chave secreta pode ligar clientes a afiliados no seu workspace.",
+      "facts": {
+        "generate": "<strong>Onde gerar:</strong> em Integrações, por ambiente.",
+        "once": "<strong>Exibida uma vez:</strong> cada chave só aparece no momento em que é gerada. Guarde a secreta num gerenciador de segredos.",
+        "rotate": "<strong>Gerar uma nova invalida a anterior na hora.</strong> Atualize o tracker (chave pública) ou a variável do servidor (chave secreta) logo depois."
+      }
     },
     "identifyApi": {
       "title": "API de identificação",
-      "method": "Método",
       "endpoint": "Endpoint",
       "auth": "Autenticação",
-      "authValue": "<code>Authorization: Bearer sk_test_…</code> ou <code>sk_live_…</code> (chave secreta)",
+      "authValue": "<code>Authorization: Bearer sk_test_…</code> ou <code>sk_live_…</code>. Só a chave secreta; a pública responde <code>401</code>.",
+      "contentType": "Content-Type",
       "body": "Corpo",
       "bodyValue": "JSON — veja <a>Campos</a>",
+      "response": "Resposta",
+      "responseValue": "<code>200</code> com JSON — veja <a>Resposta</a>",
       "rateLimit": "Limite",
-      "rateLimitValue": "{count} requisições por minuto por IP",
+      "rateLimitValue": "{count} requisições por minuto por IP; acima disso, <code>429</code> com o header <code>Retry-After</code>.",
       "cors": "CORS",
-      "corsValue": "Não habilitado — chamada servidor a servidor"
+      "corsValue": "Não habilitado — chamada servidor a servidor",
+      "idempotency": "Repetição",
+      "idempotencyValue": "Segura: o mesmo <code>externalId</code> atualiza o mesmo cliente, sem apagar <code>providerCustomerId</code> ou e-mail já guardados."
     },
     "webhookEvents": {
       "title": "Eventos do Stripe",
-      "lead": "Assine estes eventos no endpoint do webhook. Outros eventos são recebidos e ignorados.",
+      "lead": "Selecione estes eventos no endpoint do webhook. Qualquer outro evento é aceito com <code>200</code> e ignorado.",
       "event": "Evento",
       "records": "O que registra",
       "types": {
+        "checkoutReference": "Checkout concluído → liga a indicação ao cliente da Stripe (dispensa o identify); não registra dinheiro",
         "payment": "Pagamento de fatura → pode gerar comissão",
         "oneOffPayment": "Pagamento avulso (sem fatura) → pode gerar comissão",
         "refund": "Estorno, inclusive parcial → reversão proporcional da comissão",
         "chargeback": "Disputa → reversão proporcional ao valor disputado",
+        "disputeWon": "Disputa vencida ou consulta encerrada → a comissão revertida volta, em retenção (disputa perdida não muda nada)",
         "subscription": "Criação ou mudança de assinatura",
         "subscriptionCancelled": "Cancelamento de assinatura",
         "paymentLink": "Liga a fatura ao pagamento que a quitou → estornos e disputas encontram a comissão"
@@ -894,33 +1228,146 @@
     },
     "errors": {
       "title": "Erros",
-      "lead": "As APIs respondem com JSON <code>{json}</code> e o status HTTP correspondente.",
+      "lead": "As APIs respondem com JSON <code>{json}</code> e o status HTTP correspondente. O campo <code>error</code> é estável; algumas respostas trazem também <code>message</code>, em inglês, só para depuração.",
       "code": "Código",
       "status": "HTTP",
-      "meaning": "Quando acontece",
-      "items": {
-        "missing_credentials": "O header <code>Authorization: Bearer</code> não foi enviado.",
-        "unauthorized": "A chave está malformada, é inválida ou não é secreta.",
-        "invalid_payload": "O corpo não é um JSON válido para o contrato.",
-        "invalid_visitor": "O <code>visitorId</code> não segue o formato <code>v_…</code>.",
-        "validation_error": "Um campo obrigatório está vazio.",
-        "unknown_key": "Tracker: a chave pública não existe ou foi substituída por uma nova.",
-        "invalid_ref": "Tracker: o código de indicação tem formato inválido.",
-        "rate_limited": "Limite excedido. Respeite o header <code>Retry-After</code>.",
-        "internal_error": "Falha inesperada do nosso lado. Tente de novo.",
-        "LIVE_MODE_REQUIRED": "Chave de produção num workspace sem plano com produção (Launch ou Growth).",
-        "SUBSCRIPTION_REQUIRED": "Chave de produção com a assinatura em atraso além do prazo de carência."
+      "cause": "Causa comum",
+      "fix": "Como corrigir",
+      "noBody": "sem corpo",
+      "groups": {
+        "identify": {
+          "title": "<code>POST /api/identify</code>",
+          "lead": "Chamado pelo seu servidor. Os códigos aparecem na ordem em que a rota verifica.",
+          "items": {
+            "rate_limited": {
+              "cause": "Cerca de 120 requisições por minuto do mesmo IP — rajadas curtas são toleradas.",
+              "fix": "Espere os segundos de <code>Retry-After</code>; não chame em loop."
+            },
+            "missing_credentials": {
+              "cause": "Sem o header <code>Authorization: Bearer</code>.",
+              "fix": "Envie <code>Authorization: Bearer sk_…</code>."
+            },
+            "invalid_payload": {
+              "cause": "O corpo não é JSON, falta <code>visitorId</code> ou <code>externalId</code>, ou um campo tem tipo, tamanho ou formato inválido.",
+              "fix": "Confira o corpo contra a tabela Campos."
+            },
+            "invalid_visitor": {
+              "cause": "O <code>visitorId</code> não segue o formato <code>v_…</code>.",
+              "fix": "Envie o valor do cookie sem alterações."
+            },
+            "unauthorized": {
+              "cause": "Chave malformada, revogada, trocada por uma nova ou pública.",
+              "fix": "Use a chave secreta atual do ambiente certo."
+            },
+            "validation_error": {
+              "cause": "<code>externalId</code> só com espaços.",
+              "fix": "Envie o id do usuário no seu sistema."
+            },
+            "LIVE_MODE_REQUIRED": {
+              "cause": "Chave <code>sk_live_…</code> sem Launch ou Growth ativo.",
+              "fix": "Use a chave de teste ou ative um plano com produção."
+            },
+            "SUBSCRIPTION_REQUIRED": {
+              "cause": "Chave de produção com a assinatura em atraso além da carência.",
+              "fix": "Regularize o pagamento do plano."
+            },
+            "internal_error": {
+              "cause": "Falha inesperada do nosso lado.",
+              "fix": "Tente de novo com espera crescente; repetir o identify é seguro."
+            }
+          },
+          "label": "POST /api/identify"
+        },
+        "track": {
+          "title": "<code>POST /api/track</code> · tracker",
+          "lead": "Chamado pelo tracker no navegador; você vê as respostas na aba Rede. Sucesso é <code>200</code> com <code>attributed</code>: <code>false</code> quando o clique foi registrado sem atribuição (programa pausado ou afiliado não aprovado).",
+          "items": {
+            "rate_limited": {
+              "cause": "Cerca de 60 cliques por minuto do mesmo IP — rajadas curtas são toleradas.",
+              "fix": "Nada a fazer em tráfego normal; o limite protege contra abuso."
+            },
+            "invalid_payload": {
+              "cause": "Requisição fora do contrato do tracker — por exemplo, uma URL de página com mais de 2000 caracteres.",
+              "fix": "Use a tag de Instalar o tracker sem modificações e evite URLs de destino muito longas."
+            },
+            "invalid_ref": {
+              "cause": "O código na URL tem formato inválido: 2 a 49 caracteres, começando por letra ou número, seguidos de letras, números, <code>-</code> ou <code>_</code> (maiúsculas viram minúsculas). Acima de 64 caracteres, a resposta é <code>invalid_payload</code>.",
+              "fix": "Confira o link do afiliado."
+            },
+            "invalid_visitor": {
+              "cause": "O <code>visitorId</code> enviado não segue o formato <code>v_…</code>. O tracker troca sozinho um cookie inválido, então isso só acontece em requisições feitas fora dele.",
+              "fix": "Use a tag de Instalar o tracker sem modificações."
+            },
+            "unknown_key": {
+              "cause": "A <code>data-key</code> não existe, foi trocada por uma nova ou é uma chave secreta.",
+              "fix": "Coloque a chave pública atual em <code>data-key</code>."
+            },
+            "not_found": {
+              "cause": "Nenhum afiliado tem esse código num programa deste ambiente.",
+              "fix": "Confira o código e se a chave (teste ou produção) é a do ambiente do programa."
+            },
+            "no_content": {
+              "cause": "Chave <code>pk_live_…</code> sem produção ativa: nada é registrado.",
+              "fix": "Ative um plano com produção ou use a chave de teste."
+            },
+            "internal_error": {
+              "cause": "Falha inesperada do nosso lado.",
+              "fix": "O próximo clique tenta de novo."
+            }
+          },
+          "label": "POST /api/track (tracker)"
+        },
+        "webhook": {
+          "title": "Webhook do Stripe · <code>POST /api/webhooks/stripe/:id</code>",
+          "lead": "O que o endpoint responde ao Stripe. Você vê em Desenvolvedores → Webhooks → entregas do endpoint.",
+          "items": {
+            "not_found": {
+              "cause": "O ID na URL está errado, ou a integração ainda não tem segredo salvo.",
+              "fix": "Copie a URL de Integrações e cole o segredo de assinatura."
+            },
+            "missing_signature": {
+              "cause": "Requisição sem o header <code>Stripe-Signature</code> — não veio do Stripe.",
+              "fix": "Envie eventos pelo Stripe ou pela Stripe CLI."
+            },
+            "invalid_signature": {
+              "cause": "O segredo salvo não é o deste endpoint, ou o modo do evento ainda não tem segredo salvo.",
+              "fix": "Cole o segredo deste endpoint no campo do modo certo."
+            },
+            "livemode_mismatch": {
+              "cause": "Um evento de produção assinado com o segredo de teste, ou o contrário.",
+              "fix": "Cole cada segredo no campo do seu modo."
+            },
+            "processing_failed": {
+              "cause": "O evento chegou, mas o registro falhou.",
+              "fix": "O Stripe reenvia sozinho; se continuar, fale com o suporte."
+            },
+            "duplicate": {
+              "cause": "Evento já registrado antes (reentrega).",
+              "fix": "Nada a fazer."
+            },
+            "ignored": {
+              "cause": "Evento que não está na lista, ou de produção sem plano ativo (<code>live_mode_inactive</code>).",
+              "fix": "Para produção, reenvie pelo Stripe depois de ativar o plano."
+            }
+          },
+          "label": "Webhook do Stripe"
+        }
       }
     },
     "environments": {
       "title": "Teste e produção",
-      "lead": "Todo programa nasce em <strong>teste</strong> ou em <strong>produção</strong> e não muda depois. Os dois ambientes ficam no mesmo workspace, mas nunca se misturam: cliques, clientes, pagamentos e comissões de teste nunca entram no registro de produção.",
+      "lead": "Todo programa nasce em <strong>teste</strong> ou em <strong>produção</strong> e não muda depois. Os dois ambientes ficam no mesmo workspace, mas nunca se misturam: <strong>eventos de teste não entram em programas de produção</strong>, e cliques, clientes e comissões de teste nunca entram no registro de produção. A URL da API e a do webhook são as mesmas nos dois.",
       "head": {
         "what": "Item",
         "test": "Teste",
         "live": "Produção"
       },
       "rows": {
+        "use": {
+          "label": "Para quê",
+          "test": "Validar a integração, sem dinheiro real",
+          "live": "Clientes e comissões reais"
+        },
         "keys": {
           "label": "Chaves",
           "test": "<code>pk_test_…</code> e <code>sk_test_…</code>",
@@ -933,13 +1380,18 @@
         },
         "stripe": {
           "label": "Stripe",
-          "test": "Endpoint do modo de teste, eventos com <code>livemode: false</code>",
-          "live": "Endpoint do modo de produção, eventos com <code>livemode: true</code>"
+          "test": "Endpoint do modo de teste (<code>livemode: false</code>)",
+          "live": "Endpoint do modo de produção (<code>livemode: true</code>)"
+        },
+        "dashboard": {
+          "label": "No painel",
+          "test": "<strong>Dados de teste</strong> ligado",
+          "live": "<strong>Dados de teste</strong> desligado"
         },
         "plan": {
           "label": "Plano",
           "test": "Todos, inclusive o Sandbox",
-          "live": "Launch ou Growth ativo"
+          "live": "Launch ou Growth ativo (inclui período de teste e os 7 dias de carência)"
         }
       },
       "withoutLiveTitle": "Sem um plano com produção",
@@ -948,10 +1400,474 @@
         "identify": "<code>/api/identify</code> com uma chave de produção responde <code>402</code> com <code>LIVE_MODE_REQUIRED</code>.",
         "webhook": "Eventos de produção do Stripe são confirmados, mas não processados nem registrados — reenvie pelo painel do Stripe depois de ativar o plano."
       },
-      "planTitle": "Produção exige Launch ou Growth",
-      "planBody": "O modo de produção faz parte dos planos <pricing>Launch e Growth</pricing>. Com o pagamento em atraso além do prazo de carência, o processamento de produção para até a assinatura ser regularizada (<code>SUBSCRIPTION_REQUIRED</code>).",
       "simulateTitle": "Teste sem Stripe",
-      "simulateBody": "Na página de um programa de teste, “Simular conversão” faz o caminho inteiro — clique, identificação e pagamento — pelos mesmos serviços da integração real, e também simula renovação e estorno."
+      "simulateBody": "Na página de um programa de teste, “Simular conversão” faz o caminho inteiro — clique, identificação e pagamento — pelos mesmos serviços da integração real, e também simula renovação e estorno.",
+      "goLiveTitle": "Ir para produção",
+      "goLive": {
+        "plan": {
+          "title": "Ative um plano com produção",
+          "body": "Produção faz parte dos planos <pricing>Launch e Growth</pricing>. Com o pagamento em atraso por mais de 7 dias, o processamento de produção para (<code>SUBSCRIPTION_REQUIRED</code>)."
+        },
+        "program": {
+          "title": "Crie o programa em produção",
+          "body": "Em <strong>Programas → Novo programa</strong>, escolha produção — dá para copiar as configurações de um programa de teste — e convide nele os afiliados que vão vender; quem você convida já entra aprovado. Um programa de teste não muda de ambiente."
+        },
+        "keys": {
+          "title": "Gere as chaves de produção",
+          "body": "Em <strong>Integrações</strong>, gere a chave pública e a secreta de produção. Cada uma aparece uma única vez."
+        },
+        "swap": {
+          "title": "Troque as chaves no seu código",
+          "body": "No tracker, use <code>pk_live_…</code> em <code>data-key</code>. No servidor, troque a variável de ambiente pela <code>sk_live_…</code>."
+        },
+        "stripe": {
+          "title": "Crie o endpoint no modo de produção do Stripe",
+          "body": "Com o modo de produção ligado no Stripe, adicione um endpoint com a mesma URL e os mesmos eventos, e cole o segredo em Integrações, no campo de produção."
+        },
+        "validate": {
+          "title": "Valide em produção",
+          "body": "Refaça a validação com <strong>Dados de teste</strong> desligado no painel."
+        }
+      }
+    },
+    "expected": "Resultado esperado",
+    "quickstart": {
+      "title": "Integração rápida",
+      "lead": "Cinco passos até a primeira comissão. Os passos 1 e 2 são feitos uma vez, qualquer que seja o meio de pagamento.",
+      "label": "Passos da integração rápida",
+      "steps": {
+        "install": {
+          "title": "Instale o {brand}",
+          "body": "Cole a tag no <code>{head}</code> de todas as páginas do seu site. Detalhes em <a>Rastreamento</a>."
+        },
+        "identify": {
+          "title": "Identifique seu cliente",
+          "body": "Quando o visitante cria conta, seu servidor chama <code>POST /api/identify</code>. A indicação passa a pertencer ao cliente — não a um checkout. Campos e respostas em <a>Identificação do cliente</a>.",
+          "codeTitle": "No seu cadastro"
+        },
+        "connect": {
+          "title": "Conecte um meio de pagamento",
+          "body": "Em <strong>Integrações → Pagamentos → Adicionar meio de pagamento</strong>, conecte a conta onde seu SaaS recebe. Pode conectar mais de uma.",
+          "label": "Meios de pagamento"
+        },
+        "test": {
+          "title": "Faça um teste",
+          "body": "Abra seu site por um link de indicação, crie uma conta de teste e pague em modo de teste. O checklist completo está em <a>Testar a integração</a>."
+        },
+        "commission": {
+          "title": "Veja a comissão",
+          "body": "A comissão aparece como <strong>Pendente</strong> em Comissões. Se não aparecer, a página da conta mostra em qual etapa o pagamento parou — veja <a>Pagamento sem comissão</a>."
+        }
+      },
+      "oneIntegrationTitle": "Uma integração, vários meios de pagamento",
+      "oneIntegrationBody": "O rastreamento e a identificação do cliente são independentes do meio de pagamento. Depois de instalar o {brand}, você pode conectar quantas contas de cobrança precisar — sem refazer os passos 1 e 2. Veja <a>Vários meios de pagamento</a>."
+    },
+    "customerFirst": {
+      "title": "Integração recomendada: Customer-first",
+      "lead": "Para SaaS com cadastro antes da cobrança, este é o fluxo recomendado. A indicação é ligada ao cliente quando ele cria a conta; a partir daí, o meio de pagamento só precisa dizer quem pagou.",
+      "matchTitle": "Como cada pagamento reencontra o cliente",
+      "matchLead": "O {brand} procura, nesta ordem, a primeira ligação que existir:",
+      "match": {
+        "identity": "<strong>O id do cliente no meio de pagamento</strong>, que você registrou com o identify (<code>provider</code> + <code>providerCustomerId</code>) — ou que um pagamento anterior já registrou. Renovações usam este caminho: nenhum campo extra.",
+        "metadata": "<strong>O seu id de usuário</strong> no metadata do checkout, quando o meio devolve metadata (Stripe, Mercado Pago). Veja o <a>Checkout Bridge</a>.",
+        "reference": "<strong>A referência de atribuição</strong> no checkout, em qualquer meio: se o visitante dela foi identificado, o pagamento vai para esse cliente.",
+        "email": "<strong>O e-mail</strong> enviado no identify, quando ele casa com exatamente um cliente identificado do mesmo meio de pagamento. Clientes nunca são mesclados por e-mail."
+      },
+      "practiceTitle": "Na prática",
+      "practice": "Se seu backend cria o cliente no meio de pagamento no cadastro, envie o id dele no identify e pronto. Se o cliente só nasce no checkout do meio de pagamento, acrescente os campos do <a>Checkout Bridge</a> — os mesmos para qualquer meio.",
+      "rulesTitle": "Trocar de meio de pagamento não muda as regras do programa",
+      "rulesBody": "Se o cliente pagava pelo Stripe e passa a pagar por outro meio conectado, o {brand} reconhece o mesmo cliente e a mesma atribuição. A comissão continua sujeita a tudo o que já valia:",
+      "rules": {
+        "window": "A <strong>janela de atribuição</strong> vale para o primeiro pagamento comissionado; depois dele, só a duração decide.",
+        "duration": "A <strong>duração da comissão</strong> conta a partir do primeiro pagamento comissionado, em qualquer meio — trocar de meio não reinicia o prazo.",
+        "affiliate": "A <strong>participação do afiliado</strong> precisa estar aprovada no momento do pagamento.",
+        "currency": "A <strong>moeda</strong> do pagamento precisa ser a do programa.",
+        "environment": "<strong>Teste e produção</strong> nunca se misturam: um pagamento de teste só alcança programas de teste.",
+        "model": "O <strong>modelo de atribuição</strong> (primeiro ou último clique) decide qual afiliado fica com o cliente no clique, não no pagamento.",
+        "program": "Pausar ou arquivar um programa interrompe novas atribuições; clientes já atribuídos seguem as regras acima. Veja <a>Programa pausado</a>."
+      },
+      "flowLabel": "Fluxo customer-first",
+      "flow": {
+        "referred": "Visitante indicado",
+        "signup": "Cria conta",
+        "identified": "{brand} identifica o cliente",
+        "pays": "Cliente paga",
+        "recognised": "{brand} reconhece o pagamento",
+        "commission": "Comissão"
+      },
+      "codeLead": "O código mínimo: no seu cadastro, leia o cookie do rastreador e chame o identify. Não há SDK — é uma chamada <code>fetch</code> do seu servidor.",
+      "codeTitle": "No seu cadastro",
+      "codeNote": "Quando você criar o cliente no meio de pagamento, chame de novo com o mesmo <code>externalId</code> e o <code>providerCustomerId</code>: renovações passam a ser reconhecidas por ele. Todos os campos em <a>Campos</a>."
+    },
+    "guestCheckout": {
+      "title": "Checkout sem cadastro",
+      "lead": "Se a compra acontece antes de sabermos quem é o cliente, a referência de atribuição precisa viajar até o checkout. É o caso de landing direto para o checkout, links de pagamento e checkouts externos.",
+      "how": "O campo onde a referência vai depende do meio de pagamento — a tabela está em <a>Referência no checkout</a>, e os exemplos do Stripe em <stripe>Referência no checkout do Stripe</stripe>. O {brand} cria o cliente a partir do pagamento e liga a atribuição a ele; as renovações seguintes o reconhecem sem referência.",
+      "limitsTitle": "Limites",
+      "limits": {
+        "first": "A referência vale uma vez: o primeiro cliente que a usa fica com ela. Um link encaminhado não credita outra pessoa.",
+        "expiry": "A referência expira com a janela de atribuição.",
+        "none": "Sem cliente e sem referência, o pagamento não entra no registro de comissões."
+      },
+      "flowLabel": "Fluxo do checkout sem cadastro",
+      "flow": {
+        "referral": {
+          "label": "Indicação",
+          "note": "o visitante chega com <code>?ref=</code>"
+        },
+        "reference": {
+          "label": "Referência de atribuição",
+          "note": "<code>ifx_…</code>, guardada pelo rastreador"
+        },
+        "checkout": {
+          "label": "Checkout",
+          "note": "você acrescenta a referência ao criar o checkout"
+        },
+        "provider": {
+          "label": "Meio de pagamento",
+          "note": "guarda a referência junto do pagamento"
+        },
+        "webhook": {
+          "label": "Notificação",
+          "note": "a referência volta ao {brand}"
+        },
+        "attribution": {
+          "label": "Atribuição",
+          "note": "o cliente nasce do pagamento, já com o afiliado"
+        }
+      }
+    },
+    "multipleProviders": {
+      "title": "Vários meios de pagamento",
+      "lead": "O rastreamento e a identificação do cliente são integrados uma vez. Cada meio de pagamento é só mais uma conta conectada.",
+      "example": "Exemplo: seu SaaS usa o Stripe para cartão internacional, o Mercado Pago para alguns pagamentos locais e o AbacatePay para Pix.",
+      "steps": "Marque em Integrações → Visão geral todos os meios que você usa. Os que ficarem para depois aparecem como <strong>Opcional</strong> e não bloqueiam nada: um meio funcionando já basta para produção.",
+      "notTwice": "Você não instala o {brand} três vezes.",
+      "diagram": {
+        "label": "Uma instalação, três contas de cobrança",
+        "description": "O {brand} é instalado uma vez e identifica o cliente. Depois, Stripe, Mercado Pago e AbacatePay são conectados; o mesmo cliente pode pagar por qualquer um, com uma atribuição e uma regra de comissão.",
+        "installed": "{brand} instalado",
+        "customer": "Cliente identificado",
+        "rule": "Uma atribuição · uma regra de comissão",
+        "branches": "contas conectadas"
+      }
+    },
+    "multipleAccounts": {
+      "title": "Várias contas do mesmo meio",
+      "lead": "Uma empresa com Stripe no Brasil e nos EUA conecta as duas contas no mesmo workspace. Dê um nome ao conectar, ou renomeie depois.",
+      "exampleLabel": "Exemplo de duas contas",
+      "example": {
+        "br": "Stripe — Brasil",
+        "us": "Stripe — EUA"
+      },
+      "items": {
+        "workspace": "<strong>Mesmo workspace</strong>: os mesmos programas, afiliados e comissões.",
+        "accounts": "<strong>Contas separadas</strong>: cada uma com o próprio nome, status e página de diagnóstico.",
+        "events": "<strong>Eventos isolados</strong>: o que chega de uma conta nunca é lido como da outra, e teste e produção não se misturam.",
+        "identities": "<strong>O mesmo cliente</strong>: seu id de cliente é um só; o id dele em cada meio de pagamento é guardado à parte."
+      }
+    },
+    "betaProviders": {
+      "title": "Meios de pagamento em beta",
+      "lead": "Mercado Pago, AbacatePay e Asaas estão disponíveis dentro do produto como <strong>Beta</strong>.",
+      "meaningTitle": "O que Beta significa",
+      "meaning": "Esta integração está em validação com contas reais. A arquitetura e os eventos já estão implementados e testados com os payloads da documentação oficial, mas recomendamos testar antes de usar em produção. Beta não é “em breve”: funciona hoje, com acompanhamento.",
+      "head": {
+        "provider": "Meio",
+        "connect": "Como conecta",
+        "webhook": "Notificações"
+      },
+      "rows": {
+        "mercado_pago": {
+          "connect": "Token de acesso",
+          "webhook": "Manual, no painel do Mercado Pago"
+        },
+        "abacatepay": {
+          "connect": "Chave de API",
+          "webhook": "Registrado pelo {brand}"
+        },
+        "asaas": {
+          "connect": "Chave de API",
+          "webhook": "Registrado pelo {brand}"
+        }
+      },
+      "guide": "Guia completo de cada um"
+    },
+    "identityConcepts": {
+      "title": "Customer Identity e Billing Identity",
+      "lead": "Dois conceitos que separam “quem é o cliente” de “por onde ele paga”.",
+      "head": {
+        "concept": "Conceito",
+        "what": "O que é",
+        "from": "De onde vem"
+      },
+      "customer": {
+        "name": "Customer Identity",
+        "what": "O cliente do seu SaaS, pelo seu próprio id de usuário. Um por pessoa, por ambiente.",
+        "from": "<code>POST /api/identify</code> (<code>externalId</code>), ou o metadata do checkout."
+      },
+      "billing": {
+        "name": "Billing Identity",
+        "what": "O id desse cliente em um meio de pagamento (<code>cus_…</code> no Stripe, o pagador no Mercado Pago…). Um cliente pode ter várias, uma por meio.",
+        "from": "<code>providerCustomerId</code> no identify, ou o primeiro pagamento reconhecido."
+      },
+      "note": "O meio de pagamento faz parte da chave: o cliente <code>123</code> do Stripe e o <code>123</code> do Mercado Pago são identidades diferentes."
+    },
+    "checkoutBridge": {
+      "title": "Referência no checkout (Checkout Bridge)",
+      "lead": "Os campos que levam a referência de atribuição (e, se quiser, o seu id de usuário) até o checkout. O {brand} escolhe o campo certo de cada meio: você não precisa memorizar nomes. Não há SDK para instalar — são campos a acrescentar no payload que você já envia.",
+      "where": "Em Integrações → API → Referência no checkout, o {brand} mostra o trecho pronto para cada meio que você conectou.",
+      "head": {
+        "provider": "Meio",
+        "token": "Referência vai em",
+        "customer": "Seu id de usuário vai em"
+      },
+      "identifyInstead": "— (use o identify)",
+      "exampleTitle": "Exemplo: Stripe Checkout",
+      "betaNote": "Meios em beta: veja o guia de cada um para o payload de exemplo."
+    },
+    "missingCommission": {
+      "title": "Por que este pagamento não gerou comissão?",
+      "lead": "A página de cada conta, em Integrações → Pagamentos, mostra em <strong>Diagnóstico</strong> o caminho de cada pagamento. Pare na primeira etapa pendente:",
+      "steps": {
+        "referral": "<strong>Indicação</strong> — houve clique em um link de indicação que gerou atribuição.",
+        "customer": "<strong>Cliente identificado</strong> — seu servidor chamou o identify para este cliente.",
+        "payment": "<strong>Pagamento recebido</strong> — o meio de pagamento avisou e o pagamento entrou no registro.",
+        "recognised": "<strong>Cliente reconhecido</strong> — o pagamento foi ligado a uma identidade de cobrança do cliente.",
+        "eligible": "<strong>Atribuição elegível</strong> — a indicação valia na data do pagamento.",
+        "commission": "<strong>Comissão criada</strong> — as regras do programa permitiram."
+      },
+      "organic": "Um cliente que ninguém indicou aparece como <strong>Sem indicação</strong>, em cinza. É uma venda orgânica — normal, e o {brand} não alerta por ela. O alerta aparece só quando um cliente indicado paga e não gera comissão.",
+      "reasonsTitle": "Motivos",
+      "reasonsLead": "Em <strong>Atividade</strong>, cada evento traz o motivo exato em uma frase. Os códigos mais comuns — a lista não é exaustiva:",
+      "head": {
+        "code": "Código",
+        "meaning": "O que significa"
+      },
+      "organicTitle": "Nem todo pagamento precisa gerar comissão",
+      "whyTitle": "Pagamento indicado sem comissão: motivos possíveis",
+      "why": {
+        "expired": "<strong>Atribuição expirada</strong> — o primeiro pagamento veio depois da janela de atribuição.",
+        "affiliate": "<strong>Afiliado inativo</strong> — a participação não estava aprovada na data do pagamento.",
+        "environment": "<strong>Ambiente incorreto</strong> — um pagamento de teste nunca alcança um programa de produção, e vice-versa.",
+        "currency": "<strong>Moeda diferente</strong> — o pagamento não está na moeda do programa.",
+        "duration": "<strong>Fora da duração</strong> — a comissão recorrente já cumpriu o prazo do programa.",
+        "recognised": "<strong>Cliente não reconhecido</strong> — o pagamento não trouxe um id, uma referência ou um e-mail que ligasse ao cliente identificado.",
+        "program": "<strong>Regra do programa</strong> — por exemplo, um clique feito com o programa pausado não cria atribuição. Veja <a>Programa pausado</a>."
+      }
+    },
+    "providerCredentials": {
+      "title": "Credenciais dos meios de pagamento",
+      "lead": "O que o {brand} guarda de cada meio de pagamento, e como.",
+      "items": {
+        "stripe": "<strong>Stripe</strong>: nenhuma chave do Stripe. Pela autorização (somente leitura) ou pelo segredo de assinatura do endpoint (<code>whsec_…</code>).",
+        "encrypted": "<strong>Chaves de API e tokens</strong> (meios em beta): criptografados com AES-256-GCM ao salvar, nunca exibidos de novo, nunca registrados em log, apagados ao desconectar.",
+        "dedicated": "Prefira uma <strong>chave dedicada</strong> ao {brand}: alguns meios não têm chave somente leitura.",
+        "secrets": "Os segredos que autenticam as notificações de cada conexão são gerados pelo {brand} e comparados em tempo constante.",
+        "disconnect": "<strong>Desconectar</strong> para de receber novos pagamentos da conta; transações e comissões já registradas são preservadas."
+      }
+    },
+    "beta": {
+      "metaTitle": "Meios de pagamento em beta",
+      "title": "Meios de pagamento em beta",
+      "lead": "Mercado Pago, AbacatePay e Asaas estão implementados e disponíveis dentro do produto como Beta. Esta página diz exatamente o que cada um faz hoje — e o que ainda não foi validado.",
+      "breadcrumb": "Meios em beta",
+      "meaningTitle": "Beta significa",
+      "meaning": "Esta integração está em validação com contas reais. A arquitetura e os eventos já estão implementados, e o contrato é testado com os payloads da documentação oficial, mas recomendamos testes antes de usar em produção. A página da conexão mostra cada evento e o motivo de cada decisão.",
+      "back": "Voltar ao guia",
+      "head": {
+        "what": "Item",
+        "value": "Como funciona hoje"
+      },
+      "labels": {
+        "status": "Status",
+        "connect": "Como conectar",
+        "automatic": "O {brand} faz",
+        "you": "Você precisa",
+        "methods": "Métodos",
+        "events": "Eventos lidos",
+        "refunds": "Reembolsos",
+        "subscriptions": "Assinaturas",
+        "environment": "Teste e produção",
+        "limits": "Limitações conhecidas",
+        "test": "Como testar"
+      },
+      "eventsLead": "Eventos que o {brand} lê desta conta:",
+      "providers": {
+        "mercado_pago": {
+          "connect": "Em Integrações → Pagamentos → Adicionar meio de pagamento → Mercado Pago, cole o token de acesso da sua aplicação (<code>APP_USR-…</code> em produção, <code>TEST-…</code> em teste).",
+          "automatic": "Valida o token, gera a URL de notificações desta conexão e busca cada pagamento notificado direto na API do Mercado Pago.",
+          "you": "Uma etapa manual: o Mercado Pago não permite registrar notificações por API. No painel (Suas integrações → sua aplicação → Webhooks), cole a URL mostrada pelo {brand}, marque os tópicos abaixo e cole de volta a assinatura secreta. A conexão só fica Saudável quando chega a primeira notificação verificada.",
+          "methods": "Pix, cartão e boleto.",
+          "refunds": "Total e parcial (o valor reembolsado acumulado vira uma reversão proporcional). Contestação (<code>charged_back</code>) reverte a comissão.",
+          "subscriptions": "Sim, por assinatura (preapproval) e suas cobranças.",
+          "environment": "O ambiente vem do token. Um vendedor pode ter uma conexão de teste e outra de produção.",
+          "limits": "Sem OAuth por enquanto (token colado manualmente). Pagamentos com credenciais de teste não enviam notificações. Contestação ganha não devolve a comissão automaticamente.",
+          "test": "Use o simulador de webhooks do painel do Mercado Pago ou um pagamento real de baixo valor."
+        },
+        "abacatepay": {
+          "connect": "Cole uma chave de API (<code>abc_prod_…</code> ou <code>abc_dev_…</code>).",
+          "automatic": "O {brand} configura o webhook automaticamente depois de validar sua chave, com um segredo exclusivo desta conexão.",
+          "you": "Nada no painel. Leve a referência ao checkout (<code>externalId</code> → veja o Checkout Bridge) ou identifique o cliente.",
+          "methods": "Pix e cartão.",
+          "refunds": "Só reembolso total (o AbacatePay não tem parcial). Uma contestação aberta reverte a comissão.",
+          "subscriptions": "Sim: primeira cobrança, renovações e cancelamento.",
+          "environment": "O ambiente vem da chave (modo dev = teste).",
+          "limits": "O AbacatePay não devolve metadata no webhook: o seu id de usuário precisa chegar pelo identify. Não há evento de contestação ganha, então a comissão revertida não volta sozinha.",
+          "test": "Use uma chave <code>abc_dev_</code> e faça uma compra no modo dev."
+        },
+        "asaas": {
+          "connect": "Cole uma chave de API (<code>$aact_prod_…</code> ou <code>$aact_hmlg_…</code> do sandbox).",
+          "automatic": "O {brand} configura o webhook automaticamente depois de validar sua chave, com um token exclusivo desta conexão, e o remove ao desconectar.",
+          "you": "Nada no painel. Use uma chave dedicada ao {brand}: o Asaas não tem chave somente leitura e desativa chaves sem uso por 3 meses.",
+          "methods": "Pix, boleto e cartão.",
+          "refunds": "Total e parcial. Pedido de chargeback reverte a comissão.",
+          "subscriptions": "Sim: cada ciclo é um pagamento ligado à assinatura.",
+          "environment": "Sandbox e produção são contas separadas no Asaas: cada uma é uma conexão.",
+          "limits": "O Asaas não assina as notificações com HMAC: a autenticação é o token exclusivo da conexão. Não há metadata: o seu id de usuário precisa chegar pelo identify.",
+          "test": "Use uma chave de sandbox e pague uma cobrança de teste no sandbox."
+        }
+      },
+      "notComingSoon": "Beta não é “em breve”: um meio em beta funciona hoje e pode ser conectado. “Em breve” é um meio que ainda não está disponível.",
+      "statusValue": "Implementado, testado com payloads oficiais, sem validação completa com conta real.",
+      "report": {
+        "anchor": "reportar-problema",
+        "title": "Como reportar um problema",
+        "lead": "Abra a conta em Integrações → Pagamentos. Em Configurações avançadas estão os dados que ajudam a investigar. Ao reportar, inclua:",
+        "items": {
+          "connection": "o <strong>id da conexão</strong>;",
+          "event": "o <strong>último evento</strong> (tipo) e o horário aproximado;",
+          "reason": "o <strong>último motivo</strong> mostrado em Atividade;",
+          "when": "o que você esperava que acontecesse — por exemplo, “pagamento de R$ 49,00 sem comissão”."
+        },
+        "neverTitle": "Nunca envie credenciais",
+        "never": "Chaves de API, tokens de acesso e segredos de assinatura não são necessários para investigar. Se algum vazou, gere um novo no meio de pagamento e salve na página da conta."
+      }
+    },
+    "refunds": {
+      "title": "Reembolsos e contestações",
+      "lead": "Um reembolso nunca apaga nem edita uma comissão. Ele cria uma reversão — uma linha negativa que aponta para a original —, então o histórico fica completo.",
+      "head": {
+        "event": "No meio de pagamento",
+        "result": "No {brand}"
+      },
+      "rows": {
+        "full": {
+          "event": "Reembolso total",
+          "result": "A comissão inteira é revertida. Se ainda não foi paga, ela fica como <strong>Revertida</strong>."
+        },
+        "partial": {
+          "event": "Reembolso parcial",
+          "result": "Reversão proporcional ao valor devolvido, somando os reembolsos anteriores. Ela é descontada junto com a comissão original no lote."
+        },
+        "dispute": {
+          "event": "Contestação aberta",
+          "result": "Reverte a comissão como um reembolso."
+        },
+        "disputeWon": {
+          "event": "Contestação ganha",
+          "result": "Só no Stripe: o valor revertido volta como <strong>Pendente</strong> e cumpre a retenção de novo."
+        }
+      },
+      "paidTitle": "Comissão já paga",
+      "paidBody": "Se a comissão já foi paga ao afiliado, o {brand} registra a reversão, mas <strong>não cobra de volta nem desconta do próximo lote</strong> — ainda não há clawback automático. Acerte a diferença diretamente com o afiliado, se quiser.",
+      "providers": "Meios em beta têm diferenças: o AbacatePay só tem reembolso total, e nenhum meio em beta devolve a comissão de uma contestação ganha. Detalhes em <a>Meios de pagamento em beta</a>."
+    },
+    "integrationHealth": {
+      "title": "Saúde da integração",
+      "lead": "Cada conta conectada mostra um status em Integrações. Ele vem do que realmente chegou — conectar não é o mesmo que funcionar.",
+      "statesLabel": "Status de uma conta conectada",
+      "head": {
+        "state": "Status",
+        "meaning": "O que significa",
+        "action": "O que fazer",
+        "object": "Objeto",
+        "what": "O que é"
+      },
+      "states": {
+        "healthy": {
+          "name": "Saudável",
+          "meaning": "Pagamentos chegam, encontram seus clientes, e clientes indicados geram comissão.",
+          "action": "Nada."
+        },
+        "configuring": {
+          "name": "Configurando",
+          "meaning": "Falta uma etapa que só você pode fazer, como as notificações no painel do Mercado Pago.",
+          "action": "Siga os passos na página da conta."
+        },
+        "awaiting": {
+          "name": "Aguardando eventos",
+          "meaning": "Tudo configurado; a conta ainda não enviou nenhum pagamento.",
+          "action": "Faça um pagamento de teste."
+        },
+        "degraded": {
+          "name": "Requer atenção",
+          "meaning": "Funciona, com um aviso: nenhum evento há dias, eventos do ambiente errado, ou um cliente indicado que pagou sem gerar comissão.",
+          "action": "Leia o aviso na página da conta."
+        },
+        "actionRequired": {
+          "name": "Ação necessária",
+          "meaning": "Algo impede o funcionamento: credencial recusada, notificações rejeitadas ou pagamentos sem cliente.",
+          "action": "Corrija pela própria página — por exemplo, salvando uma nova chave."
+        },
+        "error": {
+          "name": "Erro",
+          "meaning": "O último evento recebido não foi processado.",
+          "action": "O meio de pagamento reenvia sozinho. Se persistir, veja Atividade."
+        },
+        "disconnected": {
+          "name": "Desconectado",
+          "meaning": "Nada novo chega desta conta. Transações e comissões ficam preservadas.",
+          "action": "Conecte de novo quando quiser."
+        },
+        "setupIncomplete": {
+          "name": "Configuração incompleta",
+          "meaning": "Você começou a configuração manual e não concluiu — por exemplo, informou a conta do Stripe e ainda não colou o segredo.",
+          "action": "Abra a conta e clique em Continuar configuração: ela retoma na etapa que falta."
+        }
+      },
+      "notErrorTitle": "Estado não é problema",
+      "notErrorBody": "Aguardando o primeiro evento não é erro. Falta configurar notificações é uma ação pendente. Credencial inválida é um problema. Notificação rejeitada é um erro. A página da conta separa essas quatro situações.",
+      "advancedTitle": "Diagnóstico avançado",
+      "advancedLead": "Por trás do caminho de cada pagamento há seis registros. Útil quando você precisa conferir um caso pela API ou pelos ids em Configurações avançadas.",
+      "objects": {
+        "attribution": {
+          "name": "Attribution",
+          "what": "Liga um visitante indicado a um afiliado de um programa, com validade (a janela)."
+        },
+        "customer": {
+          "name": "Customer",
+          "what": "O cliente do seu SaaS, pelo seu id (<code>externalId</code>), um por ambiente."
+        },
+        "billingIdentity": {
+          "name": "Billing Identity",
+          "what": "O id desse cliente em um meio de pagamento (<code>cus_…</code> no Stripe). Um cliente pode ter várias."
+        },
+        "billingEvent": {
+          "name": "Billing Event",
+          "what": "Uma notificação recebida de uma conta conectada, com o resultado e o motivo (Atividade)."
+        },
+        "transaction": {
+          "name": "Transaction",
+          "what": "Um pagamento, reembolso ou contestação no livro, em centavos e com a moeda."
+        },
+        "commission": {
+          "name": "Commission",
+          "what": "O valor devido ao afiliado por uma transação, com a regra aplicada. Reembolsos criam reversões."
+        }
+      }
+    },
+    "webhookSecurity": {
+      "title": "Segurança dos webhooks",
+      "lead": "Como o {brand} decide se uma notificação de pagamento é confiável.",
+      "items": {
+        "verified": "<strong>Verificada antes de ser lida</strong>: pela assinatura do meio de pagamento ou por um segredo exclusivo de cada conexão, comparado em tempo constante.",
+        "rejected": "<strong>Recusada sem efeito</strong>: uma notificação que não passa na verificação não registra nada.",
+        "once": "<strong>Processada uma vez</strong>: reenvios do mesmo evento respondem com sucesso sem refazer nada.",
+        "environment": "<strong>Teste e produção isolados</strong>: um evento de teste numa conexão de produção (ou o contrário) é ignorado.",
+        "token": "<strong>Referência opaca</strong>: <code>ifx_…</code> é aleatória, não carrega dados do cliente e não pode ser adivinhada.",
+        "customer": "<strong>Seu id só vem do seu servidor</strong>: pelo identify com a chave secreta, ou pelo metadata do checkout que seu backend cria — nunca de um campo que o navegador controla."
+      }
     }
   },
   "status": {
@@ -1034,14 +1950,14 @@
             "actionDone": "Ver programas"
           },
           "stripe": {
-            "title": "Conectar o Stripe",
-            "titleDone": "Stripe recebendo eventos",
-            "description": "Os pagamentos dos clientes indicados viram comissões automaticamente.",
-            "action": "Conectar Stripe",
-            "actionDone": "Ver integração",
-            "titleWaiting": "Aguardando o primeiro evento do Stripe",
-            "descriptionWaiting": "As credenciais estão salvas. Este passo é marcado quando o Stripe enviar o primeiro evento — um pagamento de teste já basta.",
-            "actionWaiting": "Ver integração"
+            "title": "Conectar um meio de pagamento",
+            "titleDone": "Meio de pagamento recebendo eventos",
+            "description": "Conecte onde seu SaaS recebe — Stripe ou outro. Os outros meios podem vir depois; nenhum bloqueia o que já funciona.",
+            "action": "Conectar meio de pagamento",
+            "actionDone": "Ver meios de pagamento",
+            "titleWaiting": "Aguardando o primeiro evento do meio de pagamento",
+            "descriptionWaiting": "A conta está conectada. Este passo é marcado quando chegar o primeiro evento — um pagamento de teste já basta.",
+            "actionWaiting": "Ver meios de pagamento"
           },
           "affiliate": {
             "title": "Convidar o primeiro afiliado",
@@ -1055,7 +1971,7 @@
             "titleDone": "Rastreamento instalado",
             "description": "Cole o código de rastreamento no seu site. Este passo é marcado sozinho quando chegar o primeiro clique em um link de indicação.",
             "action": "Ver código de rastreamento",
-            "actionDone": "Ver integração"
+            "actionDone": "Ver rastreamento"
           },
           "testConversion": {
             "title": "Testar uma conversão",
@@ -1070,7 +1986,34 @@
             "description": "Com o Launch ou o Growth, seus programas em produção registram vendas reais e comissões de verdade.",
             "action": "Ver planos",
             "actionDone": "Ver plano"
+          },
+          "identity": {
+            "title": "Identificar clientes no cadastro",
+            "titleDone": "Clientes identificados",
+            "description": "Seu servidor informa ao {brand} quem é o cliente quando ele cria a conta. A indicação passa a seguir o cliente em qualquer meio de pagamento.",
+            "action": "Ver como identificar",
+            "actionDone": "Ver integração"
           }
+        },
+        "phases": {
+          "try": {
+            "title": "Veja funcionando",
+            "description": "Crie o programa, convide um afiliado e simule uma venda — sem código."
+          },
+          "connect": {
+            "title": "Conecte seu SaaS",
+            "description": "Agora conecte seu SaaS para processar vendas reais: instale o {brand} uma vez e conecte onde você recebe."
+          },
+          "live": {
+            "title": "Produção",
+            "description": "Com tudo provado em teste, ative as vendas reais."
+          }
+        },
+        "example": {
+          "title": "Exemplo com a sua regra",
+          "sale": "Venda",
+          "commission": "Comissão",
+          "payout": "Afiliado recebe"
         }
       },
       "viewAllAffiliates": "Ver todos",
@@ -1153,7 +2096,7 @@
       "pageOf": "Página {page} de {pages} · {total} comissões",
       "empty": {
         "title": "Nenhuma comissão ainda",
-        "description": "As comissões aparecem assim que um cliente indicado paga e a sua cobrança avisa o IndicaFluxo.",
+        "description": "As comissões aparecem assim que um cliente indicado paga e a sua cobrança avisa o {brand}.",
         "filteredTitle": "Nenhuma comissão corresponde a esses filtros",
         "filteredDescription": "Tente outro afiliado, status ou programa.",
         "descriptionConnected": "O Stripe está conectado. A primeira comissão aparece aqui quando um cliente indicado pagar."
@@ -1200,7 +2143,7 @@
     },
     "payouts": {
       "title": "Pagamentos",
-      "description": "O IndicaFluxo é a fonte de verdade do que você deve. Você paga os afiliados pelos seus próprios meios e registra aqui.",
+      "description": "O {brand} é a fonte de verdade do que você deve. Você paga os afiliados pelos seus próprios meios e registra aqui.",
       "availableToPay": "Disponível para pagar",
       "readyToPay": "Disponível para pagar",
       "history": "Histórico de pagamentos",
@@ -1278,7 +2221,402 @@
     },
     "integrations": {
       "title": "Integrações",
-      "description": "Conecte o provedor de cobrança que fatura seus clientes e depois instale o rastreamento."
+      "description": "Instale o {brand} uma vez e conecte os meios de pagamento que seu SaaS utiliza.",
+      "aside": {
+        "label": "Resumo das integrações",
+        "overview": "Resumo",
+        "stripe": "Stripe",
+        "apiKeys": "Chaves de API",
+        "tracking": "Rastreamento",
+        "adminOnly": "Só administradores",
+        "activeKeys": "{count, plural, =0 {Nenhuma ativa} one {# ativa} other {# ativas}}",
+        "lastClick": "Clique {when}",
+        "noClicks": "Sem cliques",
+        "howItWorks": "Como funciona",
+        "steps": {
+          "track": "O rastreamento no seu site registra o clique de cada afiliado.",
+          "identify": "No cadastro, seu servidor identifica o cliente e o liga ao clique.",
+          "webhook": "O Stripe avisa o {brand} de cada pagamento pelo webhook.",
+          "commission": "A comissão é calculada e fica registrada para pagamento."
+        },
+        "guide": "Guia de integração",
+        "identify": "Identificação",
+        "lastIdentify": "Cliente {when}",
+        "noIdentify": "Nenhum cliente"
+      },
+      "identify": {
+        "title": "Identificar cliente",
+        "description": "Quando o visitante cria conta, chame <code>POST /api/identify</code> do seu servidor com a chave secreta. A indicação passa a seguir o cliente em qualquer meio de pagamento.",
+        "visitorTitle": "De onde vem o visitorId",
+        "visitorBody": "Leia o cookie <code>{cookie}</code> na requisição de cadastro. Ele pertence ao host onde o script roda: se o cadastro fica em outro host (por exemplo <code>app.</code> em vez de <code>www.</code>), carregue o script também na página de cadastro e envie <code>window.Referral.visitorId</code> junto com o formulário.",
+        "guide": "Todos os campos no guia",
+        "lastIdentify": "{environment, select, live {Produção} other {Teste}}: último cliente identificado {when}",
+        "noIdentify": "{environment, select, live {Produção} other {Teste}}: nenhum cliente identificado ainda"
+      },
+      "tabs": {
+        "label": "Seções de integrações",
+        "overview": "Visão geral",
+        "payments": "Pagamentos",
+        "tracking": "Rastreamento",
+        "api": "API"
+      },
+      "summary": {
+        "tracker": "{brand} instalado",
+        "identity": "Identificação do cliente",
+        "providers": "Meios de pagamento",
+        "health": "Status geral",
+        "detected": "Funcionando · {when}",
+        "waiting": "Aguardando",
+        "providersValue": "{count, plural, =0 {Nenhum conectado} one {# meio} other {# meios}}{accounts, plural, =0 {} other { · # contas}}",
+        "title": "Integração",
+        "status": {
+          "allGood": "Tudo funcionando",
+          "attention": "{count, plural, one {# item precisa de atenção} other {# itens precisam de atenção}}",
+          "incomplete": "Configuração incompleta",
+          "awaitingEvents": "Aguardando eventos"
+        }
+      },
+      "setup": {
+        "title": "Configuração",
+        "progress": "{done} de {total}",
+        "description": "Instale o {brand} uma vez e conecte onde você recebe pagamentos. Os passos se marcam sozinhos.",
+        "readyTitle": "Tudo pronto para produção",
+        "readyBody": "O rastreamento, a identificação de clientes e pelo menos um meio de pagamento estão funcionando.",
+        "readyHint": "Outros meios de pagamento podem ser adicionados quando quiser — nenhum deles bloqueia o que já funciona.",
+        "done": "(concluído)",
+        "pending": "(pendente)",
+        "optional": "Opcional",
+        "steps": {
+          "tracker": "Instalar o rastreamento no seu site",
+          "identity": "Identificar seus clientes no cadastro",
+          "choose": "Escolher como seu SaaS recebe pagamentos",
+          "connect": "Conectar um meio de pagamento",
+          "connectProvider": "Conectar {provider}",
+          "test": "Receber o primeiro pagamento pelo {brand}"
+        },
+        "hints": {
+          "tracker": "Marcado sozinho quando chegar o primeiro clique em um link de indicação.",
+          "identity": "Marcado sozinho no primeiro cliente identificado — pela API ou pela referência no checkout.",
+          "choose": "Marque abaixo todos os meios de pagamento que você usa.",
+          "connect": "Conecte a conta onde seu SaaS recebe. Os outros podem vir depois.",
+          "test": "Faça uma compra de teste: o {brand} mostra cada etapa até a comissão.",
+          "connectWaiting": "Conectado — aguardando o primeiro evento. Um pagamento de teste já basta.",
+          "connectAttention": "Conectado, mas precisa de atenção antes de funcionar.",
+          "connectPanel": "Conectado — falta configurar as notificações no painel do Mercado Pago.",
+          "connectIncomplete": "Configuração iniciada — falta concluir a configuração manual."
+        },
+        "links": {
+          "tracker": "Ver código de rastreamento",
+          "identity": "Ver como identificar",
+          "connect": "Conectar",
+          "connectProvider": "Conectar {provider}",
+          "test": "Ver meios de pagamento",
+          "open": "Ver {provider}",
+          "resume": "Continuar configuração"
+        }
+      },
+      "overview": {
+        "connectionsTitle": "Seus meios de pagamento",
+        "manage": "Gerenciar",
+        "selectionTitle": "Como seu SaaS recebe pagamentos?",
+        "selectionSummary": "{count, plural, =0 {Nenhum meio escolhido} one {# meio escolhido} other {# meios escolhidos}} · alterar",
+        "nextTitle": "Próximo passo"
+      },
+      "test": {
+        "title": "Testar integração",
+        "description": "Você não precisa entender webhooks: faça um pagamento de teste e o {brand} mostra o caminho inteiro.",
+        "step1": "Abra seu site por um link de indicação e crie uma conta de teste.",
+        "step2": "Pague com o meio de pagamento em modo de teste.",
+        "step3": "Abra o meio de pagamento em Pagamentos: cada etapa, do clique à comissão, aparece em “Últimos pagamentos”.",
+        "simulate": "Prefere sem cobrança nenhuma? <link>Simule uma conversão</link> na página de um programa de teste."
+      },
+      "payments": {
+        "emptyTitle": "Nenhum meio de pagamento conectado",
+        "emptyBody": "Conecte onde seu SaaS recebe pagamentos para que o {brand} reconheça vendas, renovações e reembolsos.",
+        "accounts": "{count} contas",
+        "addAnother": "Conectar outra conta",
+        "memberNotice": "Conectar e desconectar meios de pagamento é feito por proprietários e administradores."
+      },
+      "card": {
+        "beta": "Beta",
+        "unnamed": "Conta sem nome",
+        "environment": {
+          "test": "Teste",
+          "live": "Produção",
+          "both": "Teste e produção"
+        },
+        "lastEvent": "Último evento {when}",
+        "noEvent": "Nenhum evento recebido ainda",
+        "betaHint": "Integração em validação: fluxo técnico implementado, testes com contas reais em andamento.",
+        "panelStep": "Falta 1 etapa no painel do Mercado Pago",
+        "incomplete": "Falta concluir a configuração manual.",
+        "resume": "Continuar configuração"
+      },
+      "health": {
+        "overall": {
+          "notConnected": "Desconectado",
+          "connecting": "Configurando",
+          "healthy": "Saudável",
+          "degraded": "Requer atenção",
+          "actionRequired": "Ação necessária",
+          "error": "Erro",
+          "awaitingEvents": "Aguardando eventos",
+          "setupIncomplete": "Configuração incompleta"
+        },
+        "stages": {
+          "auth": "Autorização",
+          "webhook": "Eventos de pagamento",
+          "eventNormalization": "Leitura dos eventos",
+          "customerMatching": "Clientes",
+          "attribution": "Atribuição",
+          "commission": "Comissões"
+        },
+        "stageStatus": {
+          "auth": {
+            "healthy": "Válida",
+            "warning": "Verificar",
+            "error": "Recusada",
+            "unknown": "Aguardando"
+          },
+          "webhook": {
+            "healthy": "Recebendo",
+            "warning": "Aguardando eventos",
+            "error": "Falhando",
+            "unknown": "Não configurado"
+          },
+          "eventNormalization": {
+            "healthy": "Funcionando",
+            "warning": "Com avisos",
+            "error": "Falhando",
+            "unknown": "Sem eventos ainda"
+          },
+          "customerMatching": {
+            "healthy": "Funcionando",
+            "warning": "Com avisos",
+            "error": "Pagamentos sem cliente",
+            "unknown": "Sem pagamentos ainda"
+          },
+          "attribution": {
+            "healthy": "Funcionando",
+            "warning": "Pagamento indicado sem comissão",
+            "error": "Falhando",
+            "unknown": "Sem pagamentos ainda"
+          },
+          "commission": {
+            "healthy": "Gerando comissões",
+            "warning": "Com avisos",
+            "error": "Falhando",
+            "unknown": "Nenhuma ainda"
+          }
+        },
+        "issues": {
+          "authFailed": {
+            "title": "{provider} recusou a chave de acesso.",
+            "affects": "O {brand} não consegue ler os pagamentos desta conta.",
+            "action": "Crie uma nova chave no {provider} e salve abaixo."
+          },
+          "signatureRejected": {
+            "title": "O {brand} não conseguiu validar os eventos do {provider}.",
+            "affects": "Pagamentos desta conta não estão virando comissões.",
+            "action": "Reconecte a conta para atualizar a configuração. O detalhe técnico está em Configurações avançadas."
+          },
+          "webhookSetupPending": {
+            "title": "Não foi possível registrar os eventos no {provider}.",
+            "affects": "Nenhum pagamento desta conta chega ao {brand}.",
+            "action": "Tente reconectar. Se continuar, confira se a chave tem permissão para webhooks."
+          },
+          "awaitingFirstEvent": {
+            "title": "Aguardando o primeiro evento do {provider}.",
+            "affects": "Nada está errado: esta conta ainda não enviou nenhum pagamento.",
+            "action": "Faça um pagamento de teste — este aviso some sozinho."
+          },
+          "quiet": {
+            "title": "Nenhum evento do {provider} nos últimos dias.",
+            "affects": "Pode ser só um período sem vendas.",
+            "action": "Se houve vendas, confira a conta no {provider}."
+          },
+          "processingFailed": {
+            "title": "O último evento do {provider} não foi processado.",
+            "affects": "Esse pagamento ainda não está no livro de comissões.",
+            "action": "O {provider} reenvia automaticamente. Se persistir, veja os eventos recentes abaixo."
+          },
+          "environmentMismatch": {
+            "title": "Chegaram eventos do ambiente errado.",
+            "affects": "Eventos de teste numa conta de produção (ou o contrário) são ignorados.",
+            "action": "Confira se a chave e o webhook são do mesmo ambiente."
+          },
+          "paymentsWithoutCustomer": {
+            "title": "Pagamentos chegaram sem cliente.",
+            "affects": "Sem cliente, o pagamento não pode ser ligado a uma indicação.",
+            "action": "Envie a referência do {brand} no checkout (aba API) ou crie o cliente no {provider} antes de cobrar."
+          },
+          "expectedAttributionMissing": {
+            "title": "Um cliente indicado pagou e não gerou comissão.",
+            "affects": "O afiliado pode estar deixando de receber.",
+            "action": "Veja em “Últimos pagamentos” qual etapa ficou pendente."
+          }
+        }
+      },
+      "detail": {
+        "metaTitle": "Meio de pagamento",
+        "lastEvent": "Último evento {when}",
+        "attentionTitle": "Precisa de atenção",
+        "adminOnly": "Só proprietários e administradores alteram esta conexão.",
+        "mercadoPagoWebhook": {
+          "title": "Falta 1 etapa no painel do Mercado Pago",
+          "description": "O Mercado Pago não permite configurar notificações por API. Faça isto uma vez no painel:",
+          "step1": "Abra Suas integrações no Mercado Pago, escolha sua aplicação e vá em Webhooks.",
+          "step2": "Em modo produção (ou teste), cole esta URL:",
+          "step3": "Marque estes eventos:",
+          "step4": "Salve e copie a assinatura secreta que o Mercado Pago mostrar. Cole abaixo.",
+          "progressLabel": "Etapas da conexão",
+          "progress": {
+            "connect": "Conta conectada",
+            "notify": "Configurar notificações no painel do Mercado Pago",
+            "verify": "Primeira notificação recebida"
+          },
+          "waitingTitle": "Notificações configuradas — aguardando a primeira",
+          "waitingBody": "O status fica saudável quando o Mercado Pago enviar a primeira notificação verificada. Use o simulador de webhooks do painel ou faça um pagamento real de baixo valor: pagamentos com credenciais de teste não enviam notificações.",
+          "verifyHint": "Use o simulador de webhooks do painel ou um pagamento real de baixo valor: pagamentos com credenciais de teste não enviam notificações. O status muda sozinho."
+        },
+        "statusTitle": "Saúde",
+        "paymentsTitle": "Diagnóstico",
+        "paymentsDescription": "Por que cada pagamento gerou — ou não — comissão, etapa por etapa. Pagamento sem indicação é normal.",
+        "paymentsEmpty": "Nenhum pagamento do {provider} registrado ainda.",
+        "eventsTitle": "Atividade",
+        "eventsDescription": "O que o meio de pagamento enviou e o que o {brand} fez com cada evento.",
+        "eventsEmpty": "Nenhum evento recebido.",
+        "eventStatus": {
+          "received": "Recebido",
+          "processed": "Processado",
+          "failed": "Falhou",
+          "ignored": "Sem efeito"
+        },
+        "capabilitiesTitle": "Recursos",
+        "testStrategy": {
+          "stripe": "Teste: use o modo de teste do Stripe com o endpoint de teste. Eventos de teste só alcançam programas de teste.",
+          "mercado_pago": "Teste: pagamentos com credenciais de teste do Mercado Pago não enviam notificações. Use o simulador de webhooks do painel ou um pagamento real de baixo valor.",
+          "abacatepay": "Teste: use uma chave abc_dev_ (modo dev). Os eventos chegam marcados como teste.",
+          "asaas": "Teste: use uma chave de sandbox ($aact_hmlg_). A conexão de sandbox é separada da de produção."
+        },
+        "advancedTitle": "Configurações avançadas",
+        "advancedHint": "Endpoint, identificadores e credenciais",
+        "fields": {
+          "connectionId": "ID da conexão",
+          "accountId": "Conta no provedor",
+          "mode": "Modo de conexão",
+          "webhook": "Webhook",
+          "webhookAuto": "Registrado pelo {brand}",
+          "webhookManual": "Configurado manualmente",
+          "lastEvent": "Último evento",
+          "lastReason": "Último motivo",
+          "endpoint": "Endpoint de eventos"
+        },
+        "rotateTitle": "Trocar chave de acesso",
+        "disconnectHint": "O {brand} deixará de receber novos pagamentos desta conta. Transações e comissões já registradas serão preservadas.",
+        "meta": {
+          "status": "Status",
+          "environment": "Ambiente",
+          "lastEvent": "Último evento",
+          "none": "Nenhum ainda"
+        },
+        "capabilitiesHint": "O que este meio de pagamento permite",
+        "activityHint": "{count, plural, =0 {nenhum evento} one {# evento recente} other {# eventos recentes}}"
+      },
+      "pipeline": {
+        "label": "Etapas do pagamento",
+        "classification": {
+          "commissioned": "Comissão gerada",
+          "organic": "Sem indicação",
+          "expected": "Indicado sem comissão"
+        },
+        "steps": {
+          "referral": "Indicação",
+          "attribution": "Atribuição elegível",
+          "customer": "Cliente identificado",
+          "billingIdentity": "Cliente reconhecido",
+          "providerEvent": "Pagamento recebido",
+          "transaction": "Transação",
+          "commission": "Comissão criada"
+        },
+        "states": {
+          "ok": "concluída",
+          "missing": "pendente",
+          "notApplicable": "não se aplica"
+        },
+        "expectedHint": "Este cliente tem uma indicação válida e o pagamento não gerou comissão: o motivo aparece em Eventos recentes.",
+        "explain": {
+          "billingIdentity": "Este pagamento chegou pelo {provider}, mas ainda não encontramos uma identidade de cobrança associada ao cliente.",
+          "attribution": "O cliente tem uma indicação, mas ela não era válida na data do pagamento — a janela de atribuição terminou, ou a indicação é de outro ambiente.",
+          "commission": "Este cliente tem uma indicação válida e o pagamento não gerou comissão. O motivo aparece em Atividade.",
+          "organic": "Nenhuma indicação foi encontrada para este cliente. Uma venda orgânica é normal."
+        },
+        "cta": {
+          "identify": "Ver como identificar clientes"
+        }
+      },
+      "capabilities": {
+        "subscriptions": "Assinaturas",
+        "refunds": "Reembolsos",
+        "partialRefunds": "Reembolso parcial",
+        "disputes": "Contestações",
+        "disputeWon": "Contestação ganha devolve a comissão",
+        "failedPayments": "Pagamentos recusados",
+        "automaticWebhook": "Webhook automático",
+        "testMode": "Modo de teste com eventos",
+        "yes": "Sim"
+      },
+      "reasons": {
+        "NO_ATTRIBUTION": "Nenhuma indicação válida foi encontrada para este cliente.",
+        "ATTRIBUTION_EXPIRED": "A janela de atribuição desta indicação já terminou.",
+        "AFFILIATE_INACTIVE": "O afiliado não está aprovado neste programa (pendente, recusado ou suspenso).",
+        "RECURRENCE_WINDOW_CLOSED": "O período de comissão recorrente deste cliente já terminou.",
+        "CURRENCY_MISMATCH": "O pagamento está numa moeda diferente da do programa.",
+        "ZERO_AMOUNT": "O pagamento não tem valor positivo.",
+        "CUSTOMER_NOT_LINKED": "O pagamento chegou sem cliente, então não pôde ser ligado a uma indicação.",
+        "TEST_LIVE_MISMATCH": "Este pagamento chegou em um ambiente diferente do da conexão.",
+        "DUPLICATE_EVENT": "Evento repetido — já tinha sido processado.",
+        "UNSUPPORTED_EVENT": "Tipo de evento que o {brand} não usa. Nada a fazer.",
+        "LIVE_MODE_INACTIVE": "O modo produção não está ativo no seu plano.",
+        "NO_CONNECTION": "A conta não está conectada.",
+        "TOKEN_UNKNOWN": "A referência do checkout não é conhecida.",
+        "TOKEN_EXPIRED": "A referência do checkout expirou junto com a janela de atribuição.",
+        "TOKEN_CONFLICT": "A referência do checkout já foi usada por outro cliente.",
+        "PAYMENT_NOT_RECORDED_YET": "Aguardando o pagamento original chegar antes deste evento.",
+        "PAYMENT_FAILED": "Pagamento recusado. Nada entra no livro de comissões.",
+        "PROCESSING_ERROR": "Erro ao processar. O meio de pagamento reenvia automaticamente."
+      },
+      "bridge": {
+        "title": "Referência no checkout",
+        "description": "Para quando a compra acontece antes do cadastro: acrescente a referência do visitante (e, se tiver, o id do seu usuário) ao checkout que você já cria. O {brand} escolhe o campo certo de cada meio de pagamento.",
+        "flowA": "Com cadastro (recomendado): identifique o cliente pela API e o pagamento é reconhecido em qualquer meio conectado — inclusive se o cliente trocar de meio depois.",
+        "flowB": "Sem cadastro (checkout direto): a referência no checkout basta para creditar a indicação.",
+        "beta": "beta"
+      },
+      "beta": {
+        "title": "Beta",
+        "body": "Esta integração está em validação com contas reais. A arquitetura e os eventos já estão implementados, mas recomendamos testes antes de usar em produção."
+      },
+      "tracking": {
+        "statusTitle": "Rastreamento e identificação",
+        "explainer": "A indicação fica ligada ao cliente antes do pagamento. Assim o {brand} consegue reconhecer vendas feitas por qualquer meio de pagamento conectado.",
+        "tracker": "Rastreador",
+        "identity": "Identificação do cliente",
+        "working": "Funcionando · {when}",
+        "waitingTracker": "Aguardando o primeiro clique em um link de indicação",
+        "waitingIdentity": "Aguardando o primeiro cliente identificado no cadastro",
+        "identityHow": "Como identificar clientes"
+      },
+      "apiMore": {
+        "title": "Avançado",
+        "description": "Referência completa na documentação.",
+        "advanced": "Atribuição avançada",
+        "advancedHint": "Checkout sem cadastro, Payment Links, checkout próprio e assinaturas.",
+        "errors": "Erros",
+        "errorsHint": "Cada código que a API devolve, com a causa e o que fazer.",
+        "diagnostics": "Pagamento sem comissão",
+        "diagnosticsHint": "Como ler o diagnóstico de um pagamento e os motivos."
+      }
     },
     "settings": {
       "title": "Configurações",
@@ -1670,7 +3008,7 @@
     },
     "payouts": {
       "title": "Pagamentos",
-      "description": "Os pagamentos são feitos pelo dono do programa, fora do IndicaFluxo. Aqui fica o registro do que ele marcou como pago.",
+      "description": "Os pagamentos são feitos pelo dono do programa, fora do {brand}. Aqui fica o registro do que ele marcou como pago.",
       "batch": "Lote",
       "paid": "Pago em",
       "empty": {
@@ -1947,7 +3285,11 @@
         "title": "Produção faz parte do Launch e do Growth",
         "description": "No Sandbox, rastreamento, identificação e webhooks funcionam com dados de teste. Ative um plano para gerar chaves de produção.",
         "action": "Ver plano"
-      }
+      },
+      "snippetEnvironment": "{environment, select, live {Chave de produção} other {Chave de teste}}",
+      "snippetTestNote": "Com a chave de teste, os cliques só contam em programas de teste. No site real, use a chave pública de produção.",
+      "snippetHttp": "O script é servido por HTTP, e sites com HTTPS bloqueiam scripts HTTP. Em produção, o {brand} precisa estar em HTTPS.",
+      "snippetSubdomain": "Cadastro em outro subdomínio (landing em <code>www.</code>, cadastro em <code>app.</code>)? Adicione <code>data-cookie-domain=\"seusite.com\"</code> ao script para o cookie valer nos dois."
     },
     "payable": {
       "selectAll": "Selecionar todos os afiliados",
@@ -1971,7 +3313,7 @@
       "cancelConfirm": "Sim, cancelar lote"
     },
     "stripe": {
-      "description": "O IndicaFluxo recebe os eventos de pagamento pelo webhook do Stripe para calcular comissões. Ele nunca movimenta dinheiro e nunca guarda sua chave secreta do Stripe.",
+      "description": "O {brand} recebe os eventos de pagamento pelo webhook do Stripe para calcular comissões. Ele nunca movimenta dinheiro e nunca guarda sua chave secreta do Stripe.",
       "accountId": "ID da conta Stripe",
       "accountIdHint": "Fica no painel do Stripe, em Configurações → Detalhes da conta.",
       "accountIdPlaceholder": "acct_1A2b3C4d5E",
@@ -1979,7 +3321,12 @@
       "webhook": "URL do webhook",
       "disconnect": "Desconectar Stripe",
       "thenAdd": "Depois adicione esta URL de webhook no Stripe:",
-      "connect": "Conectar Stripe",
+      "connect": {
+        "title": "Conectar com a Stripe",
+        "body": "Autorize o {brand} na sua conta Stripe. Nós só lemos eventos — nunca cobramos, transferimos nem movimentamos dinheiro na sua conta. Você não precisa criar endpoint, escolher eventos nem copiar segredo.",
+        "cta": "Conectar com a Stripe",
+        "manual": "Prefere configurar à mão? Siga os passos abaixo."
+      },
       "events": "Eventos: {events}",
       "title": "Stripe",
       "disconnectHint": "Desconectar interrompe o registro de novas comissões.",
@@ -2005,7 +3352,8 @@
         "receiving": "Recebendo eventos",
         "lastEventFailed": "Último evento falhou",
         "signatureRejected": "Assinatura recusada",
-        "error": "Com erro"
+        "error": "Com erro",
+        "receivingUnattributed": "Recebendo, sem comissão"
       },
       "steps": {
         "label": "Configuração do Stripe em 4 passos",
@@ -2031,6 +3379,12 @@
             "payments": "Pagamentos",
             "refunds": "Reembolsos e disputas",
             "subscriptions": "Assinaturas"
+          },
+          "checklist": {
+            "title": "Ao criar o endpoint no Stripe",
+            "account": "Eventos de: <strong>sua conta</strong>.",
+            "snapshot": "Formato do payload: <strong>Snapshot</strong>, não Thin.",
+            "customer": "Em Payment Links e Checkout de pagamento avulso, ative a criação de cliente (<code>customer_creation: always</code>). Sem cliente no Stripe, o pagamento não gera comissão."
           }
         },
         "secret": {
@@ -2043,8 +3397,9 @@
         "verify": {
           "title": "Confirme o recebimento",
           "waiting": "Aguardando o primeiro evento…",
-          "body": "Faça um pagamento de teste no Stripe — por exemplo, com o cartão <code>4242 4242 4242 4242</code> — ou rode <code>stripe trigger invoice.paid</code>. Esta etapa é concluída sozinha quando o evento chegar.",
-          "checkNow": "Verificar agora"
+          "body": "Reenvie um evento pelo painel do Stripe ou rode <code>stripe trigger invoice.paid</code>. Esta etapa é concluída sozinha quando o evento chegar.",
+          "checkNow": "Verificar agora",
+          "note": "Isso confirma a entrega, não a comissão. Para ver uma comissão de teste: abra o link de um afiliado de um programa de teste, cadastre-se com o identify funcionando e pague com o cartão <code>4242 4242 4242 4242</code>."
         }
       },
       "health": {
@@ -2083,6 +3438,13 @@
       "secretStatus": {
         "saved": "salvo",
         "missing": "não salvo"
+      },
+      "attribution": {
+        "withoutCustomerTitle": "{environment, select, live {Produção} other {Teste}}: {count, plural, one {# pagamento descartado} other {# pagamentos descartados}} nos últimos {days} dias",
+        "withoutCustomerBody": "Os eventos chegaram sem cliente do Stripe, então não há a quem atribuir a comissão. Payment Links e Checkout de pagamento avulso só criam cliente com <code>customer_creation: always</code>. Os pagamentos descartados não voltam; os próximos passam a contar.",
+        "noCommissionsTitle": "{environment, select, live {Produção} other {Teste}}: nenhum dos {count, plural, one {# pagamento} other {# pagamentos}} dos últimos {days} dias gerou comissão",
+        "noCommissionsBody": "Os pagamentos chegam, mas nenhum foi ligado a um afiliado. Confira se o seu servidor chama o identify no cadastro com o <code>cus_…</code> do Stripe (ou o mesmo e-mail do pagamento) e se o cliente veio por um link de afiliado de um programa ativo deste modo.",
+        "action": "Ver como identificar"
       }
     },
     "affiliateActions": {
@@ -2121,7 +3483,7 @@
     "inviteOutcome": {
       "sent": "Convite enviado para {email}.",
       "alreadyLinked": "{name} já tem acesso ao portal de afiliados. O novo programa aparece lá, sem precisar de outro convite.",
-      "accountExists": "{email} já tem conta no IndicaFluxo, por isso não enviamos e-mail. Na próxima vez que a pessoa entrar com esse e-mail, o convite é aceito. Envie o link de acesso abaixo.",
+      "accountExists": "{email} já tem conta no {brand}, por isso não enviamos e-mail. Na próxima vez que a pessoa entrar com esse e-mail, o convite é aceito. Envie o link de acesso abaixo.",
       "notConfigured": "O envio de e-mails não está configurado neste ambiente, então nenhum e-mail foi enviado. Envie o link abaixo para a pessoa.",
       "rateLimited": "O limite de envio de e-mails foi atingido, então nenhum e-mail foi enviado. Envie o link abaixo ou tente reenviar mais tarde.",
       "failed": "Não conseguimos enviar o e-mail. O convite está registrado: envie o link abaixo para a pessoa.",
@@ -2158,6 +3520,110 @@
       "refund": "Simular estorno",
       "again": "Simular outra",
       "done": "Concluir"
+    },
+    "billing": {
+      "add": {
+        "trigger": "Adicionar meio de pagamento",
+        "title": "Conectar meio de pagamento",
+        "description": "Conecte onde seu SaaS recebe. Dá para conectar vários meios e mais de uma conta de cada.",
+        "search": "Pesquisar",
+        "noResults": "Nenhum meio de pagamento com esse nome.",
+        "connect": "Conectar",
+        "connectAnother": "Conectar outra conta",
+        "connectedCount": "{count, plural, one {# conta conectada} other {# contas conectadas}}",
+        "back": "Voltar",
+        "stable": "Integração estável",
+        "betaNote": "Beta: implementado e em validação com contas reais — recomendamos testar antes de usar em produção."
+      },
+      "availability": {
+        "public": "Estável",
+        "beta": "Beta",
+        "coming_soon": "Em breve"
+      },
+      "effort": {
+        "stripeOauth": "Autorizar no Stripe · eventos automáticos",
+        "stripeManual": "ID da conta + 2 etapas no Stripe",
+        "mercado_pago": "Token de acesso + 1 etapa no painel",
+        "abacatepay": "Chave de API · eventos automáticos",
+        "asaas": "Chave de API · eventos automáticos"
+      },
+      "connect": {
+        "title": "Conectar {provider}",
+        "intro": {
+          "stripe": "Informe o ID da conta Stripe. Na próxima tela você adiciona o endpoint de eventos nos modos de teste e produção.",
+          "mercado_pago": "Cole o token de acesso da sua aplicação. Depois, uma etapa no painel do Mercado Pago ativa o recebimento dos eventos.",
+          "abacatepay": "Cole uma chave de API. O {brand} registra o webhook na sua conta — nada a configurar no painel.",
+          "asaas": "Cole uma chave de API. O {brand} registra o webhook na sua conta — nada a configurar no painel."
+        },
+        "stripeOauth": "Autorizar no Stripe",
+        "nameLabel": "Nome da conta (opcional)",
+        "nameHint": "Para você reconhecer: “Conta principal”, “Loja EUA”.",
+        "stripeAccountLabel": "ID da conta Stripe",
+        "stripeAccountHint": "Começa com acct_. Em Configurações → Conta, no painel do Stripe.",
+        "keyLabel": {
+          "mercado_pago": "Token de acesso",
+          "abacatepay": "Chave de API",
+          "asaas": "Chave de API"
+        },
+        "keyHint": {
+          "mercado_pago": "APP_USR-… (produção) ou TEST-… (teste), em Suas integrações → Credenciais.",
+          "abacatepay": "abc_prod_… ou abc_dev_…, em Integrações → Chaves de API.",
+          "asaas": "$aact_prod_… ou $aact_hmlg_…. Crie uma chave só para o {brand}: o Asaas desativa chaves sem uso por 3 meses."
+        },
+        "show": "Mostrar",
+        "hide": "Ocultar",
+        "security": "A chave é criptografada ao salvar e nunca é exibida de novo.",
+        "failedTitle": "Não conectamos o {provider}",
+        "stripeContinue": "Continuar",
+        "submit": "Conectar {provider}",
+        "pending": {
+          "stripe": "Salvando a conta…",
+          "mercado_pago": "Validando o token no Mercado Pago…",
+          "abacatepay": "Validando a chave e configurando os eventos de pagamento no AbacatePay…",
+          "asaas": "Validando a chave e configurando os eventos de pagamento no Asaas…"
+        },
+        "manualTitle": "Configurar manualmente",
+        "manualHint": "Sem autorização: informe o ID da conta e configure o endpoint de eventos no painel do Stripe.",
+        "oauthHint": "Você autoriza a leitura dos pagamentos no Stripe e volta para cá. O {brand} configura os eventos sozinho — sem chave, sem segredo para colar.",
+        "introStripeOauth": "Autorize o {brand} a ler os pagamentos da sua conta Stripe. Pode conectar mais de uma conta.",
+        "resumeTitle": "Configuração em andamento",
+        "resumeBody": "{count, plural, one {Você começou a conectar {names} e não concluiu.} other {Você começou a conectar {names} e não concluiu.}} Continue de onde parou em vez de começar outra conexão.",
+        "resume": "Continuar configuração"
+      },
+      "selection": {
+        "title": "Como seu SaaS recebe pagamentos?",
+        "description": "Selecione todos os meios de pagamento que você usa. Você pode adicionar ou remover outros depois.",
+        "save": "Salvar escolha",
+        "later": "Pode deixar um meio de pagamento para depois: nada fica bloqueado.",
+        "methods": {
+          "stripe": "Cartão e assinaturas",
+          "mercado_pago": "Pix, cartão e boleto",
+          "abacatepay": "Pix e cartão",
+          "asaas": "Pix, boleto e cartão",
+          "other": "Outro meio de pagamento"
+        },
+        "otherName": "Outro",
+        "otherNote": "Outros meios ainda não têm conexão: pagamentos feitos por eles não chegam ao {brand}. As vendas indicadas precisam passar por um dos meios acima para gerar comissão."
+      },
+      "webhookSecret": {
+        "label": "Assinatura secreta",
+        "hint": "Mostrada pelo Mercado Pago depois de salvar o webhook.",
+        "submit": "Já configurei — verificar"
+      },
+      "reconnect": {
+        "hint": "A chave atual continua valendo até a nova ser aceita pelo meio de pagamento.",
+        "submit": "Salvar nova chave"
+      },
+      "rename": {
+        "label": "Nome da conta",
+        "submit": "Renomear"
+      },
+      "disconnect": {
+        "trigger": "Desconectar",
+        "title": "Desconectar {name}?",
+        "body": "O {brand} deixará de receber novos pagamentos desta conta. Transações e comissões já registradas serão preservadas.",
+        "confirm": "Desconectar"
+      }
     }
   },
   "errors": {
@@ -2289,7 +3755,13 @@
       "planUnchanged": "A assinatura já está neste plano.",
       "checkoutFailed": "Não foi possível abrir o pagamento. Tente de novo em instantes.",
       "portalFailed": "Não foi possível abrir o portal de cobrança. Tente de novo em instantes.",
-      "useCheckout": "Os planos são ativados pelo pagamento em Configurações → Plano e cobrança."
+      "useCheckout": "Os planos são ativados pelo pagamento em Configurações → Plano e cobrança.",
+      "invalid_credentials": "O meio de pagamento recusou essa credencial. Confira se copiou a chave inteira e se ela é do ambiente certo.",
+      "webhook_registration_failed": "A chave foi aceita, mas o meio de pagamento não permitiu configurar os eventos. Confira se a chave tem permissão para webhooks.",
+      "provider_unavailable": "O meio de pagamento não respondeu. Nada foi salvo — tente de novo em instantes.",
+      "wrong_environment": "Essa chave é de outro ambiente.",
+      "duplicate": "Essa conta já está conectada neste workspace.",
+      "unavailable": "Este meio de pagamento ainda não está disponível."
     },
     "programArchived": "Este programa está arquivado e não recebe novos afiliados.",
     "programEnvironmentImmutable": "O ambiente de um programa não muda. Para ir para produção, crie um programa em produção.",
@@ -2318,7 +3790,8 @@
     "sandboxProgramNotActive": "Ative o programa para simular uma conversão.",
     "sandboxAffiliateNotApproved": "Aprove o afiliado para simular uma conversão.",
     "sandboxCustomerTaken": "Esse ID já pertence a um cliente de teste. Use outro ou deixe em branco.",
-    "sandboxCustomerNotFound": "Não encontramos esse cliente simulado. Simule uma conversão primeiro."
+    "sandboxCustomerNotFound": "Não encontramos esse cliente simulado. Simule uma conversão primeiro.",
+    "billingNotDisconnected": "Não foi possível desconectar. Tente de novo."
   },
   "success": {
     "programSaved": "Programa salvo.",
@@ -2351,7 +3824,14 @@
     "stripeSecretSaved": "Segredo salvo. Envie um evento de teste pelo Stripe para confirmar que está tudo funcionando.",
     "sandboxConversionSimulated": "Conversão simulada.",
     "sandboxRenewalSimulated": "Renovação simulada.",
-    "sandboxRefundSimulated": "Estorno simulado."
+    "sandboxRefundSimulated": "Estorno simulado.",
+    "billingConnected": "Conectado. Assim que chegar o primeiro evento, o status fica verde.",
+    "billingTokenSaved": "Token validado. Falta uma etapa no painel do Mercado Pago.",
+    "billingWebhookSecretSaved": "Assinatura salva. A conta só fica Saudável quando chegar a primeira notificação verificada do Mercado Pago.",
+    "billingDisconnected": "Desconectado. O histórico foi mantido.",
+    "billingDisconnectedWebhookRemoved": "Desconectado, e os eventos foram removidos da conta no meio de pagamento. O histórico foi mantido.",
+    "billingRenamed": "Nome atualizado.",
+    "billingSelectionSaved": "Escolha salva."
   },
   "notFound": {
     "title": "Página não encontrada",
@@ -2497,7 +3977,13 @@
         },
         "integration": {
           "connected": "Integração conectada",
-          "disconnected": "Integração desconectada"
+          "disconnected": "Integração desconectada",
+          "reconnected": "Meio de pagamento reconectado",
+          "credentials_updated": "Credencial de meio de pagamento atualizada",
+          "webhook_registered": "Webhook registrado no provedor",
+          "webhook_failed": "Falha ao registrar webhook",
+          "renamed": "Conta de pagamento renomeada",
+          "providers_selected": "Meios de pagamento escolhidos"
         },
         "api_key": {
           "created": "Chave de API gerada",
@@ -2550,6 +4036,735 @@
       "askOwner": "Peça a um dono ou admin do workspace para atualizar o pagamento.",
       "actionPayment": "Atualizar pagamento",
       "actionEnding": "Ver plano"
+    }
+  },
+  "seo": {
+    "breadcrumb": {
+      "label": "Trilha de navegação",
+      "home": "Início"
+    },
+    "toc": "Neste guia",
+    "faqTitle": "Perguntas frequentes",
+    "related": "Continue lendo",
+    "links": {
+      "saasAffiliateProgram": {
+        "title": "Programa de afiliados para SaaS",
+        "body": "O que um programa precisa ter: rastreamento, atribuição, recorrência e estornos."
+      },
+      "affiliateSoftware": {
+        "title": "Software de afiliados",
+        "body": "Planilha, sistema próprio ou ferramenta: o que muda em cada caso."
+      },
+      "stripeAffiliates": {
+        "title": "Afiliados com Stripe",
+        "body": "Checkout, Payment Links, checkout próprio e assinaturas."
+      },
+      "pricing": {
+        "title": "Preços",
+        "body": "Mensalidade fixa, sem percentual sobre a sua receita."
+      },
+      "docs": {
+        "title": "Documentação",
+        "body": "Guia de integração passo a passo, com exemplos de código."
+      }
+    },
+    "pages": {
+      "saasAffiliateProgram": {
+        "metaTitle": "Programa de afiliados para SaaS: como criar o seu",
+        "metaDescription": "Como montar o programa de afiliados do seu SaaS: rastreamento, atribuição, comissão recorrente, estornos e Stripe — sem percentual sobre a receita.",
+        "breadcrumb": "Programa de afiliados para SaaS",
+        "eyebrow": "Guia para founders de SaaS",
+        "title": "Programa de afiliados para SaaS",
+        "lead": "Um programa de afiliados paga comissão a quem indica clientes para o seu produto. Em SaaS, a indicação vira assinatura — e a comissão precisa acompanhar cada renovação, upgrade e reembolso. Este guia mostra o que um programa precisa ter e como o {brand} cuida da parte técnica.",
+        "ctaPrimary": "Criar programa grátis",
+        "ctaSecondary": "Ver como funciona com Stripe",
+        "sections": {
+          "what": {
+            "title": "O que é um programa de afiliados para SaaS",
+            "p1": "É o seu SaaS convidando parceiros — consultores, agências, criadores de conteúdo do seu nicho, clientes satisfeitos — a indicar o produto, e pagando comissão por cliente pagante que eles trouxerem. Não é o modelo de marketplace, em que alguém divulga produtos de terceiros: aqui você é a empresa que cria o programa.",
+            "p2": "A diferença para uma loja virtual é o tempo. A venda não termina no checkout: o cliente paga todo mês, pode fazer upgrade, pedir reembolso ou contestar uma cobrança meses depois. Cada um desses eventos muda quanto o afiliado deve receber."
+          },
+          "when": {
+            "title": "Quando faz sentido",
+            "p1": "Um programa de afiliados funciona melhor quando o cliente assina sozinho e a receita se repete. Quatro sinais:",
+            "points": {
+              "recurring": {
+                "title": "Sua receita é recorrente",
+                "body": "Uma comissão sobre os primeiros meses custa menos do que o que o cliente gera ao longo da assinatura."
+              },
+              "partners": {
+                "title": "Alguém já recomenda você",
+                "body": "Consultores e criadores do seu nicho já indicam ferramentas. Um programa formaliza isso e dá a eles um motivo para continuar."
+              },
+              "selfServe": {
+                "title": "A venda é self-service",
+                "body": "Quando o cliente assina pelo site, um link consegue acompanhar o caminho do clique até o pagamento."
+              },
+              "results": {
+                "title": "Você quer pagar só por resultado",
+                "body": "Comissão é custo variável: só existe depois que um cliente pagou."
+              }
+            },
+            "note": "Se cada venda passa por meses de negociação com um time comercial, acordos individuais com parceiros costumam funcionar melhor do que links de indicação."
+          },
+          "tracking": {
+            "title": "Rastreamento de indicações",
+            "p1": "Tudo começa num link, como <code>seusaas.com/?ref=marina</code>. Um script no seu site lê o código do afiliado, guarda um identificador do visitante num cookie do seu próprio domínio e registra o clique.",
+            "p2": "O difícil vem depois: o visitante raramente assina na primeira visita. Ele volta dias depois, direto pela URL. Por isso o clique fica valendo por uma janela de atribuição — no {brand}, de 1 a 365 dias, definida por programa."
+          },
+          "attribution": {
+            "title": "Atribuição: quem recebe a comissão",
+            "p1": "Quando dois afiliados indicam a mesma pessoa, alguém precisa decidir quem ganha. As regras mais comuns são <strong>primeiro clique</strong> (quem apresentou o produto) e <strong>último clique</strong> (quem convenceu por último). O {brand} aplica a regra que você escolher no programa.",
+            "p2": "Depois que um cliente é ligado a um afiliado, as renovações continuam com ele: um clique novo de outro afiliado não muda quem recebe por uma assinatura que já existe."
+          },
+          "recurring": {
+            "title": "Comissão recorrente",
+            "p1": "Em SaaS, o comum é pagar um percentual de cada fatura por um período — por exemplo, 30% nos primeiros 12 meses — ou enquanto o cliente assinar. Também dá para pagar um valor fixo por cliente.",
+            "p2": "Cada fatura paga gera a própria comissão, com a regra que a gerou registrada junto. Uma carência de 0 a 180 dias segura a comissão antes de ela ficar disponível para pagamento: tempo para um reembolso aparecer."
+          },
+          "refunds": {
+            "title": "Reembolsos e chargebacks",
+            "p1": "Se o cliente pede reembolso ou contesta a cobrança no cartão, a comissão daquele pagamento não deveria ser paga. O {brand} recebe esses eventos do Stripe e registra uma reversão — a comissão original não é apagada, e o histórico continua batendo. Se a disputa termina a seu favor, a comissão volta.",
+            "p2": "Se a comissão já tinha sido paga ao afiliado, a reversão fica registrada para você acertar com ele; o {brand} não desconta valores de pagamentos futuros por conta própria."
+          },
+          "stripe": {
+            "title": "Pagamentos pelo Stripe",
+            "p1": "A comissão nasce de um pagamento confirmado, não de um formulário preenchido. Com Stripe, a confirmação chega por webhook, assinada, e cada evento é processado uma única vez — um reenvio não gera comissão em dobro.",
+            "p2": "Funciona com Stripe Checkout, Payment Links, checkout próprio (PaymentIntent) e a API de assinaturas. Os detalhes estão em <stripe>afiliados com Stripe</stripe>."
+          },
+          "portal": {
+            "title": "Portal do afiliado",
+            "p1": "Afiliado que não vê os próprios números manda e-mail perguntando. No portal, cada afiliado entra com a própria conta e acompanha links, conversões, comissões e pagamentos — só os dele."
+          },
+          "payouts": {
+            "title": "Pagamento e conciliação",
+            "p1": "No fim do período, a pergunta é uma só: quanto devo, e para quem? O {brand} agrupa as comissões disponíveis em um lote de pagamento, exporta CSV e registra o que você marcou como pago.",
+            "p2": "O dinheiro sai da sua conta, pelo meio que você já usa. O {brand} nunca movimenta pagamentos."
+          },
+          "start": {
+            "title": "Como começar",
+            "steps": {
+              "create": {
+                "title": "Crie o programa",
+                "body": "Defina comissão, recorrência, janela de atribuição e carência. Tudo começa no Sandbox, grátis, com dados de teste."
+              },
+              "simulate": {
+                "title": "Simule uma conversão",
+                "body": "Sem código e sem Stripe: veja um clique virar comissão pelo mesmo motor que calcula as comissões reais."
+              },
+              "install": {
+                "title": "Instale o tracker",
+                "body": "Uma tag no seu site. Com Payment Links, é só isso; nos outros checkouts, um campo a mais."
+              },
+              "connect": {
+                "title": "Conecte o Stripe",
+                "body": "Os pagamentos passam a gerar comissão. Para operar com dinheiro real, ative um plano pago."
+              },
+              "invite": {
+                "title": "Convide afiliados",
+                "body": "Cada um recebe o próprio link e acesso ao portal."
+              }
+            },
+            "note": "O {brand} cobra uma mensalidade fixa, sem percentual sobre a receita que os afiliados trazem. Veja os <pricing>planos</pricing>."
+          }
+        },
+        "faq": {
+          "marketplace": {
+            "question": "É o mesmo que ser afiliado de um marketplace?",
+            "answer": "Não. Lá, a pessoa divulga produtos de uma loja e ganha por venda. Aqui, você é a empresa: cria o programa do seu próprio SaaS e paga comissão a quem trouxer clientes para ele."
+          },
+          "rate": {
+            "question": "Quanto pagar de comissão?",
+            "answer": "Depende da sua margem e de quanto um cliente vale ao longo da assinatura. Um ponto de partida comum é um percentual da mensalidade por um período limitado. No {brand}, cada comissão guarda a regra que a gerou, então mudar a regra não reescreve o que já foi calculado."
+          },
+          "developer": {
+            "question": "Preciso de um desenvolvedor?",
+            "answer": "Para testar, não: o Sandbox simula uma conversão sem código. Para produção, alguém cola uma tag no site e, dependendo do checkout, adiciona um campo na criação da cobrança. Com Payment Links, só a tag."
+          },
+          "money": {
+            "question": "O {brand} paga os afiliados por mim?",
+            "answer": "Não. Ele calcula, registra e mostra quanto você deve a cada afiliado, e você paga pelo meio que preferir. Nenhum dinheiro passa pelo {brand}."
+          },
+          "fee": {
+            "question": "Existe percentual sobre a minha receita?",
+            "answer": "Não. Você paga uma mensalidade fixa pela ferramenta. Não há taxa sobre a receita atribuída nem teto de receita."
+          }
+        },
+        "closing": {
+          "title": "Monte o programa de afiliados do seu SaaS",
+          "body": "Comece no Sandbox, grátis e sem cartão, e veja a primeira comissão calculada antes de mexer no seu checkout.",
+          "cta": "Criar programa"
+        }
+      },
+      "affiliateSoftware": {
+        "metaTitle": "Software e sistema de afiliados para SaaS",
+        "metaDescription": "Planilha, sistema próprio ou software de afiliados para SaaS? Compare rastreamento, comissão recorrente, estornos e portal — com preço fixo.",
+        "breadcrumb": "Software de afiliados",
+        "eyebrow": "Sistema de afiliados para SaaS",
+        "title": "Software de afiliados para SaaS",
+        "lead": "Todo programa de afiliados começa numa planilha. Ela funciona até a primeira renovação, o primeiro reembolso ou o segundo afiliado indicando o mesmo cliente. Veja o que muda entre continuar na planilha, construir um sistema interno ou usar uma plataforma de afiliados.",
+        "ctaPrimary": "Começar grátis",
+        "ctaSecondary": "Ver preços",
+        "sections": {
+          "options": {
+            "title": "Três formas de rodar o programa",
+            "table": {
+              "caption": "Planilha, sistema próprio e software de afiliados comparados por tarefa",
+              "columns": {
+                "task": "Tarefa",
+                "spreadsheet": "Planilha",
+                "inHouse": "Sistema próprio",
+                "software": "Software de afiliados"
+              },
+              "rows": {
+                "tracking": {
+                  "task": "Rastrear a indicação",
+                  "spreadsheet": "O afiliado avisa quem indicou",
+                  "inHouse": "Você constrói script, cookie e endpoint",
+                  "software": "Script pronto e um link por afiliado"
+                },
+                "attribution": {
+                  "task": "Decidir quem recebe",
+                  "spreadsheet": "Caso a caso",
+                  "inHouse": "Uma regra para escrever e testar",
+                  "software": "Primeiro ou último clique, com janela"
+                },
+                "recurring": {
+                  "task": "Comissão recorrente",
+                  "spreadsheet": "Recalculada à mão todo mês",
+                  "inHouse": "Acompanhar cada fatura do Stripe",
+                  "software": "Uma comissão por fatura paga"
+                },
+                "refunds": {
+                  "task": "Reembolsos e disputas",
+                  "spreadsheet": "Lembrar de descontar",
+                  "inHouse": "Tratar cada tipo de evento",
+                  "software": "Reversão a partir do Stripe"
+                },
+                "duplicates": {
+                  "task": "Evitar pagamento em dobro",
+                  "spreadsheet": "Conferência manual",
+                  "inHouse": "Webhooks idempotentes",
+                  "software": "Cada evento processado uma vez"
+                },
+                "portal": {
+                  "task": "Informar o afiliado",
+                  "spreadsheet": "Por e-mail, quando ele pergunta",
+                  "inHouse": "Mais uma área logada para manter",
+                  "software": "Portal com links e comissões"
+                },
+                "cost": {
+                  "task": "Custo",
+                  "spreadsheet": "Seu tempo, todo mês",
+                  "inHouse": "Engenharia e manutenção contínua",
+                  "software": "Mensalidade fixa"
+                }
+              }
+            }
+          },
+          "spreadsheet": {
+            "title": "Quando a planilha ainda serve",
+            "p1": "Com poucos afiliados e comissão única por venda, a planilha resolve. Ela deixa de servir quando a comissão é recorrente — cada renovação vira uma linha nova — e quando um reembolso precisa desfazer uma comissão que já estava na conta de alguém."
+          },
+          "inHouse": {
+            "title": "O custo escondido do sistema próprio",
+            "p1": "Um link com <code>?ref=</code> parece uma tarde de trabalho. O sistema de verdade inclui cookie e janela de atribuição, desempate entre afiliados, webhooks do Stripe sem duplicidade, comissão por fatura, reversão em reembolso e chargeback, conciliação do que foi pago e um portal para o afiliado.",
+            "p2": "É infraestrutura financeira: um erro vira comissão paga a mais ou afiliado insatisfeito. E precisa continuar certa quando o Stripe muda a API."
+          },
+          "criteria": {
+            "title": "O que avaliar num software de afiliados",
+            "points": {
+              "tracking": {
+                "title": "Rastreamento que atravessa o checkout",
+                "body": "O vínculo entre clique e pagamento precisa chegar ao Stripe, sem depender de o cliente usar o mesmo e-mail."
+              },
+              "recurring": {
+                "title": "Comissão por fatura, não por venda",
+                "body": "Assinatura gera receita todo mês; a comissão deve acompanhar cada fatura paga e parar quando o período acabar."
+              },
+              "reversals": {
+                "title": "Estorno que reverte",
+                "body": "Reembolsos e chargebacks precisam gerar reversão sem apagar o histórico."
+              },
+              "ledger": {
+                "title": "Histórico auditável",
+                "body": "Cada comissão deveria mostrar a regra, o pagamento e o afiliado que a geraram."
+              },
+              "pricing": {
+                "title": "Preço que não cresce com a sua receita",
+                "body": "Há plataformas que cobram percentual da receita que os afiliados trazem: quanto melhor o programa, maior a conta."
+              },
+              "test": {
+                "title": "Ambiente de teste",
+                "body": "Poder simular uma conversão antes de ligar o dinheiro real."
+              }
+            }
+          },
+          "product": {
+            "title": "Como o {brand} resolve",
+            "p1": "O {brand} é um software de afiliados para SaaS que cobra pelo Stripe. Um script registra o clique, uma referência de atribuição acompanha o visitante até o checkout, o webhook do Stripe confirma o pagamento e o motor de comissões calcula e registra.",
+            "points": {
+              "rules": {
+                "title": "Regras por programa",
+                "body": "Percentual ou valor fixo, recorrência por meses ou vitalícia, janela de atribuição e carência. No plano Growth, taxa própria por afiliado."
+              },
+              "environments": {
+                "title": "Teste e produção separados",
+                "body": "Programas de teste e de produção não se misturam. O Sandbox é grátis e não expira."
+              },
+              "portal": {
+                "title": "Portal do afiliado",
+                "body": "Cada afiliado vê os próprios links, conversões, comissões e pagamentos."
+              },
+              "payouts": {
+                "title": "Lotes de pagamento",
+                "body": "Agrupe o que está disponível, exporte CSV e registre o que foi pago."
+              },
+              "privacy": {
+                "title": "Dados de clientes protegidos",
+                "body": "E-mails de clientes são guardados como hash, nunca em texto puro."
+              },
+              "custody": {
+                "title": "Sem custódia",
+                "body": "O {brand} não movimenta dinheiro: você paga os afiliados pela sua conta."
+              }
+            }
+          },
+          "pricingModel": {
+            "title": "Modelo de preço",
+            "p1": "Mensalidade fixa por plano, cobrada em reais. Sem percentual sobre a receita atribuída e sem teto de receita: os limites dos planos são de programas, afiliados e membros da equipe, nunca de faturamento. Veja os <pricing>preços</pricing>."
+          }
+        },
+        "faq": {
+          "checkout": {
+            "question": "Preciso trocar meu checkout?",
+            "answer": "Não. Você continua usando Stripe Checkout, Payment Links ou o seu próprio checkout com Stripe. O que muda é uma referência a mais na criação da cobrança — e, em Payment Links, nem isso."
+          },
+          "withoutStripe": {
+            "question": "Funciona sem Stripe?",
+            "answer": "Hoje, não. As comissões são calculadas a partir de pagamentos do Stripe; se você cobra por outro meio, o {brand} ainda não é a ferramenta certa."
+          },
+          "limits": {
+            "question": "Há limite de receita ou de comissões?",
+            "answer": "Não. Os planos limitam programas, afiliados e membros da equipe. A receita e o número de comissões não têm teto."
+          },
+          "trial": {
+            "question": "Posso testar antes de pagar?",
+            "answer": "Sim. O Sandbox é grátis, sem cartão e sem prazo, com dados de teste. Você só assina um plano para processar pagamentos reais."
+          }
+        },
+        "closing": {
+          "title": "Troque a planilha por um sistema de afiliados",
+          "body": "Configure o programa no Sandbox e veja uma comissão calculada de ponta a ponta antes de conectar pagamentos reais.",
+          "cta": "Começar grátis"
+        }
+      },
+      "stripeAffiliates": {
+        "metaTitle": "Programa de afiliados para Stripe",
+        "metaDescription": "Afiliados em pagamentos do Stripe: Checkout, Payment Links, checkout próprio e assinaturas. Comissão recorrente, reversão em reembolso, sem chave secreta.",
+        "breadcrumb": "Afiliados com Stripe",
+        "eyebrow": "Integração com Stripe",
+        "title": "Programa de afiliados para SaaS que usa Stripe",
+        "lead": "Se o seu SaaS cobra pelo Stripe, cada pagamento já passa por um lugar só. O {brand} liga o clique do afiliado a esse pagamento e calcula a comissão a partir do que o Stripe confirma — fatura por fatura.",
+        "ctaPrimary": "Criar programa grátis",
+        "ctaSecondary": "Ler a documentação",
+        "sections": {
+          "flow": {
+            "title": "Do clique ao pagamento",
+            "steps": {
+              "click": {
+                "title": "Clique",
+                "body": "O visitante chega pelo link do afiliado. O tracker registra o clique e guarda uma referência de atribuição no navegador."
+              },
+              "checkout": {
+                "title": "Checkout",
+                "body": "A referência vai para o Stripe junto com a cobrança: em <code>client_reference_id</code> no Checkout, ou nos metadados."
+              },
+              "webhook": {
+                "title": "Webhook",
+                "body": "O Stripe avisa que o pagamento foi confirmado. O evento chega assinado e é processado uma única vez."
+              },
+              "commission": {
+                "title": "Comissão",
+                "body": "A comissão é calculada pela regra do programa e registrada junto com o pagamento que a gerou."
+              }
+            }
+          },
+          "methods": {
+            "title": "Formas de cobrança suportadas",
+            "table": {
+              "caption": "O que muda no seu código em cada forma de cobrança do Stripe",
+              "columns": {
+                "method": "Forma de cobrança",
+                "setup": "O que você faz"
+              },
+              "rows": {
+                "checkout": {
+                  "method": "Stripe Checkout",
+                  "setup": "Passa a referência em <code>client_reference_id</code> ao criar a sessão."
+                },
+                "paymentLinks": {
+                  "method": "Payment Links",
+                  "setup": "Nada além da tag: o tracker acrescenta a referência aos links <code>buy.stripe.com</code> da sua página."
+                },
+                "custom": {
+                  "method": "Checkout próprio (Elements, PaymentIntent)",
+                  "setup": "Envia a referência em <code>metadata[{metadataKey}]</code>."
+                },
+                "subscriptions": {
+                  "method": "API de assinaturas",
+                  "setup": "Envia a referência nos metadados da assinatura, uma vez. As renovações seguem."
+                },
+                "other": {
+                  "method": "Qualquer outro fluxo",
+                  "setup": "Seu backend chama <code>POST /api/identify</code> para ligar o visitante ao cliente."
+                }
+              }
+            },
+            "note": "Dá para usar mais de uma forma ao mesmo tempo. O passo a passo de cada uma está na <docs>documentação</docs>."
+          },
+          "recurring": {
+            "title": "Assinaturas e comissão recorrente",
+            "p1": "Cada fatura paga de uma assinatura gera a comissão daquele ciclo, enquanto durar a recorrência que você definiu — alguns meses ou para sempre. Uma comissão percentual acompanha o valor realmente pago em cada fatura.",
+            "p2": "O cliente fica com o afiliado que o trouxe: um clique novo de outro afiliado não muda quem recebe pelas renovações."
+          },
+          "refunds": {
+            "title": "Reembolsos e disputas",
+            "p1": "Um reembolso ou uma disputa no Stripe gera a reversão da comissão ligada àquele pagamento. Se a disputa termina a seu favor, a comissão volta. Nada é apagado: cada correção é um registro novo no histórico."
+          },
+          "security": {
+            "title": "Sem acesso ao seu dinheiro",
+            "p1": "O {brand} só lê eventos. Na configuração, você informa o ID da conta e o segredo de assinatura do webhook (<code>whsec_…</code>) — nunca a chave secreta da API. O {brand} não cobra, não transfere e não paga nada na sua conta."
+          },
+          "testMode": {
+            "title": "Teste antes de ir para produção",
+            "p1": "Eventos do Stripe em modo de teste vão para programas de teste; eventos de produção, para programas de produção. Valide o fluxo com os cartões de teste do Stripe — ou simule uma conversão no Sandbox, sem Stripe nenhum."
+          }
+        },
+        "faq": {
+          "secretKey": {
+            "question": "Preciso compartilhar minha chave secreta do Stripe?",
+            "answer": "Não. O {brand} recebe eventos por webhook e verifica cada um com o segredo de assinatura do endpoint. A chave secreta da sua conta fica com você."
+          },
+          "checkout": {
+            "question": "Preciso mudar meu checkout?",
+            "answer": "Depende de como você cobra. Payment Links: não. Stripe Checkout: um campo na criação da sessão. Checkout próprio ou API de assinaturas: um metadado."
+          },
+          "events": {
+            "question": "Quais eventos do Stripe são usados?",
+            "answer": "Faturas pagas, pagamentos avulsos, checkouts concluídos, reembolsos, disputas e mudanças de assinatura. A lista completa está na <docs>documentação</docs>."
+          },
+          "payouts": {
+            "question": "O {brand} paga os afiliados pelo Stripe?",
+            "answer": "Não. O {brand} calcula e registra o que você deve; o pagamento aos afiliados sai da sua conta, pelo meio que você escolher."
+          }
+        },
+        "closing": {
+          "title": "Ligue seus afiliados aos pagamentos do Stripe",
+          "body": "Crie o programa no Sandbox, simule uma conversão e conecte o Stripe quando estiver pronto.",
+          "cta": "Criar programa"
+        }
+      }
+    }
+  },
+  "legal": {
+    "common": {
+      "eyebrow": "Legal",
+      "effective": "Em vigor desde {date}",
+      "registration": "CNPJ {value}",
+      "contactLabel": "Contato:",
+      "contactPending": "O endereço de contato para estes assuntos será publicado nesta página antes do lançamento comercial. Até lá, use o canal pelo qual você contratou ou foi convidado para o {brand}."
+    },
+    "terms": {
+      "metaTitle": "Termos de Uso",
+      "metaDescription": "As regras de uso do {brand}: conta, programa de afiliados, integrações de pagamento, assinatura e responsabilidades.",
+      "title": "Termos de Uso",
+      "lead": "Estes termos valem para quem cria uma conta no {brand} ou acessa o portal de afiliados. Ao criar sua conta, você concorda com eles.",
+      "sections": {
+        "service": {
+          "title": "O que é o {brand}",
+          "paragraphs": [
+            "O {brand} é um software para empresas de SaaS administrarem seus programas de afiliados. Ele registra cliques em links de indicação, liga cada indicação ao cliente que se cadastra, lê os pagamentos informados pelos meios de pagamento que você conecta e calcula e registra as comissões segundo as regras do seu programa.",
+            "Chamamos de “você” a pessoa ou empresa que cria uma conta e administra um workspace, e de “afiliados” as pessoas que você convida para divulgar o seu produto."
+          ]
+        },
+        "account": {
+          "title": "Sua conta",
+          "paragraphs": [
+            "Para usar o {brand} você cria uma conta com e-mail e senha. Você é responsável pelas informações que fornece, por manter sua senha em sigilo e por tudo o que acontece na sua conta e nos workspaces que administra, inclusive ações de membros que você convidar.",
+            "As chaves de API do seu workspace dão acesso aos seus dados: guarde a chave secreta no seu servidor e gere uma nova se suspeitar de vazamento."
+          ]
+        },
+        "program": {
+          "title": "Seu programa de afiliados",
+          "paragraphs": [
+            "Você define as regras do seu programa — comissão, duração, janela de atribuição, retenção — e decide quais afiliados aprovar. O relacionamento com seus afiliados é seu: o {brand} não é parte dos acordos entre você e eles.",
+            "Você é responsável por informar seus afiliados sobre as regras do programa, por obter o que for necessário para tratar os dados deles e dos seus clientes, e por cumprir a legislação aplicável ao seu programa, inclusive a de proteção de dados e a de defesa do consumidor."
+          ]
+        },
+        "money": {
+          "title": "O {brand} não movimenta o dinheiro das comissões",
+          "paragraphs": [
+            "O {brand} rastreia, atribui, calcula e registra comissões. Ele <strong>não recebe, não guarda e não transfere</strong> dinheiro para afiliados. O pagamento das comissões é feito por você, pelo meio que preferir; o {brand} apenas registra o que você informa como pago.",
+            "Os valores calculados dependem dos dados enviados pelos meios de pagamento e da sua integração. Confira os valores antes de pagar."
+          ]
+        },
+        "providers": {
+          "title": "Meios de pagamento e serviços de terceiros",
+          "paragraphs": [
+            "Para reconhecer vendas, o {brand} se conecta às contas de cobrança que você autoriza, como o Stripe. O uso desses serviços segue os termos de cada um, entre você e eles. O {brand} lê os eventos de pagamento necessários e não faz cobranças na sua conta de cobrança.",
+            "Integrações identificadas como Beta estão em validação: funcionam, mas recomendamos acompanhar os resultados antes de depender só delas. Uma integração pode deixar de funcionar se o terceiro mudar ou suspender o serviço dele."
+          ]
+        },
+        "subscription": {
+          "title": "Assinatura do {brand}",
+          "paragraphs": [
+            "Você pode usar o plano gratuito para testes. Planos pagos são cobrados mensalmente, com os preços e limites publicados na página de preços. A cobrança da assinatura é processada pelo Stripe.",
+            "Você pode cancelar a qualquer momento; o cancelamento interrompe as renovações seguintes. Tributos, quando aplicáveis, seguem a legislação vigente."
+          ]
+        },
+        "acceptableUse": {
+          "title": "Uso aceitável",
+          "paragraphs": [
+            "Não é permitido usar o {brand} para:"
+          ],
+          "items": [
+            "gerar cliques, cadastros ou pagamentos falsos, ou manipular a atribuição de comissões;",
+            "tratar dados de pessoas sem base legal ou em desacordo com a legislação;",
+            "tentar acessar dados de outros workspaces, contornar limites ou controles de segurança, ou sobrecarregar o serviço;",
+            "divulgar produtos ou conteúdos ilegais, enganosos ou que violem direitos de terceiros;",
+            "revender ou redistribuir o serviço sem autorização."
+          ]
+        },
+        "availability": {
+          "title": "Disponibilidade",
+          "paragraphs": [
+            "Trabalhamos para manter o {brand} disponível e seguro, mas o serviço é oferecido como está e pode passar por manutenções, falhas ou mudanças. Podemos alterar, adicionar ou remover funcionalidades; mudanças relevantes serão comunicadas com antecedência razoável sempre que possível."
+          ]
+        },
+        "ip": {
+          "title": "Propriedade intelectual",
+          "paragraphs": [
+            "O software, a marca e os materiais do {brand} pertencem aos seus titulares. Os dados que você envia continuam seus; você nos autoriza a tratá-los apenas para prestar o serviço, conforme a <privacy>Política de Privacidade</privacy>."
+          ]
+        },
+        "suspension": {
+          "title": "Suspensão e encerramento",
+          "paragraphs": [
+            "Podemos suspender ou encerrar uma conta que viole estes termos, ponha o serviço ou terceiros em risco, ou em caso de fraude. Sempre que possível avisaremos antes e explicaremos o motivo.",
+            "Você pode deixar de usar o {brand} quando quiser. Para excluir sua conta e seus dados, entre em contato pelo canal abaixo."
+          ]
+        },
+        "liability": {
+          "title": "Limitações",
+          "paragraphs": [
+            "Na medida permitida pela lei, o {brand} não responde por perdas causadas por informações incorretas enviadas por você ou por terceiros (como meios de pagamento), por indisponibilidade de serviços de terceiros, nem por decisões de pagamento de comissões tomadas por você. Nada nestes termos afasta direitos que a lei não permite afastar."
+          ]
+        },
+        "changes": {
+          "title": "Mudanças nestes termos",
+          "paragraphs": [
+            "Podemos atualizar estes termos. A data no topo indica a versão vigente; mudanças relevantes serão avisadas com antecedência razoável."
+          ]
+        },
+        "contact": {
+          "title": "Contato",
+          "paragraphs": [
+            "Dúvidas sobre estes termos:"
+          ]
+        }
+      }
+    },
+    "privacy": {
+      "metaTitle": "Política de Privacidade",
+      "metaDescription": "Quais dados o {brand} trata, para quê, com quem compartilha e como exercer seus direitos.",
+      "title": "Política de Privacidade",
+      "lead": "Esta política explica quais dados pessoais o {brand} trata, por quê, com quem são compartilhados e como você pode exercer seus direitos.",
+      "sections": {
+        "roles": {
+          "title": "Quem decide sobre cada dado",
+          "paragraphs": [
+            "Para os dados da sua conta e do nosso site, o {brand} decide como e por que tratá-los.",
+            "Para os dados que você coloca no {brand} sobre o seu programa — afiliados, visitantes do seu site, seus clientes e seus pagamentos — o {brand} trata os dados <strong>em nome da empresa de SaaS que usa o serviço</strong>, seguindo as instruções dela. Se você é afiliado ou cliente de uma dessas empresas, os pedidos sobre esses dados devem ir primeiro a ela; o {brand} ajuda a atendê-los."
+          ]
+        },
+        "account": {
+          "title": "Dados da sua conta",
+          "paragraphs": [
+            "Quando você cria uma conta ou é convidado para um workspace, tratamos:"
+          ],
+          "items": [
+            "nome, e-mail e senha (a senha é guardada pelo nosso provedor de autenticação, de forma protegida, e nunca fica visível para nós);",
+            "workspaces, papéis e convites;",
+            "registros de ações administrativas (por exemplo, conectar ou desconectar um meio de pagamento), para segurança e auditoria;",
+            "o plano contratado e o estado da assinatura. Os dados de cartão são tratados pelo Stripe, não pelo {brand}."
+          ]
+        },
+        "customerData": {
+          "title": "Dados que o {brand} trata para o seu programa",
+          "paragraphs": [
+            "Para rastrear, atribuir e calcular comissões, o {brand} trata:"
+          ],
+          "items": [
+            "<strong>Afiliados</strong>: nome, e-mail, empresa e país informados, links e códigos de indicação.",
+            "<strong>Visitantes indicados</strong>: um identificador aleatório de visitante, o endereço da página de entrada e da página de origem, parâmetros UTM, tipo de dispositivo, país aproximado e um hash do endereço IP — o IP em si não é guardado.",
+            "<strong>Clientes do SaaS</strong>: o id do cliente no sistema do SaaS e nos meios de pagamento, e o e-mail apenas na forma de hash, usado para reconhecer o mesmo cliente.",
+            "<strong>Pagamentos</strong>: valores, moeda, datas, reembolsos e contestações recebidos dos meios de pagamento conectados, e as comissões calculadas a partir deles.",
+            "<strong>Notificações dos meios de pagamento</strong>: identificador, tipo e resultado de cada evento. O conteúdo completo das notificações não é guardado.",
+            "<strong>Credenciais de integração</strong>: chaves e tokens dos meios de pagamento conectados, guardados criptografados e nunca exibidos novamente."
+          ]
+        },
+        "website": {
+          "title": "Nosso site",
+          "paragraphs": [
+            "No nosso próprio site usamos poucos cookies: os necessários para login e segurança, preferências como idioma, e um cookie de origem da visita (canal e página de entrada, sem identificador pessoal), que não é gravado quando o navegador pede para não ser rastreado. Detalhes na <cookies>Política de Cookies</cookies>. Não usamos ferramentas de publicidade nem de análise de terceiros."
+          ]
+        },
+        "use": {
+          "title": "Para que usamos os dados",
+          "paragraphs": [],
+          "items": [
+            "prestar o serviço: autenticar, rastrear indicações, reconhecer pagamentos e calcular comissões;",
+            "manter a segurança, prevenir fraude e abuso e investigar incidentes;",
+            "cobrar a assinatura do {brand};",
+            "entender, de forma agregada, como as pessoas chegam ao nosso site e usam o produto, para melhorá-lo;",
+            "cumprir obrigações legais e responder a autoridades quando exigido."
+          ]
+        },
+        "sharing": {
+          "title": "Com quem compartilhamos",
+          "paragraphs": [
+            "Não vendemos dados pessoais. Compartilhamos dados apenas com prestadores necessários para operar o serviço, que os tratam segundo nossas instruções:"
+          ],
+          "items": [
+            "provedor de banco de dados e autenticação (Supabase), inclusive para envio de e-mails de acesso e convite;",
+            "provedor de hospedagem e entrega do site (Vercel);",
+            "Stripe, para a cobrança da assinatura do {brand};",
+            "os meios de pagamento que o próprio SaaS conecta (como o Stripe da empresa), dos quais o {brand} lê os eventos de pagamento autorizados;",
+            "autoridades, quando a lei exigir."
+          ]
+        },
+        "security": {
+          "title": "Segurança",
+          "paragraphs": [
+            "Os dados trafegam por conexões criptografadas. Credenciais de integração são criptografadas antes de serem guardadas; chaves de API, e-mails de clientes e endereços IP são guardados apenas como hash. O acesso aos dados de cada workspace é restrito aos seus membros por regras aplicadas no próprio banco de dados, e registros de sistema não incluem senhas, chaves ou tokens.",
+            "Nenhum sistema é totalmente imune a falhas. Se ocorrer um incidente que possa afetar você, avisaremos conforme a lei."
+          ]
+        },
+        "retention": {
+          "title": "Por quanto tempo guardamos",
+          "paragraphs": [
+            "Guardamos os dados enquanto a conta ou o workspace existir e for necessário para prestar o serviço. O histórico financeiro — pagamentos, comissões e reversões — é mantido como registro e não é apagado quando um meio de pagamento é desconectado. Quando a conta é excluída, os dados são removidos ou anonimizados, exceto o que a lei exigir manter. Os prazos dos cookies estão na <cookies>Política de Cookies</cookies>."
+          ]
+        },
+        "rights": {
+          "title": "Seus direitos",
+          "paragraphs": [
+            "Nos termos da legislação aplicável, como a LGPD, você pode pedir:"
+          ],
+          "items": [
+            "confirmação de que tratamos seus dados e acesso a eles;",
+            "correção de dados incompletos ou desatualizados;",
+            "anonimização, bloqueio ou exclusão de dados desnecessários ou tratados em desconformidade;",
+            "portabilidade e informação sobre com quem compartilhamos;",
+            "revisão de decisões e oposição ao tratamento, nos casos previstos em lei."
+          ]
+        },
+        "international": {
+          "title": "Transferência internacional",
+          "paragraphs": [
+            "Alguns prestadores de serviço listados acima podem tratar dados fora do Brasil. Nesses casos, exigimos que ofereçam proteção adequada aos dados."
+          ]
+        },
+        "changes": {
+          "title": "Mudanças nesta política",
+          "paragraphs": [
+            "Podemos atualizar esta política. A data no topo indica a versão vigente; mudanças relevantes serão avisadas com antecedência razoável."
+          ]
+        },
+        "contact": {
+          "title": "Contato",
+          "paragraphs": [
+            "Para exercer seus direitos ou tirar dúvidas sobre privacidade:"
+          ]
+        }
+      }
+    },
+    "cookies": {
+      "metaTitle": "Política de Cookies",
+      "metaDescription": "Os cookies que o {brand} usa no próprio site e os que o rastreador grava nos sites dos clientes.",
+      "title": "Política de Cookies",
+      "lead": "Cookies são pequenos arquivos que o navegador guarda. Esta página lista todos os que o {brand} usa, para que servem e por quanto tempo ficam.",
+      "sections": {
+        "what": {
+          "title": "Como usamos cookies",
+          "paragraphs": [
+            "Separamos os cookies em três tipos: <strong>necessários</strong> (sem eles o serviço não funciona, como o login), <strong>funcionais</strong> (lembram escolhas como o idioma) e de <strong>medição</strong> (entender de onde vêm as visitas). Não usamos cookies de publicidade nem de terceiros."
+          ]
+        },
+        "site": {
+          "title": "No site e no painel do {brand}",
+          "paragraphs": [
+            "Estes ficam no domínio do {brand}. O cookie de sessão é criado pelo nosso provedor de autenticação e pode ser dividido em partes com o mesmo prefixo."
+          ]
+        },
+        "customerSite": {
+          "title": "Nos sites dos nossos clientes (rastreador)",
+          "paragraphs": [
+            "Empresas que usam o {brand} instalam um rastreador no próprio site. Ele grava estes cookies no domínio da empresa para lembrar que o visitante chegou por um link de indicação. Não contêm dados pessoais diretos: são um identificador aleatório e uma referência aleatória.",
+            "Cada empresa é responsável por informar seus visitantes e, quando necessário, obter o consentimento para esses cookies no site dela."
+          ]
+        },
+        "choices": {
+          "title": "Suas escolhas",
+          "paragraphs": [
+            "Você pode apagar ou bloquear cookies nas configurações do navegador; sem os necessários, o login deixa de funcionar. Se o seu navegador enviar o sinal Global Privacy Control ou Do Not Track, o {brand} não grava o cookie de medição de origem da visita."
+          ]
+        },
+        "changes": {
+          "title": "Mudanças",
+          "paragraphs": [
+            "Quando adicionarmos ou removermos um cookie, esta página será atualizada. Para saber como tratamos dados pessoais, veja a <privacy>Política de Privacidade</privacy>."
+          ]
+        }
+      },
+      "table": {
+        "name": "Nome",
+        "category": "Tipo",
+        "purpose": "Para que serve",
+        "duration": "Duração",
+        "localStorage": "armazenamento local"
+      },
+      "categories": {
+        "necessary": "Necessário",
+        "functional": "Funcional",
+        "measurement": "Medição"
+      },
+      "purposes": {
+        "session": "Mantém você conectado com segurança.",
+        "locale": "Lembra o idioma escolhido.",
+        "lastWorkspace": "Abre o último workspace usado.",
+        "oauthState": "Protege a autorização de uma conta Stripe contra falsificação.",
+        "acquisition": "Registra de onde veio a primeira visita (canal e página de entrada), sem identificador pessoal.",
+        "theme": "Lembra o tema claro ou escuro.",
+        "sidebar": "Lembra se o menu lateral está recolhido.",
+        "visitor": "Identificador aleatório do visitante, para ligar a indicação ao cadastro.",
+        "reference": "Referência aleatória da indicação, para levá-la até o checkout."
+      },
+      "durations": {
+        "session": "Até 400 dias, ou até você sair da conta",
+        "year": "1 ano",
+        "tenMinutes": "10 minutos",
+        "ninetyDays": "90 dias",
+        "untilCleared": "Até ser apagado no navegador"
+      }
+    },
+    "links": {
+      "label": "Legal",
+      "terms": "Termos",
+      "privacy": "Privacidade",
+      "cookies": "Cookies",
+      "support": "Suporte"
     }
   }
 }

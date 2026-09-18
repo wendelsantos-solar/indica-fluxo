@@ -32,6 +32,11 @@ const bodySchema = z.object({
     })
     .partial()
     .optional(),
+  /**
+   * The public attribution reference this browser already holds. Additive and
+   * optional: a tracker that never sends it keeps working exactly as before.
+   */
+  token: z.string().max(128).nullish(),
 })
 
 const CORS = {
@@ -91,16 +96,24 @@ export async function POST(request: NextRequest) {
       userAgent: request.headers.get("user-agent"),
       ip,
       country: request.headers.get("x-vercel-ip-country"),
+      attributionToken: parsed.token ?? null,
     })
 
     // A live key on a workspace without live mode: nothing recorded, nothing to say.
     if (!result.recorded) return new NextResponse(null, { status: 204, headers: CORS })
 
-    // No cookie here: this response comes from IndicaFluxo's host, so a cookie
+    // No cookie here: this response comes from Refvia's host, so a cookie
     // set on it would never be first-party on the customer's site. The tracker
     // writes the visitor cookie itself, with JavaScript, on the customer's domain.
+    // `token` is the public attribution reference to carry to the checkout
+    // (INTEGRATION_ARCHITECTURE_V2.md §2). It is null when the click earned no
+    // eligible attribution, and the tracker then has nothing to attach.
     return NextResponse.json(
-      { ok: true, attributed: result.attributionAction !== "ignore" },
+      {
+        ok: true,
+        attributed: result.attributionAction !== "ignore",
+        token: result.attributionToken,
+      },
       { headers: CORS },
     )
   } catch (error) {

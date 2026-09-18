@@ -15,7 +15,24 @@ const isDev = process.env.NODE_ENV === "development"
  * Turbopack HMR runtime use eval() for source mapping and module evaluation.
  * It must never reach a production response — production React never evals.
  */
+function devOrigins(): string[] {
+  try {
+    const host = new URL(process.env.NEXT_PUBLIC_APP_URL ?? "").hostname
+    return host && host !== "localhost" ? [host] : []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * HSTS in production only (a local http:// dev server must stay reachable).
+ * Two years, no `includeSubDomains`/`preload`: other hosts under the final
+ * domain are not ours to force yet (VERCEL_DEPLOY_AUDIT.md).
+ */
+const hsts = isDev ? [] : [{ key: "Strict-Transport-Security", value: "max-age=63072000" }]
+
 const securityHeaders = [
+  ...hsts,
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -56,9 +73,10 @@ const nextConfig: NextConfig = {
     staleTimes: { dynamic: 30 },
   },
 
-  // The dev server is also reached through a tunnel on this host. Without it,
-  // Next blocks cross-origin requests to dev-only assets (HMR, `/_next/*`).
-  allowedDevOrigins: ["fazproposta.wendelpaco.dev"],
+  // The dev server may be reached through a tunnel (NEXT_PUBLIC_APP_URL in
+  // .env.local). Without it, Next blocks cross-origin requests to dev-only
+  // assets (HMR, `/_next/*`). Development only; no host is hardcoded.
+  allowedDevOrigins: devOrigins(),
 
   async headers() {
     return [
@@ -72,7 +90,14 @@ const nextConfig: NextConfig = {
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "X-Robots-Tag", value: "noindex" },
         ],
+      },
+      {
+        // Machine endpoints have nothing to index; a JSON error page in search
+        // results helps nobody. HTML pages say the same with a meta tag.
+        source: "/api/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
     ]
   },

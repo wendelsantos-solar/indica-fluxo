@@ -48,6 +48,8 @@ export const CLIENT_MESSAGE_SCOPES = {
     "plans.audit",
     "onboarding.stepper",
     "billing.banner",
+    /** Code samples on Integrations reuse the guide's blocks. */
+    "docs.code",
   ],
 } as const satisfies Record<string, readonly string[]>
 

@@ -38,7 +38,7 @@ permissions, SLA). Do not invent features to fill it.
 
 **Prices** live in `PLAN_OFFERS` (display) and in Stripe (charge), matched by
 `STRIPE_LAUNCH_PRICE_ID` / `STRIPE_GROWTH_PRICE_ID`. All prices are BRL, the
-currency IndicaFluxo bills in, in every locale.
+currency Refvia bills in, in every locale.
 
 **Why 100 affiliates on Launch and not unlimited:** the limit is what separates
 a first program from an acquisition channel, and the counting rule (§3) makes it
@@ -110,13 +110,13 @@ The Supabase Data API cannot bypass this: the app runs as `indica_app`
 Message keys: `errors.plan.limit.<limit>`, `errors.plan.feature.<feature>`,
 `errors.plan.liveModeRequired`, `errors.plan.subscriptionRequired`.
 
-## 5. Billing (IndicaFluxo charging workspaces)
+## 5. Billing (Refvia charging workspaces)
 
 Two Stripe responsibilities, never mixed:
 
 | | Customer billing | Platform billing |
 | --- | --- | --- |
-| Whose Stripe | the founder's | IndicaFluxo's |
+| Whose Stripe | the founder's | Refvia's |
 | Purpose | detect the founder's customers' payments | charge Launch/Growth |
 | Code | `src/lib/billing/stripe/`, `/api/webhooks/stripe/[integrationId]` | `src/lib/platform-billing/stripe/`, `/api/platform-billing/stripe/webhook` |
 | Credentials | per-integration encrypted signing secrets | `PLATFORM_STRIPE_SECRET_KEY`, `PLATFORM_STRIPE_WEBHOOK_SECRET`, `STRIPE_LAUNCH_PRICE_ID`, `STRIPE_GROWTH_PRICE_ID` |

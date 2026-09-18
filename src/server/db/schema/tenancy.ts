@@ -2,12 +2,15 @@ import { relations, sql } from "drizzle-orm"
 import {
   char,
   index,
+  jsonb,
   pgTable,
   text,
   timestamp,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core"
+
+import type { Acquisition } from "@/lib/seo/acquisition"
 
 import { planCodeEnum, workspaceRoleEnum } from "./enums"
 
@@ -31,6 +34,8 @@ export const workspaces = pgTable(
     logoUrl: text("logo_url"),
     defaultCurrency: char("default_currency", { length: 3 }).notNull().default("USD"),
     timezone: text("timezone").notNull().default("UTC"),
+    /** First-touch acquisition (migration 0017, src/lib/seo/acquisition.ts). NULL = unknown. */
+    acquisition: jsonb("acquisition").$type<Acquisition>(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

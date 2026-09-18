@@ -14,10 +14,13 @@ import { getLocale, getTranslations, setRequestLocale } from "next-intl/server"
 import type * as React from "react"
 
 import { getFormatters } from "@/i18n/format"
-import { getPathname, Link } from "@/i18n/navigation"
+import { Link } from "@/i18n/navigation"
 import { DEFAULT_CURRENCY, type Locale } from "@/i18n/routing"
 import { Button } from "@/components/ui/button"
-import { localeAlternates, siteUrl } from "@/lib/site"
+import { JsonLd } from "@/components/seo/json-ld"
+import { PLAN_OFFERS, type PlanCode } from "@/lib/plans"
+import { pageMetadata } from "@/lib/seo/metadata"
+import { organizationJsonLd, softwareApplicationJsonLd, websiteJsonLd } from "@/lib/seo/structured-data"
 import { cn } from "@/lib/utils"
 
 import { formatPlanPrice, PAID_PLAN_DISPLAY, START_PLAN_DISPLAY } from "@/lib/plans-display"
@@ -38,26 +41,8 @@ import {
 export async function generateMetadata({ params }: PageProps<"/[locale]">): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: "meta" })
-  const url = (target: Locale) => new URL(getPathname({ href: "/", locale: target }), siteUrl()).toString()
-  const { languages } = localeAlternates("/", locale, (target) => getPathname({ href: "/", locale: target }))
-
-  return {
-    title: { absolute: t("title") },
-    description: t("description"),
-    alternates: {
-      canonical: url(locale as Locale),
-      languages,
-    },
-    openGraph: {
-      type: "website",
-      siteName: "IndicaFluxo",
-      title: t("title"),
-      description: t("description"),
-      url: url(locale as Locale),
-      locale: locale === "pt-br" ? "pt_BR" : "en_US",
-    },
-    twitter: { card: "summary_large_image", title: t("title"), description: t("description") },
-  }
+  // Brand + category, as the title of the brand's own page should read.
+  return pageMetadata({ href: "/", locale: locale as Locale, title: t("title"), description: t("description"), absoluteTitle: true })
 }
 
 /** Section rhythm: one container, one vertical cadence, used by every block. */
@@ -100,9 +85,21 @@ export default async function MarketingHomePage({ params }: PageProps<"/[locale]
   setRequestLocale(locale)
 
   const t = await getTranslations("marketing.home")
+  const meta = await getTranslations("meta")
+  const plans = await getTranslations("plans.names")
+  const planNames = Object.fromEntries(
+    (Object.keys(PLAN_OFFERS) as PlanCode[]).filter((code) => plans.has(code)).map((code) => [code, plans(code)]),
+  )
 
   return (
     <>
+      <JsonLd
+        data={[
+          organizationJsonLd(),
+          websiteJsonLd(locale as Locale),
+          softwareApplicationJsonLd({ locale: locale as Locale, description: meta("description"), planNames }),
+        ]}
+      />
       <Hero />
       <FlowProof />
 
@@ -131,6 +128,13 @@ export default async function MarketingHomePage({ params }: PageProps<"/[locale]
                 <div>
                   <p className="text-ui font-medium text-foreground">{t("problem.resolutionTitle")}</p>
                   <p className="mt-1 text-pretty text-caption text-muted-foreground">{t("problem.resolutionBody")}</p>
+                  <Link
+                    href="/saas-affiliate-program"
+                    className="mt-3 inline-flex items-center gap-1.5 text-caption text-foreground underline decoration-border-strong underline-offset-4 hover:decoration-foreground"
+                  >
+                    {t("problemGuide")}
+                    <ArrowRight className="size-3.5" aria-hidden="true" />
+                  </Link>
                 </div>
               </div>
             </div>
@@ -144,6 +148,7 @@ export default async function MarketingHomePage({ params }: PageProps<"/[locale]
       <Integrations />
       <Principles />
       <PricingPreview />
+      <Faq />
       <Closing />
     </>
   )
@@ -389,7 +394,16 @@ async function Integrations() {
               </li>
             ))}
           </ul>
-          <p className="mt-4 text-caption text-faint-foreground">{t("more")}</p>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-caption text-faint-foreground">{t("more")}</p>
+            <Link
+              href="/stripe-affiliates"
+              className="inline-flex items-center gap-1.5 text-caption text-foreground underline decoration-border-strong underline-offset-4 hover:decoration-foreground"
+            >
+              {t("guide")}
+              <ArrowRight className="size-3.5" aria-hidden="true" />
+            </Link>
+          </div>
         </div>
       </div>
     </Section>
@@ -478,6 +492,43 @@ async function PricingPreview() {
       <p className="mt-4 max-w-2xl text-pretty text-caption text-muted-foreground">
         {t("pricing.startNote")} {t("pricing.currencyNote")}
       </p>
+    </Section>
+  )
+}
+
+/**
+ * The questions a founder asks before signing up, answered in visible text.
+ * No FAQPage markup (src/lib/seo/structured-data.ts explains why).
+ */
+async function Faq() {
+  const t = await getTranslations("marketing.home.faq")
+  const items = ["how", "checkout", "stripe", "providers", "calculation", "money", "fee"] as const
+  const pricing = (chunks: React.ReactNode) => (
+    <Link href="/pricing" className="text-foreground underline decoration-border-strong underline-offset-4 hover:decoration-foreground">
+      {chunks}
+    </Link>
+  )
+
+  return (
+    <Section id="perguntas">
+      <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+        <div className="lg:col-span-4">
+          <Eyebrow>{t("eyebrow")}</Eyebrow>
+          <Heading className="sm:text-heading-sm">{t("title")}</Heading>
+        </div>
+        <div className="lg:col-span-8">
+          <ul className="divide-y divide-border-faint border-y border-border-faint">
+            {items.map((item) => (
+              <li key={item} className="py-5">
+                <h3 className="text-body font-medium text-foreground">{t(`items.${item}.question`)}</h3>
+                <p className="mt-2 max-w-reading text-pretty text-body-sm text-muted-foreground">
+                  {t.rich(`items.${item}.answer`, { pricing })}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
     </Section>
   )
 }

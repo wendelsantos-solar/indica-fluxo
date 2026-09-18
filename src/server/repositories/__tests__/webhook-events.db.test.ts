@@ -5,7 +5,7 @@
  *   RUN_DB_TESTS=1 pnpm exec vitest run src/server/repositories/__tests__/webhook-events.db.test.ts
  */
 import { config } from "dotenv"
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import { describe, expect, it, vi } from "vitest"
 
 vi.mock("server-only", () => ({}))
@@ -15,7 +15,7 @@ const RUN = process.env.RUN_DB_TESTS === "1"
 
 const { db } = await import("@/server/db")
 const schema = await import("@/server/db/schema")
-const { claimWebhookEvent, markWebhookEvent } = await import("../webhook-events")
+const { STALE_CLAIM_MINUTES, claimWebhookEvent, markWebhookEvent } = await import("../webhook-events")
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 const ROLLBACK = new Error("rollback")
@@ -80,6 +80,24 @@ describe.runIf(RUN)("claimWebhookEvent against Postgres", () => {
       const ignored = await claimWebhookEvent(tx, input(other))
       await markWebhookEvent(tx, ignored.id!, "ignored", "unhandled")
       expect((await claimWebhookEvent(tx, input(other))).claimed).toBe(false)
+    })
+  }, 30_000)
+
+  it("re-claims an event stuck in received past the stale window, but not a fresh claim", async () => {
+    await inRollback(async (tx) => {
+      const eventId = `evt_stuck_${crypto.randomUUID()}`
+      const { id } = await claimWebhookEvent(tx, input(eventId))
+
+      // A fresh claim may still be processing: a redelivery stays a duplicate.
+      expect((await claimWebhookEvent(tx, input(eventId))).claimed).toBe(false)
+
+      // The process died after claiming: the row never left `received`.
+      await tx
+        .update(schema.webhookEvents)
+        .set({ receivedAt: sql`now() - make_interval(mins => ${STALE_CLAIM_MINUTES + 1})` })
+        .where(eq(schema.webhookEvents.id, id!))
+
+      expect(await claimWebhookEvent(tx, input(eventId))).toEqual({ claimed: true, id })
     })
   }, 30_000)
 

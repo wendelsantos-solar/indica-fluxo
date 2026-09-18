@@ -3,11 +3,14 @@ import "server-only"
 import { and, eq, gt, inArray, isNull, or, sql } from "drizzle-orm"
 
 import { hashEmail } from "@/lib/crypto/hash"
+import { attributionCustomerKey } from "@/lib/billing/identity-key"
+import type { BillingProviderId } from "@/lib/billing/types"
 import { logger } from "@/lib/logger"
 import { db, type Transaction } from "@/server/db"
 import { attributions, customers, programs } from "@/server/db/schema"
 import { ValidationError } from "@/server/policies/errors"
 
+import { customerByIdentity, linkBillingIdentity } from "./billing-identity"
 import { assertLiveMode, getWorkspaceEntitlements } from "./entitlements"
 
 export interface IdentifyInput {
@@ -17,7 +20,8 @@ export interface IdentifyInput {
   visitorId: string
   externalId: string
   providerCustomerId?: string | null
-  provider?: "stripe" | "paddle" | "manual"
+  /** Any billing provider; defaults to Stripe, as it always has. */
+  provider?: BillingProviderId
   email?: string | null
 }
 
@@ -71,7 +75,7 @@ export async function identifyCustomer(
 
 interface Normalized extends Omit<IdentifyInput, "provider" | "email"> {
   externalId: string
-  provider: "stripe" | "paddle" | "manual"
+  provider: BillingProviderId
   providerCustomerId: string | null
   emailHash: string | null
 }
@@ -83,7 +87,7 @@ async function identifyIn(tx: Transaction, input: Normalized): Promise<IdentifyR
   if (environment === "live") assertLiveMode(await getWorkspaceEntitlements(tx, workspaceId))
 
   const [byExternal] = await tx
-    .select({ id: customers.id, providerCustomerId: customers.providerCustomerId })
+    .select({ id: customers.id, provider: customers.provider, providerCustomerId: customers.providerCustomerId })
     .from(customers)
     .where(
       and(
@@ -95,55 +99,61 @@ async function identifyIn(tx: Transaction, input: Normalized): Promise<IdentifyR
     .limit(1)
     .for("update")
 
-  const [byProvider] = providerCustomerId
-    ? await tx
-        .select({ id: customers.id, externalId: customers.externalId })
-        .from(customers)
-        .where(
-          and(
-            eq(customers.workspaceId, workspaceId),
-            eq(customers.environment, environment),
-            eq(customers.provider, provider),
-            eq(customers.providerCustomerId, providerCustomerId),
-          ),
-        )
-        .limit(1)
-        .for("update")
-    : []
+  // Who already holds this provider customer: its identity (any provider), or
+  // — for rows from before identities — the legacy columns on `customers`.
+  const identityKey = providerCustomerId ? { workspaceId, environment, provider, providerCustomerId } : null
+  const byIdentity = identityKey ? await customerByIdentity(tx, identityKey) : null
+  const [byLegacy] =
+    providerCustomerId && !byIdentity
+      ? await tx
+          .select({ id: customers.id, externalId: customers.externalId })
+          .from(customers)
+          .where(
+            and(
+              eq(customers.workspaceId, workspaceId),
+              eq(customers.environment, environment),
+              eq(customers.provider, provider),
+              eq(customers.providerCustomerId, providerCustomerId),
+            ),
+          )
+          .limit(1)
+          .for("update")
+      : []
+  const byProvider = byIdentity ?? byLegacy ?? null
 
-  // The provider id may be written onto the identified row only when no other
-  // row already holds it (the unique key), and an id already stored is never
-  // replaced or cleared by a later call without one.
+  // The provider id may be written onto the identified row's legacy columns
+  // only when that row is for the same provider and no other row holds the id
+  // (the unique key); an id already stored is never replaced or cleared by a
+  // later call without one. Other providers live in `billing_identities` only.
   const providerIdFree = !byProvider || byProvider.id === byExternal?.id
+  const sameProvider = !byExternal || byExternal.provider === provider
 
   let customerId: string
-  let storedProviderCustomerId: string | null
 
   if (byExternal) {
     const [row] = await tx
       .update(customers)
       .set({
-        providerCustomerId: providerIdFree
-          ? sql`coalesce(${customers.providerCustomerId}, ${providerCustomerId})`
-          : sql`${customers.providerCustomerId}`,
+        providerCustomerId:
+          providerIdFree && sameProvider
+            ? sql`coalesce(${customers.providerCustomerId}, ${providerCustomerId})`
+            : sql`${customers.providerCustomerId}`,
         emailHash: sql`coalesce(${emailHash}, ${customers.emailHash})`,
         updatedAt: now,
       })
       .where(eq(customers.id, byExternal.id))
-      .returning({ id: customers.id, providerCustomerId: customers.providerCustomerId })
+      .returning({ id: customers.id })
     customerId = row!.id
-    storedProviderCustomerId = row!.providerCustomerId
   } else if (byProvider && !byProvider.externalId) {
-    // Stripe got there first: a webhook created the customer from its provider
-    // id. Attach the founder's id to that row instead of inserting a second one
-    // (which the unique key on the provider id would refuse with a 500).
+    // The provider got there first: a webhook created the customer from its
+    // provider id. Attach the founder's id to that row instead of inserting a
+    // second one (which the unique key on the provider id would refuse).
     const [row] = await tx
       .update(customers)
       .set({ externalId, emailHash: sql`coalesce(${emailHash}, ${customers.emailHash})`, updatedAt: now })
       .where(eq(customers.id, byProvider.id))
-      .returning({ id: customers.id, providerCustomerId: customers.providerCustomerId })
+      .returning({ id: customers.id })
     customerId = row!.id
-    storedProviderCustomerId = row!.providerCustomerId
   } else {
     if (byProvider) {
       // The provider customer already belongs to another of the founder's ids.
@@ -160,10 +170,26 @@ async function identifyIn(tx: Transaction, input: Normalized): Promise<IdentifyR
         providerCustomerId: byProvider ? null : providerCustomerId,
         emailHash,
       })
-      .returning({ id: customers.id, providerCustomerId: customers.providerCustomerId })
+      .returning({ id: customers.id })
     customerId = row!.id
-    storedProviderCustomerId = row!.providerCustomerId
   }
+
+  // One customer, N provider identities. First link wins (never moved here).
+  const identityOwner =
+    identityKey && providerIdFree ? await linkBillingIdentity(tx, identityKey, customerId) : null
+  const [stored] = await tx
+    .select({ provider: customers.provider, providerCustomerId: customers.providerCustomerId })
+    .from(customers)
+    .where(eq(customers.id, customerId))
+    .limit(1)
+  // What the attributions carry: this call's provider customer when it is now
+  // this customer's, else the one the row already held (as before).
+  const storedProviderCustomerId =
+    identityKey && identityOwner === customerId
+      ? attributionCustomerKey(provider, identityKey.providerCustomerId)
+      : stored?.providerCustomerId
+        ? attributionCustomerKey(stored.provider, stored.providerCustomerId)
+        : null
 
   // Bind this visitor's attributions in programs of the same environment: the
   // open ones (not yet bound, window not expired), and those already bound to

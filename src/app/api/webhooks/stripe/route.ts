@@ -2,10 +2,7 @@ import { NextResponse, type NextRequest } from "next/server"
 
 import { billingProvider } from "@/lib/billing/provider"
 import { logger } from "@/lib/logger"
-import {
-  ingestVerifiedWebhook,
-  workspaceForProviderAccount,
-} from "@/server/services/billing-events"
+import { connectionForProviderAccount, ingestVerifiedWebhook } from "@/server/services/billing-events"
 
 import { ingestResponse } from "./responses"
 
@@ -48,8 +45,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid_signature" }, { status: 400 })
   }
 
-  const workspaceId = await workspaceForProviderAccount("stripe", verified.providerAccountId)
-  const result = await ingestVerifiedWebhook({ provider: stripe, verified, rawBody, workspaceId })
+  const connection = await connectionForProviderAccount("stripe", verified.providerAccountId)
+  const result = await ingestVerifiedWebhook({
+    provider: stripe,
+    verified,
+    rawBody,
+    workspaceId: connection?.workspaceId ?? null,
+    integrationId: connection?.integrationId ?? null,
+  })
 
   return ingestResponse(result)
 }

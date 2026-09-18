@@ -20,11 +20,24 @@ export async function listIntegrations(tx: Transaction, workspaceId: string) {
       provider: integrations.provider,
       status: integrations.status,
       providerAccountId: integrations.providerAccountId,
+      displayName: integrations.displayName,
       connectedAt: integrations.connectedAt,
       disconnectedAt: integrations.disconnectedAt,
     })
     .from(integrations)
     .where(eq(integrations.workspaceId, workspaceId))
+}
+
+/**
+ * A workspace may hold several Stripe connections (migration 0018). Functions
+ * that predate that address one by id; without an id they keep their old
+ * meaning — the workspace's first Stripe connection — so every caller written
+ * before multi-account behaves exactly as it did.
+ */
+function stripeRow(workspaceId: string, integrationId?: string | null) {
+  return integrationId
+    ? and(eq(integrations.workspaceId, workspaceId), eq(integrations.provider, "stripe"), eq(integrations.id, integrationId))
+    : and(eq(integrations.workspaceId, workspaceId), eq(integrations.provider, "stripe"))
 }
 
 /**
@@ -67,7 +80,7 @@ const setupMetadataSchema = z.object({
 
 export interface StripeSetup {
   integrationId: string
-  status: "connected" | "disconnected" | "error"
+  status: "connected" | "disconnected" | "error" | "pending"
   providerAccountId: string | null
   /** Whether any signing secret is stored. The secrets themselves never leave the server. */
   secretSaved: boolean
@@ -79,8 +92,12 @@ export interface StripeSetup {
   lastRejectedAt: Date | null
 }
 
-/** The Stripe integration of a workspace, as the Integrations page needs it. Any member. */
-export async function getStripeSetup(userId: string, workspaceId: string): Promise<StripeSetup | null> {
+/** One Stripe connection of a workspace (the first, without an id), as the Integrations page needs it. Any member. */
+export async function getStripeSetup(
+  userId: string,
+  workspaceId: string,
+  integrationId?: string | null,
+): Promise<StripeSetup | null> {
   return withUser(userId, async (tx) => {
     await requireMembership(tx, workspaceId, userId)
 
@@ -93,7 +110,8 @@ export async function getStripeSetup(userId: string, workspaceId: string): Promi
         metadata: integrations.metadata,
       })
       .from(integrations)
-      .where(and(eq(integrations.workspaceId, workspaceId), eq(integrations.provider, "stripe")))
+      .where(stripeRow(workspaceId, integrationId))
+      .orderBy(integrations.createdAt)
       .limit(1)
 
     if (!row) return null
@@ -127,15 +145,32 @@ export async function getStripeSetup(userId: string, workspaceId: string): Promi
 /**
  * Step 1 of the Stripe setup. The row has to exist before its webhook URL can
  * be shown, so it is created here — `disconnected` until a signing secret is
- * saved. An existing integration keeps its status; only the account id changes.
+ * saved.
+ *
+ * With `integrationId`, that connection's account id changes (the old
+ * single-connection behaviour). Without one, the account is added as a
+ * connection of its own — unless the workspace already has it, which is then
+ * updated in place. A workspace with no Stripe row yet gets its first.
  */
 export async function startStripeIntegration(
   userId: string,
   workspaceId: string,
   providerAccountId: string,
+  options: { integrationId?: string | null; displayName?: string | null } = {},
 ): Promise<string> {
   return withUser(userId, async (tx) => {
     await requireMembership(tx, workspaceId, userId, "admin")
+    const displayName = options.displayName?.trim().slice(0, 60) || null
+
+    if (options.integrationId) {
+      const [row] = await tx
+        .update(integrations)
+        .set({ providerAccountId, ...(displayName ? { displayName } : {}), updatedAt: new Date() })
+        .where(stripeRow(workspaceId, options.integrationId))
+        .returning({ id: integrations.id })
+      if (!row) throw new NotFoundError("Connection not found.", "notFound")
+      return row.id
+    }
 
     const [row] = await tx
       .insert(integrations)
@@ -143,12 +178,21 @@ export async function startStripeIntegration(
         workspaceId,
         provider: "stripe",
         providerAccountId,
+        displayName,
         status: "disconnected",
-        metadata: { mode: "webhook_secret" },
+        metadata: { mode: "webhook_secret", connectStartedAt: new Date().toISOString() },
       })
       .onConflictDoUpdate({
-        target: [integrations.workspaceId, integrations.provider],
-        set: { providerAccountId, updatedAt: new Date() },
+        target: [integrations.workspaceId, integrations.provider, integrations.providerAccountId],
+        targetWhere: sql`provider_account_id is not null and environment is null`,
+        // The same account again never makes a second row (brief §6): an
+        // unfinished setup is resumed as it is; a disconnected one starts over
+        // as an unfinished setup — visible, never "connected" before a secret.
+        set: {
+          ...(displayName ? { displayName } : {}),
+          disconnectedAt: sql`case when ${integrations.status} = 'disconnected' then null else ${integrations.disconnectedAt} end`,
+          updatedAt: new Date(),
+        },
       })
       .returning({ id: integrations.id })
 
@@ -167,6 +211,7 @@ export async function saveStripeWebhookSecret(
   workspaceId: string,
   environment: StripeSecretEnvironment,
   webhookSecret: string,
+  integrationId?: string | null,
 ): Promise<void> {
   const secret = z.string().startsWith("whsec_").parse(webhookSecret)
   const now = new Date()
@@ -177,7 +222,8 @@ export async function saveStripeWebhookSecret(
     const [existing] = await tx
       .select({ id: integrations.id, encryptedCredentials: integrations.encryptedCredentials })
       .from(integrations)
-      .where(and(eq(integrations.workspaceId, workspaceId), eq(integrations.provider, "stripe")))
+      .where(stripeRow(workspaceId, integrationId))
+      .orderBy(integrations.createdAt)
       .limit(1)
       .for("update")
 
@@ -202,7 +248,9 @@ export async function saveStripeWebhookSecret(
       .set({
         encryptedCredentials: encryptSecret(JSON.stringify(credentials)),
         status: "connected",
+        statusReason: null,
         connectedAt: now,
+        lastVerifiedAt: now,
         disconnectedAt: null,
         // A new secret starts a clean slate: an old rejection no longer applies.
         metadata: sql`(${integrations.metadata} - 'lastRejectedAt') || ${JSON.stringify({
@@ -219,41 +267,36 @@ export async function saveStripeWebhookSecret(
       actorUserId: userId,
       entityType: "integration",
       entityId: existing.id,
-      action: "integration.connected",
-      metadata: { provider: "stripe", environment, secretReplaced: replaced },
+      action: replaced ? "integration.credentials_updated" : "integration.connected",
+      metadata: { provider: "stripe", integrationId: existing.id, environment, secretReplaced: replaced },
     })
   })
 }
 
+/**
+ * Disconnects the workspace's first connection of `provider` — the
+ * pre-multi-account entry point, kept for its callers. New code disconnects a
+ * connection by id through `billing-connections.ts`.
+ */
 export async function disconnectIntegration(
   userId: string,
   workspaceId: string,
   provider: BillingProviderId,
 ): Promise<void> {
-  return withUser(userId, async (tx) => {
-    await requireMembership(tx, workspaceId, userId, "admin")
-
-    await tx
-      .update(integrations)
-      .set({
-        status: "disconnected",
-        disconnectedAt: new Date(),
-        // Credentials are dropped on disconnect; nothing to leak afterwards.
-        encryptedCredentials: null,
-        metadata: sql`${integrations.metadata} - 'secretSavedAt' - 'testSecretSavedAt' - 'liveSecretSavedAt' - 'lastRejectedAt'`,
-      })
-      .where(
-        and(eq(integrations.workspaceId, workspaceId), eq(integrations.provider, provider)),
-      )
-
-    await recordAudit(tx, {
-      workspaceId,
-      actorUserId: userId,
-      entityType: "integration",
-      action: "integration.disconnected",
-      metadata: { provider },
-    })
-  })
+  const [row] = await withUser(userId, (tx) =>
+    tx
+      .select({ id: integrations.id })
+      .from(integrations)
+      .where(and(eq(integrations.workspaceId, workspaceId), eq(integrations.provider, provider)))
+      .orderBy(integrations.createdAt)
+      .limit(1),
+  )
+  if (!row) {
+    await withUser(userId, (tx) => requireMembership(tx, workspaceId, userId, "admin"))
+    return
+  }
+  const { disconnectBillingConnection } = await import("./billing-connections")
+  await disconnectBillingConnection(userId, workspaceId, row.id)
 }
 
 /**

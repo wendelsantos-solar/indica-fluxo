@@ -178,7 +178,7 @@ export async function runTestConversion(
   const visitorId = `v_sim${id}`.slice(0, 50)
   const externalId = input.externalId?.trim() || `${SIMULATION_PREFIX}${id}`
 
-  const landing = new URL(program.websiteUrl ?? "https://sandbox.indicafluxo.invalid/")
+  const landing = new URL(program.websiteUrl ?? "https://sandbox.refvia.invalid/")
   landing.searchParams.set("ref", participation.code)
 
   const click = await recordClick(

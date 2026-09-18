@@ -9,7 +9,8 @@ export const identifyBodySchema = z.object({
   visitorId: z.string().min(4).max(64),
   externalId: z.string().min(1).max(200),
   providerCustomerId: z.string().max(200).nullish(),
-  provider: z.enum(["stripe", "paddle", "manual"]).optional(),
+  /** Which billing provider `providerCustomerId` belongs to. Defaults to Stripe. */
+  provider: z.enum(["stripe", "paddle", "manual", "mercado_pago", "abacatepay", "asaas"]).optional(),
   email: z.string().email().max(320).nullish(),
 })
 

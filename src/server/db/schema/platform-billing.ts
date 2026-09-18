@@ -5,7 +5,7 @@ import { billingProviderEnum, planCodeEnum, platformSubscriptionStatusEnum } fro
 import { workspaces } from "./tenancy"
 
 /**
- * A workspace's subscription to IndicaFluxo itself. Not `subscriptions`, which
+ * A workspace's subscription to Refvia itself. Not `subscriptions`, which
  * records the founders' own customers' subscriptions read from their Stripe.
  *
  * At most one row per workspace. No row means Sandbox. Written only by the

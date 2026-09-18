@@ -4,10 +4,13 @@ import { getTranslations, setRequestLocale } from "next-intl/server"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { getPathname, Link } from "@/i18n/navigation"
+import { Link } from "@/i18n/navigation"
+import type { Locale } from "@/i18n/routing"
+import { JsonLd } from "@/components/seo/json-ld"
 import { PLAN_OFFERS } from "@/lib/plans"
 import { CORE_FEATURES, formatPlanPrice, PRICING_CARDS } from "@/lib/plans-display"
-import { localeAlternates } from "@/lib/site"
+import { pageMetadata, pageUrl } from "@/lib/seo/metadata"
+import { breadcrumbJsonLd } from "@/lib/seo/structured-data"
 import { cn } from "@/lib/utils"
 import { PAST_DUE_GRACE_DAYS } from "@/server/domain/entitlements"
 
@@ -18,18 +21,15 @@ export async function generateMetadata({
 }: PageProps<"/[locale]/pricing">): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: "pricing" })
-  const { canonical, languages } = localeAlternates("/pricing", locale, (target) =>
-    getPathname({ href: "/pricing", locale: target }),
-  )
   // Prices in the description come from PLAN_OFFERS, never from the catalogue.
   const description = t("metaDescription", {
     launchPrice: formatPlanPrice(locale, PLAN_OFFERS.launch.priceMonthlyMinor ?? 0, PLAN_OFFERS.launch.currency),
     growthPrice: formatPlanPrice(locale, PLAN_OFFERS.growth.priceMonthlyMinor ?? 0, PLAN_OFFERS.growth.currency),
   })
-  return { title: t("metaTitle"), description, alternates: { canonical, languages } }
+  return pageMetadata({ href: "/pricing", locale: locale as Locale, title: t("metaTitle"), description })
 }
 
-/** How IndicaFluxo charges, in the order a founder meets it (docs/PLANS.md §5–6). */
+/** How Refvia charges, in the order a founder meets it (docs/PLANS.md §5–6). */
 const BILLING_QUESTIONS = ["sandbox", "activate", "change", "cancel", "pastDue"] as const
 
 export default async function PricingPage({ params }: PageProps<"/[locale]/pricing">) {
@@ -37,9 +37,14 @@ export default async function PricingPage({ params }: PageProps<"/[locale]/prici
   setRequestLocale(locale)
 
   const t = await getTranslations()
+  const crumbs = [
+    { name: t("seo.breadcrumb.home"), url: pageUrl("/", locale as Locale) },
+    { name: t("marketing.chrome.pricing"), url: pageUrl("/pricing", locale as Locale) },
+  ]
 
   return (
     <div className="mx-auto w-full max-w-page px-4 py-24 sm:px-6 sm:py-32">
+      <JsonLd data={breadcrumbJsonLd(crumbs)} />
       <div className="max-w-3xl">
         <h1 className="text-balance text-heading-sm text-foreground sm:text-heading lg:text-heading-lg">
           {t("pricing.title")}

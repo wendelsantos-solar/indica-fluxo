@@ -3,6 +3,11 @@ import "server-only"
 import type Stripe from "stripe"
 
 import { env } from "@/lib/env/server"
+import {
+  readAttributionToken,
+  readAttributionTokenFromMetadata,
+  readExternalCustomerIdFromMetadata,
+} from "@/lib/tracking/attribution-token"
 import type {
   BillingProvider,
   NormalizedBillingEvent,
@@ -94,6 +99,34 @@ export class StripeAdapter implements BillingProvider {
     }
 
     switch (event.type) {
+      case "checkout.session.completed": {
+        // Strategies A and B (INTEGRATION_ARCHITECTURE_V2.md §4). The session
+        // says who the customer is and carries our reference; it is not itself
+        // a payment, so this normalises to a bind and never to money.
+        //
+        // `client_reference_id` first, because it is the one field a Payment
+        // Link can carry in its URL and the only one a founder can set without
+        // touching metadata. A value that is not ours (their own cart id) is
+        // simply not a token and yields `null`.
+        const session = event.data.object as Stripe.Checkout.Session
+        const token =
+          readAttributionToken(session.client_reference_id) ??
+          readAttributionTokenFromMetadata(session.metadata)
+        // The SaaS's own customer id, only from server-set metadata — never from
+        // `client_reference_id`, which a Payment Link URL can carry.
+        const externalCustomerId = readExternalCustomerIdFromMetadata(session.metadata)
+        const providerCustomerId = idOf(session.customer)
+        if ((!token && !externalCustomerId) || !providerCustomerId) return null
+        return {
+          ...base,
+          type: "attribution.bind",
+          attributionToken: token,
+          providerCustomerId,
+          providerSubscriptionId: idOf(session.subscription),
+          externalCustomerId,
+        }
+      }
+
       case "invoice.payment_succeeded":
       case "invoice.paid": {
         const invoice = event.data.object as Stripe.Invoice
@@ -108,6 +141,15 @@ export class StripeAdapter implements BillingProvider {
           customerEmail: invoice.customer_email ?? null,
           currency: invoice.currency.toUpperCase(),
           amountMinor: invoice.amount_paid,
+          // Strategy D: `subscription_data[metadata]` is copied onto the
+          // subscription, and an invoice carries its subscription's metadata
+          // under `parent.subscription_details`. Either is accepted.
+          attributionToken:
+            readAttributionTokenFromMetadata(invoice.metadata) ??
+            readAttributionTokenFromMetadata(invoice.parent?.subscription_details?.metadata),
+          externalCustomerId:
+            readExternalCustomerIdFromMetadata(invoice.metadata) ??
+            readExternalCustomerIdFromMetadata(invoice.parent?.subscription_details?.metadata),
         }
       }
 
@@ -145,6 +187,10 @@ export class StripeAdapter implements BillingProvider {
           customerEmail: intent.receipt_email ?? null,
           currency: intent.currency.toUpperCase(),
           amountMinor: intent.amount_received || intent.amount,
+          // Strategy C: Elements / a custom checkout puts the reference on the
+          // PaymentIntent it creates.
+          attributionToken: readAttributionTokenFromMetadata(intent.metadata),
+          externalCustomerId: readExternalCustomerIdFromMetadata(intent.metadata),
         }
       }
 
@@ -186,6 +232,19 @@ export class StripeAdapter implements BillingProvider {
         }
       }
 
+      case "charge.dispute.closed": {
+        const dispute = event.data.object as Stripe.Dispute
+        // `lost` keeps the chargeback as it is. `won` returns the money; so does
+        // an inquiry closing (`warning_closed`), whose funds were never taken.
+        if (dispute.status !== "won" && dispute.status !== "warning_closed") return null
+        return {
+          ...base,
+          type: "payment.disputeWon",
+          providerDisputeId: dispute.id,
+          paymentReferences: compact([idOf(dispute.payment_intent), idOf(dispute.charge)]),
+        }
+      }
+
       case "customer.subscription.created":
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription
@@ -194,6 +253,10 @@ export class StripeAdapter implements BillingProvider {
           type: "subscription.updated",
           subscription: this.mapSubscription(subscription),
           customerEmail: null,
+          // Strategy D: the reference lives on the subscription, once, at
+          // creation. Renewals need nothing — the customer binding persists.
+          attributionToken: readAttributionTokenFromMetadata(subscription.metadata),
+          externalCustomerId: readExternalCustomerIdFromMetadata(subscription.metadata),
         }
       }
 

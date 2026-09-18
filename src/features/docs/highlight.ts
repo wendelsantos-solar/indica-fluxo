@@ -12,9 +12,9 @@ import { createJavaScriptRegexEngine } from "shiki/engine/javascript"
  * (`--shiki-token-*` in src/design/tokens.css) — so highlighting follows the
  * light/dark tokens like everything else instead of shipping two themes.
  */
-export type CodeLanguage = "html" | "javascript" | "typescript" | "json" | "bash" | "text"
+export type CodeLanguage = "html" | "javascript" | "typescript" | "json" | "bash" | "shell" | "text"
 
-const theme = createCssVariablesTheme({ name: "indicafluxo", variablePrefix: "--shiki-", fontStyle: true })
+const theme = createCssVariablesTheme({ name: "refvia", variablePrefix: "--shiki-", fontStyle: true })
 
 let highlighter: Promise<HighlighterCore> | null = null
 
@@ -38,5 +38,7 @@ export async function highlight(code: string, language: CodeLanguage): Promise<T
     return code.split("\n").map((line) => [{ content: line, offset: 0 } as ThemedToken])
   }
   const instance = await getHighlighter()
-  return instance.codeToTokensBase(code, { lang: language, theme: "indicafluxo" })
+  // A shell command and a cURL call share the bash grammar; only the label differs.
+  const lang = language === "shell" ? "bash" : language
+  return instance.codeToTokensBase(code, { lang, theme: "refvia" })
 }

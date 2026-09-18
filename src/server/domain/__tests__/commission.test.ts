@@ -5,6 +5,7 @@ import {
   effectiveCommissionStatus,
   isWithinRecurrenceWindow,
   planReversal,
+  shouldRestoreChargeback,
   proportionHalfUp,
   resolveRate,
   type CommissionOutcome,
@@ -390,5 +391,35 @@ describe("planReversal", () => {
         settlePriorReversals: false,
       })
     }
+  })
+})
+
+describe("shouldRestoreChargeback", () => {
+  const written = new Date("2026-08-02T12:00:00Z")
+  const input = (reversalStatus: StoredStatus, originalStatus: StoredStatus, originalReversedAt: Date | null = null) => ({
+    reversalStatus,
+    reversalReversedAt: written,
+    originalStatus,
+    originalReversedAt,
+  })
+  type StoredStatus = Parameters<typeof shouldRestoreChargeback>[0]["reversalStatus"]
+
+  it("restores a chargeback still netting against the original, or deducted in a payout", () => {
+    for (const status of ["pending", "available", "approved", "paid"] as const) {
+      expect(shouldRestoreChargeback(input(status, "available"))).toBe(true)
+    }
+  })
+
+  it("restores a chargeback that reversed the whole commission", () => {
+    expect(shouldRestoreChargeback(input("reversed", "reversed", written))).toBe(true)
+  })
+
+  it("never restores what was never taken: a paid original without clawback", () => {
+    expect(shouldRestoreChargeback(input("reversed", "paid"))).toBe(false)
+  })
+
+  it("never restores against an original reversed or rejected before the dispute", () => {
+    expect(shouldRestoreChargeback(input("reversed", "reversed", new Date("2026-07-01T00:00:00Z")))).toBe(false)
+    expect(shouldRestoreChargeback(input("reversed", "rejected"))).toBe(false)
   })
 })

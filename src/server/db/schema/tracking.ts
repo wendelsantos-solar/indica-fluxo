@@ -9,8 +9,9 @@ import {
   uuid,
 } from "drizzle-orm/pg-core"
 
-import { attributionModelEnum, deviceTypeEnum } from "./enums"
+import { attributionModelEnum, deviceTypeEnum, environmentEnum } from "./enums"
 import { programAffiliates, programs, referralLinks } from "./programs"
+import { workspaces } from "./tenancy"
 
 /**
  * Highest-volume table in the system. Append-only, no PII: only a salted IP
@@ -128,3 +129,55 @@ export const attributionsRelations = relations(attributions, ({ one }) => ({
     references: [programAffiliates.id],
   }),
 }))
+
+/**
+ * The public attribution reference (INTEGRATION_ARCHITECTURE_V2.md §2).
+ *
+ * Issued by `recordClick` when — and only when — a click produced an eligible
+ * attribution, so a token's existence already means "this visitor was referred".
+ * It travels to a payment provider (Stripe `client_reference_id`, metadata) and
+ * comes back on a webhook, where it is the first step of the resolution order.
+ *
+ * Only the peppered hash is stored: the plaintext lives in the founder's
+ * first-party cookie and in Stripe, never in this database. Resolving a token
+ * yields a `visitor_id` inside one workspace and one environment and grants
+ * nothing else — it is a correlation handle, not a credential.
+ *
+ * Not keyed by integration on purpose: a workspace with a second Stripe account
+ * later needs no migration (INTEGRATION_ARCHITECTURE_AUDIT.md §4.4).
+ */
+export const attributionTokens = pgTable(
+  "attribution_tokens",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    /** A live event never resolves a test token, and vice versa. */
+    environment: environmentEnum("environment").notNull(),
+
+    visitorId: text("visitor_id").notNull(),
+
+    /** sha256(token + HASH_PEPPER). The plaintext is never persisted. */
+    tokenHash: text("token_hash").notNull(),
+    /** Displayable stem for diagnostics: `ifx_qN7dR2`. Never enough to use. */
+    tokenPrefix: text("token_prefix").notNull(),
+
+    /** The attribution window of the program whose click issued it. */
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+
+    /** First bind wins; a later bind with another customer is a conflict, not a move. */
+    boundProviderCustomerId: text("bound_provider_customer_id"),
+    boundAt: timestamp("bound_at", { withTimezone: true }),
+
+    issuedAt: timestamp("issued_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("attribution_tokens_hash_key").on(t.tokenHash),
+    // The next click of a visitor who already holds a token reuses that row.
+    index("attribution_tokens_visitor_idx").on(t.workspaceId, t.environment, t.visitorId),
+    // Diagnostics: the workspace's most recent references.
+    index("attribution_tokens_workspace_idx").on(t.workspaceId, t.issuedAt.desc()),
+  ],
+)

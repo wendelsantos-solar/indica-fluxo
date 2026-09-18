@@ -6,7 +6,10 @@
  * folder and one registry entry — see ARCHITECTURE.md §4.
  */
 
-export type BillingProviderId = "stripe" | "paddle" | "manual"
+export type BillingProviderId = "stripe" | "paddle" | "manual" | "mercado_pago" | "abacatepay" | "asaas"
+
+/** Every id, in the order of the database enum (`billing_provider`). */
+export const BILLING_PROVIDER_IDS = ["stripe", "paddle", "manual", "mercado_pago", "abacatepay", "asaas"] as const
 
 /**
  * Test or live money, from the provider's own flag (Stripe `livemode`). A test
@@ -42,7 +45,8 @@ export interface ProviderSubscription {
   cancelledAt: Date | null
 }
 
-interface BaseEvent {
+/** The fields every normalized event carries, whatever its type. */
+export interface BillingEventBase {
   provider: BillingProviderId
   providerEventId: string
   /** The provider's own event name, kept for auditing. */
@@ -54,8 +58,15 @@ interface BaseEvent {
   environment: BillingEnvironment
 }
 
-export interface PaymentSucceededEvent extends BaseEvent {
+export interface PaymentSucceededEvent extends BillingEventBase {
   type: "payment.succeeded"
+  /**
+   * The public attribution reference the checkout carried, when it did
+   * (`metadata[indicafluxo_ref]` on a PaymentIntent, a Subscription or an
+   * invoice). First step of the resolution order — see
+   * INTEGRATION_ARCHITECTURE_V2.md §3.
+   */
+  attributionToken?: string | null
   /** The id the payment is recorded under: the invoice, or the one-off PaymentIntent. */
   providerTransactionId: string
   /**
@@ -68,9 +79,16 @@ export interface PaymentSucceededEvent extends BaseEvent {
   customerEmail: string | null
   currency: string
   amountMinor: number
+  /**
+   * The SaaS's own customer id, when the checkout carried it in server-set
+   * metadata (`metadata[indicafluxo_customer]`). Never read from a field a
+   * browser can set. Links this provider's customer to an existing Customer —
+   * the provider-switch path (UNIVERSAL_ATTRIBUTION_ARCHITECTURE.md §3).
+   */
+  externalCustomerId?: string | null
 }
 
-export interface PaymentRefundedEvent extends BaseEvent {
+export interface PaymentRefundedEvent extends BillingEventBase {
   type: "payment.refunded"
   /** The refund (`re_…`) or dispute (`dp_…`) itself, so each partial refund is its own row. */
   providerTransactionId: string
@@ -81,6 +99,26 @@ export interface PaymentRefundedEvent extends BaseEvent {
   /** Positive magnitude; the engine applies the sign. */
   amountMinor: number
   isChargeback: boolean
+  /**
+   * Set by providers that report the running refunded TOTAL of a payment rather
+   * than each refund (Mercado Pago `transaction_amount_refunded`, Asaas
+   * `refunds[]`). The core then records only the part not recorded yet; the
+   * adapter stays stateless and does no arithmetic on the ledger.
+   */
+  cumulativeRefundedMinor?: number
+}
+
+/**
+ * A dispute closed in the merchant's favour (Stripe `charge.dispute.closed`,
+ * `won` — or `warning_closed` for an inquiry, whose funds were never taken).
+ * Undoes what its `payment.refunded` chargeback reversed.
+ */
+export interface DisputeWonEvent extends BillingEventBase {
+  type: "payment.disputeWon"
+  /** The dispute (`dp_…`) — the id its chargeback was recorded under. */
+  providerDisputeId: string
+  /** Every id the disputed payment may be known by (PaymentIntent, charge). */
+  paymentReferences: string[]
 }
 
 /**
@@ -88,19 +126,56 @@ export interface PaymentRefundedEvent extends BaseEvent {
  * says which PaymentIntent and charge paid an invoice. It may arrive before or
  * after the invoice payment itself.
  */
-export interface PaymentReferencedEvent extends BaseEvent {
+export interface PaymentReferencedEvent extends BillingEventBase {
   type: "payment.referenced"
   providerTransactionId: string
   providerReferences: string[]
 }
 
-export interface SubscriptionUpdatedEvent extends BaseEvent {
+export interface SubscriptionUpdatedEvent extends BillingEventBase {
   type: "subscription.updated"
   subscription: ProviderSubscription
   customerEmail: string | null
+  /** `metadata[indicafluxo_ref]` on the subscription (Subscription API flow). */
+  attributionToken?: string | null
+  /** See `PaymentSucceededEvent.externalCustomerId`. */
+  externalCustomerId?: string | null
 }
 
-export interface SubscriptionCancelledEvent extends BaseEvent {
+/**
+ * A charge that did not go through (card refused, Pix expired, subscription
+ * retry failed). Moves no money and never creates a transaction: it is recorded
+ * on the event row (`PAYMENT_FAILED`) so diagnostics can show it.
+ */
+export interface PaymentFailedEvent extends BillingEventBase {
+  type: "payment.failed"
+  providerTransactionId: string
+  providerCustomerId: string | null
+  /** The provider's own status detail, sanitized to a short code. */
+  reason: string | null
+}
+
+/**
+ * A checkout said who its customer is and carried an attribution reference —
+ * Stripe's `checkout.session.completed`, for hosted Checkout and for Payment
+ * Links (INTEGRATION_ARCHITECTURE_V2.md §4, strategies A and B).
+ *
+ * It moves no money and **must never create a transaction**: the invoice or
+ * PaymentIntent event records the payment. Its only job is to bind the
+ * visitor's attribution to the provider customer, which is what makes
+ * `POST /api/identify` optional.
+ */
+export interface AttributionBindEvent extends BillingEventBase {
+  type: "attribution.bind"
+  /** `null` when the checkout carried only the SaaS's customer id. */
+  attributionToken: string | null
+  providerCustomerId: string
+  providerSubscriptionId: string | null
+  /** See `PaymentSucceededEvent.externalCustomerId`. At least one of the two is set. */
+  externalCustomerId?: string | null
+}
+
+export interface SubscriptionCancelledEvent extends BillingEventBase {
   type: "subscription.cancelled"
   providerSubscriptionId: string
   providerCustomerId: string | null
@@ -110,9 +185,12 @@ export interface SubscriptionCancelledEvent extends BaseEvent {
 export type NormalizedBillingEvent =
   | PaymentSucceededEvent
   | PaymentRefundedEvent
+  | DisputeWonEvent
   | PaymentReferencedEvent
   | SubscriptionUpdatedEvent
   | SubscriptionCancelledEvent
+  | AttributionBindEvent
+  | PaymentFailedEvent
 
 export interface VerifiedWebhook {
   providerEventId: string

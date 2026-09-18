@@ -63,6 +63,19 @@ export async function POST(
     verified = await verifyStripeWebhookWithSecrets(rawBody, signature, target.secrets)
   } catch (error) {
     const mismatch = error instanceof StripeLivemodeMismatchError
+    const unconfigured = !mismatch ? unconfiguredEnvironment(rawBody, target.secrets) : null
+    if (unconfigured) {
+      // A delivery for a mode whose secret is not saved yet — typically the live
+      // endpoint created before its secret was pasted. Not a wrong secret, so it
+      // must not turn the panel red. Still non-2xx: Stripe keeps retrying, and
+      // the retries go through once the secret is saved.
+      logger.info("stripe webhook for a mode without a saved secret", {
+        provider: "stripe",
+        workspaceId: target.workspaceId,
+        environment: unconfigured,
+      })
+      return NextResponse.json({ error: "invalid_signature" }, { status: 400 })
+    }
     // Never echo the reason: it tells a prober how close they got. The
     // founder does see *that* a delivery was rejected, on Integrations.
     logger.warn(mismatch ? "stripe webhook livemode does not match its secret" : "stripe webhook signature rejected", {
@@ -78,7 +91,31 @@ export async function POST(
     verified,
     rawBody,
     workspaceId: target.workspaceId,
+    integrationId,
   })
 
   return ingestResponse(result)
+}
+
+const livemodeSchema = z.object({ livemode: z.boolean() })
+
+/**
+ * The mode an unverified delivery claims, when this integration has no secret
+ * for it. Read only to decide how to label a rejection — never to trust the
+ * event: nothing from an unverified body is processed.
+ */
+function unconfiguredEnvironment(
+  rawBody: string,
+  secrets: { test: string | null; live: string | null },
+): "test" | "live" | null {
+  let json: unknown
+  try {
+    json = JSON.parse(rawBody)
+  } catch {
+    return null
+  }
+  const parsed = livemodeSchema.safeParse(json)
+  if (!parsed.success) return null
+  const environment = parsed.data.livemode ? "live" : "test"
+  return secrets[environment] ? null : environment
 }

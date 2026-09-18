@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/layout/theme-provider"
 import { Toaster } from "@/components/feedback/toaster"
 import { clientMessages } from "@/i18n/client-messages"
 import { BCP47, routing, type Locale } from "@/i18n/routing"
+import { BRAND } from "@/lib/brand"
 import { siteUrl } from "@/lib/site"
 
 import "../globals.css"
@@ -48,9 +49,13 @@ export async function generateMetadata({
 
   return {
     metadataBase: siteUrl(),
-    applicationName: "IndicaFluxo",
+    applicationName: BRAND.name,
     title: { default: t("title"), template: t("titleTemplate") },
     description: t("description"),
+    // Private by default: sign-in, the dashboard, the affiliate portal,
+    // onboarding and every 404 inherit this. Only pages registered in
+    // src/lib/seo/pages.ts override it, through `pageMetadata()`.
+    robots: { index: false, follow: false },
   }
 }
 

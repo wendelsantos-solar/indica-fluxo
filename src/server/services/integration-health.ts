@@ -1,9 +1,10 @@
 import "server-only"
 
-import { and, eq, max, notLike, sql } from "drizzle-orm"
+import { and, eq, gte, isNotNull, max, notLike, sql } from "drizzle-orm"
 
 import { withUser, type Transaction } from "@/server/db"
-import { integrations, programs, referralClicks } from "@/server/db/schema"
+import { qualified } from "@/server/db/qualify"
+import { commissions, customers, integrations, programs, referralClicks, transactions } from "@/server/db/schema"
 import { requireMembership } from "@/server/policies/workspace"
 
 /**
@@ -21,6 +22,22 @@ export interface IntegrationHealth {
     environments: Record<"test" | "live", EnvironmentEvidence>
   }
   tracking: { lastClickAt: Date | null }
+  /** Whether events turn into commissions, per Stripe mode — receiving is not enough. */
+  attribution: Record<"test" | "live", AttributionEvidence>
+}
+
+/** How far back the attribution evidence looks. */
+export const ATTRIBUTION_WINDOW_DAYS = 30
+
+export interface AttributionEvidence {
+  /** Payments recorded in the ledger within the window. */
+  payments: number
+  /** Of those, the ones that earned at least one commission (any status). */
+  paymentsWithCommission: number
+  /** Payments Stripe delivered in the window that were dropped: the event carried no customer. */
+  paymentsWithoutCustomer: number
+  /** The latest customer an identify call created or updated (it carries an external id). */
+  lastIdentifyAt: Date | null
 }
 
 export interface EnvironmentEvidence {
@@ -47,14 +64,17 @@ export async function getIntegrationHealth(userId: string, workspaceId: string):
     // Authorise first; the reads below go out together (pipelined on this connection).
     await requireMembership(tx, workspaceId, userId)
 
-    const [[integration], [clicks], { rows: events }, environments] = await Promise.all([
+    const [[integration], [clicks], { rows: events }, environments, testAttribution, liveAttribution] = await Promise.all([
+      // Any billing connection (multi-provider, migration 0018): the checklist's
+      // "payments connected" step is about the workspace, not one provider.
       tx
         .select({
           status: integrations.status,
           secretSaved: sql<boolean>`${integrations.encryptedCredentials} is not null`,
         })
         .from(integrations)
-        .where(and(eq(integrations.workspaceId, workspaceId), eq(integrations.provider, "stripe")))
+        .where(eq(integrations.workspaceId, workspaceId))
+        .orderBy(sql`(${integrations.status} = 'connected') desc`, integrations.createdAt)
         .limit(1),
 
       // referral_clicks is readable by workspace members under RLS. Simulated
@@ -74,6 +94,8 @@ export async function getIntegrationHealth(userId: string, workspaceId: string):
         sql`select received_at, event_type, status from public.latest_webhook_event(${workspaceId})`,
       ),
       environmentEvidence(tx, workspaceId),
+      attributionEvidence(tx, workspaceId, "test"),
+      attributionEvidence(tx, workspaceId, "live"),
     ])
     const lastEvent = events[0]
     const lastClickAt = clicks?.lastClickAt ?? null
@@ -88,6 +110,7 @@ export async function getIntegrationHealth(userId: string, workspaceId: string):
         environments,
       },
       tracking: { lastClickAt: lastClickAt ? new Date(lastClickAt) : null },
+      attribution: { test: testAttribution, live: liveAttribution },
     }
   })
 }
@@ -116,4 +139,58 @@ async function environmentEvidence(
   }
   const [test, live] = await Promise.all([read("test"), read("live")])
   return { test, live }
+}
+
+/**
+ * Whether one mode's payments become commissions. Payments and identified
+ * customers are read from the ledger under RLS; payments dropped for lack of a
+ * customer never reach the ledger, so they are counted through the SECURITY
+ * DEFINER `webhook_payments_without_customer` (migration 0015).
+ */
+async function attributionEvidence(
+  tx: Transaction,
+  workspaceId: string,
+  environment: "test" | "live",
+  now = new Date(),
+): Promise<AttributionEvidence> {
+  const since = new Date(now.getTime() - ATTRIBUTION_WINDOW_DAYS * 24 * 60 * 60 * 1000)
+
+  const [[payments], [identified], { rows: dropped }] = await Promise.all([
+    tx
+      .select({
+        total: sql<number>`count(*)::int`,
+        withCommission: sql<number>`count(*) filter (where exists (
+          select 1 from ${commissions} where ${qualified(commissions.transactionId)} = ${qualified(transactions.id)}
+        ))::int`,
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.workspaceId, workspaceId),
+          eq(transactions.environment, environment),
+          eq(transactions.type, "payment"),
+          gte(transactions.createdAt, since),
+        ),
+      ),
+    tx
+      .select({ lastIdentifyAt: max(customers.updatedAt) })
+      .from(customers)
+      .where(
+        and(
+          eq(customers.workspaceId, workspaceId),
+          eq(customers.environment, environment),
+          isNotNull(customers.externalId),
+        ),
+      ),
+    tx.execute<{ count: string | number }>(
+      sql`select public.webhook_payments_without_customer(${workspaceId}, ${environment}::public.environment, ${since.toISOString()}::timestamptz) as count`,
+    ),
+  ])
+
+  return {
+    payments: payments?.total ?? 0,
+    paymentsWithCommission: payments?.withCommission ?? 0,
+    paymentsWithoutCustomer: Number(dropped[0]?.count ?? 0),
+    lastIdentifyAt: identified?.lastIdentifyAt ? new Date(identified.lastIdentifyAt) : null,
+  }
 }

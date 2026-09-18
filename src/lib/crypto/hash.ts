@@ -3,6 +3,7 @@ import "server-only"
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto"
 
 import { env } from "@/lib/env/server"
+import { ATTRIBUTION_TOKEN_PREFIX, attributionTokenPrefix } from "@/lib/tracking/attribution-token"
 
 /** Peppered SHA-256. Used for API keys, e-mail matching and IP hashing. */
 export function peppered(value: string): string {
@@ -66,4 +67,15 @@ export function safeEqual(a: string, b: string): boolean {
   const bufB = Buffer.from(b, "utf8")
   if (bufA.length !== bufB.length) return false
   return timingSafeEqual(bufA, bufB)
+}
+
+/**
+ * A public attribution reference. 32 random bytes, base64url encoded behind
+ * `ifx_`, so the whole value survives Stripe's `client_reference_id` alphabet
+ * (INTEGRATION_ARCHITECTURE_V2.md §2). Only the peppered hash is persisted; the
+ * plaintext is returned once, to the tracker, and never stored.
+ */
+export function generateAttributionToken(): { plaintext: string; prefix: string; hash: string } {
+  const plaintext = `${ATTRIBUTION_TOKEN_PREFIX}${randomBytes(32).toString("base64url")}`
+  return { plaintext, prefix: attributionTokenPrefix(plaintext), hash: peppered(plaintext) }
 }

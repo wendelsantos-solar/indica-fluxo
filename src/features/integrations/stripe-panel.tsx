@@ -3,7 +3,7 @@
 import { ArrowUpRight, Check, Loader2, TriangleAlert } from "lucide-react"
 import { useTranslations } from "next-intl"
 import type * as React from "react"
-import { useActionState, useEffect, useState, useTransition } from "react"
+import { createContext, useActionState, useContext, useEffect, useState, useTransition } from "react"
 
 import { CopyButton } from "@/components/data-display/copy-button"
 import { MetricCell, MetricGrid } from "@/components/data-display/metric"
@@ -28,7 +28,7 @@ import {
   type IntegrationFormState,
 } from "./actions"
 import { CodeField } from "./code-field"
-import { needsSetup, stripeBadgeStatus, type StripeConnectionState } from "./stripe-status"
+import { needsSetup, stripeBadgeStatus, type AttributionIssue, type StripeConnectionState } from "./stripe-status"
 
 const INITIAL: IntegrationFormState = {}
 const SECRET_ENVIRONMENTS = ["test", "live"] as const
@@ -45,6 +45,12 @@ export interface EnvironmentEvidence {
 
 export interface StripePanelProps {
   workspaceSlug: string
+  /**
+   * Which Stripe connection this panel sets up. `null` = a new one (the
+   * account id entered becomes a connection of its own). A workspace may hold
+   * several Stripe accounts (migration 0018).
+   */
+  integrationId?: string | null
   state: StripeConnectionState
   providerAccountId: string | null
   /** Which endpoint signing secrets are stored: the Stripe test-mode endpoint's and the live one's. */
@@ -60,15 +66,52 @@ export interface StripePanelProps {
   lastRejectedWhen: string | null
   /** A `member`: status only — setup and disconnecting are admin actions. */
   readOnly?: boolean
+  /** Per mode, why recent events earned nothing — `null` when nothing is wrong or nothing arrived. */
+  attribution: Record<SecretEnvironment, AttributionSignal>
+  /** The evidence window, in days, for the attribution sentences. */
+  attributionDays: number
+  /**
+   * Where "Connect with Stripe" goes, when the platform has Connect configured
+   * (`STRIPE_CONNECT_CLIENT_ID`). `null` keeps the manual setup as the only
+   * path, which is what every existing integration uses
+   * (INTEGRATION_ARCHITECTURE_V2.md §6).
+   */
+  connectUrl?: string | null
+}
+
+export interface AttributionSignal {
+  issue: AttributionIssue | null
+  payments: number
+  paymentsWithoutCustomer: number
 }
 
 const code = (chunks: React.ReactNode) => <code className="font-mono text-meta">{chunks}</code>
 const strong = (chunks: React.ReactNode) => <strong className="font-medium text-foreground">{chunks}</strong>
 
+/** The connection the panel's forms act on, carried to every form without prop drilling. */
+const IntegrationIdContext = createContext<string | null>(null)
+
+function IntegrationIdField() {
+  const integrationId = useContext(IntegrationIdContext)
+  return integrationId ? <input type="hidden" name="integrationId" value={integrationId} /> : null
+}
+
 export function StripePanel(props: StripePanelProps) {
+  return (
+    <IntegrationIdContext.Provider value={props.integrationId ?? null}>
+      <StripePanelBody {...props} />
+    </IntegrationIdContext.Provider>
+  )
+}
+
+function StripePanelBody(props: StripePanelProps) {
   const { state, readOnly = false } = props
   const t = useTranslations("forms.stripe")
-  const badge = stripeBadgeStatus(state)
+  const unattributed =
+    state === "receiving" && SECRET_ENVIRONMENTS.some((environment) => props.attribution[environment].issue)
+  // Green only when events earn: "receiving" with nothing attributed is not done.
+  const badge = unattributed ? "pending" : stripeBadgeStatus(state)
+  const badgeLabel = unattributed ? t("badge.receivingUnattributed") : t(`badge.${state}`)
   // Called from a confirmation dialog, which closes when the action settles.
   // Held here because disconnecting swaps the summary for the setup steps, and
   // the outcome has to survive that swap.
@@ -77,10 +120,10 @@ export function StripePanel(props: StripePanelProps) {
     setDisconnectState(await disconnectStripeAction(INITIAL, formData))
 
   return (
-    <section>
+    <section id="stripe" className="scroll-mt-16">
       <SectionHeader
         title={t("title")}
-        count={badge ? <StatusBadge status={badge} label={t(`badge.${state}`)} /> : undefined}
+        count={badge ? <StatusBadge status={badge} label={badgeLabel} /> : undefined}
         description={t("description")}
         className="mb-3"
       />
@@ -152,9 +195,45 @@ const VERIFY_POLL_MS = 15_000
 
 const EVENT_GROUPS = {
   payments: ["payment", "oneOffPayment", "paymentLink"],
-  refunds: ["refund", "chargeback"],
+  refunds: ["refund", "chargeback", "disputeWon"],
   subscriptions: ["subscription", "subscriptionCancelled"],
 } as const satisfies Record<string, ReadonlyArray<(typeof STRIPE_HANDLED_EVENTS)[number]["records"]>>
+
+/** Events that arrive but earn nothing, one alert per affected mode, with where to fix it. */
+function AttributionAlerts({
+  attribution,
+  days,
+}: {
+  attribution: Record<SecretEnvironment, AttributionSignal>
+  days: number
+}) {
+  const t = useTranslations("forms.stripe.attribution")
+  return SECRET_ENVIRONMENTS.map((environment) => {
+    const { issue, payments, paymentsWithoutCustomer } = attribution[environment]
+    if (!issue) return null
+    const dropped = issue === "paymentsWithoutCustomer"
+    return (
+      <InlineAlert
+        key={environment}
+        tone={dropped ? "danger" : "info"}
+        title={t(dropped ? "withoutCustomerTitle" : "noCommissionsTitle", {
+          environment,
+          days,
+          count: dropped ? paymentsWithoutCustomer : payments,
+        })}
+        action={
+          dropped ? undefined : (
+            <Button asChild variant="secondary" size="xs">
+              <a href="#identify">{t("action")}</a>
+            </Button>
+          )
+        }
+      >
+        {t.rich(dropped ? "withoutCustomerBody" : "noCommissionsBody", { code })}
+      </InlineAlert>
+    )
+  })
+}
 
 /** The event names to tick in Stripe, grouped by what they record. Identifiers, never translated. */
 function EventList() {
@@ -220,6 +299,20 @@ function SetupWizard(props: SetupWizardProps) {
 
   return (
     <div className="space-y-4">
+      {props.connectUrl && !started ? (
+        <Card className="px-4 py-5 sm:px-5">
+          <h3 className="text-body font-medium text-foreground">{t("connect.title")}</h3>
+          <p className="mt-1 text-meta text-muted-foreground">{t("connect.body")}</p>
+          <a
+            href={props.connectUrl}
+            className="mt-3 inline-flex h-9 items-center rounded-md bg-foreground px-4 text-meta font-medium text-background transition-colors hover:bg-foreground-secondary"
+          >
+            {t("connect.cta")}
+          </a>
+          <p className="mt-3 text-meta text-muted-foreground">{t("connect.manual")}</p>
+        </Card>
+      ) : null}
+
       <Card>
         <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">
           <p className="text-meta text-muted-foreground">{t("steps.progress", { current, total: STEP_COUNT })}</p>
@@ -245,6 +338,7 @@ function SetupWizard(props: SetupWizardProps) {
           >
             <form action={saveAccount} noValidate className="space-y-3">
               <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
+              <IntegrationIdField />
               <Field label={t("accountId")} htmlFor="providerAccountId" hint={t("accountIdHint")} error={accountState.error}>
                 <Input
                   id="providerAccountId"
@@ -307,6 +401,17 @@ function SetupWizard(props: SetupWizardProps) {
                     />
                   </div>
                   <EventList />
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-meta font-medium text-muted-foreground">{t("steps.webhook.checklist.title")}</p>
+                  <ul className="max-w-prose space-y-1">
+                    {(["account", "snapshot", "customer"] as const).map((item) => (
+                      <li key={item} className="flex items-start gap-2 text-meta text-muted-foreground">
+                        <Check className="mt-0.5 size-3.5 shrink-0 text-faint-foreground" aria-hidden="true" />
+                        <span>{t.rich(`steps.webhook.checklist.${item}`, { strong, code })}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
                 <p className="max-w-prose text-meta text-faint-foreground">{t("steps.webhook.modes")}</p>
                 <div className="flex flex-wrap gap-2">
@@ -456,6 +561,7 @@ function VerifyStep() {
         {t("verify.waiting")}
       </p>
       <p className="max-w-prose text-meta text-muted-foreground">{t.rich("verify.body", { code })}</p>
+      <InlineAlert>{t.rich("verify.note", { code })}</InlineAlert>
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
@@ -617,6 +723,7 @@ function SecretForm({
   return (
     <form action={action} noValidate className="space-y-3">
       <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
+      <IntegrationIdField />
       <input type="hidden" name="environment" value={environment} />
       <Field label={t("secret")} htmlFor={id} hint={t("secretHint")} error={shownError}>
         {/* A password field: the secret is never shown back, and not echoed on screen while typed. */}
@@ -703,6 +810,7 @@ function ConnectedSummary(
   return (
     <div className="space-y-4">
       <HealthAlert {...props} />
+      <AttributionAlerts attribution={props.attribution} days={props.attributionDays} />
       <EnvironmentEvidenceList environments={props.environments} />
 
       <MetricGrid>
@@ -755,6 +863,7 @@ function DisconnectRow({
           action={onDisconnect}
         >
           <input type="hidden" name="workspaceSlug" value={workspaceSlug} />
+          <IntegrationIdField />
         </ConfirmDialog>
       </div>
       {disconnectError ? <InlineAlert tone="danger">{disconnectError}</InlineAlert> : null}

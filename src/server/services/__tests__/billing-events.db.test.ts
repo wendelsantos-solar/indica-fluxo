@@ -88,7 +88,13 @@ async function fixture(tx: Tx) {
 
 const base = { provider: "stripe" as const, providerAccountId: null, occurredAt: PAID_AT, environment: "test" as const }
 
-function payment(id: string, references: string[], customer: string, email: string | null = null, amountMinor = 4900): Event {
+function payment(
+  id: string,
+  references: string[],
+  customer: string,
+  email: string | null = null,
+  amountMinor = 4900,
+): Extract<Event, { type: "payment.succeeded" }> {
   return {
     ...base,
     type: "payment.succeeded",
@@ -117,6 +123,18 @@ function refund(id: string, references: string[], amountMinor: number, isChargeb
     currency: "BRL",
     amountMinor,
     isChargeback,
+  }
+}
+
+function disputeWon(id: string, references: string[]): Event {
+  return {
+    ...base,
+    type: "payment.disputeWon",
+    providerEventId: `evt_won_${id}`,
+    rawType: "charge.dispute.closed",
+    occurredAt: NOW,
+    providerDisputeId: id,
+    paymentReferences: references,
   }
 }
 
@@ -234,6 +252,101 @@ describe.runIf(RUN)("billing events against Postgres", () => {
       expect(after.reversals.map((r) => [r.commissionAmountMinor, r.status])).toEqual([[-1470, "reversed"]])
     })
   }, 30_000)
+
+  describe("won disputes", () => {
+    /** The positive commission a won dispute wrote, through its `won_` adjustment. */
+    const restorationOf = async (tx: Tx, workspaceId: string, disputeId: string) => {
+      const [adjustment] = await tx
+        .select({ id: schema.transactions.id, gross: schema.transactions.grossAmountMinor, parent: schema.transactions.providerParentTransactionId })
+        .from(schema.transactions)
+        .where(and(eq(schema.transactions.workspaceId, workspaceId), eq(schema.transactions.providerTransactionId, `won_${disputeId}`)))
+      if (!adjustment) return { adjustment: null, commissions: [] }
+      const rows = await tx.select().from(schema.commissions).where(eq(schema.commissions.transactionId, adjustment.id))
+      return { adjustment, commissions: rows }
+    }
+
+    it("gives back a partial chargeback, pending under the hold, and leaves the chargeback in place", async () => {
+      await inRollback(async (tx) => {
+        const f = await fixture(tx)
+        await f.attribute({ providerCustomerId: "cus_w1" })
+        await f.handle(payment("pi_w1", ["ch_w1"], "cus_w1"))
+        await f.handle(refund("dp_w1", ["pi_w1", "ch_w1"], 2450, true))
+
+        const outcome = await f.handle(disputeWon("dp_w1", ["pi_w1", "ch_w1"]))
+        expect(outcome).toMatchObject({ status: "processed", detail: "restored 735 BRL after a won dispute" })
+
+        const { adjustment, commissions } = await restorationOf(tx, f.workspaceId, "dp_w1")
+        expect(adjustment).toMatchObject({ gross: 2450, parent: "pi_w1" })
+        expect(commissions.map((c) => [c.commissionAmountMinor, c.status, c.reversalOfCommissionId])).toEqual([[735, "pending", null]])
+
+        const { original, reversals } = await f.commissionsOf("pi_w1")
+        expect(original.status).toBe("available")
+        expect(reversals.map((r) => r.commissionAmountMinor)).toEqual([-735])
+      })
+    }, 30_000)
+
+    it("gives back a chargeback that reversed the whole commission", async () => {
+      await inRollback(async (tx) => {
+        const f = await fixture(tx)
+        await f.attribute({ providerCustomerId: "cus_w2" })
+        await f.handle(payment("pi_w2", [], "cus_w2"))
+        await f.handle(refund("dp_w2", ["pi_w2"], 4900, true))
+        expect((await f.commissionsOf("pi_w2")).original.status).toBe("reversed")
+
+        await f.handle(disputeWon("dp_w2", ["pi_w2"]))
+        const { commissions } = await restorationOf(tx, f.workspaceId, "dp_w2")
+        expect(commissions.map((c) => [c.commissionAmountMinor, c.status])).toEqual([[1470, "pending"]])
+      })
+    }, 30_000)
+
+    it("restores nothing when the original was paid and the chargeback took nothing back", async () => {
+      await inRollback(async (tx) => {
+        const f = await fixture(tx)
+        await f.attribute({ providerCustomerId: "cus_w3" })
+        await f.handle(payment("pi_w3", [], "cus_w3"))
+        const { original } = await f.commissionsOf("pi_w3")
+        await tx.update(schema.commissions).set({ status: "paid" }).where(eq(schema.commissions.id, original.id))
+        await f.handle(refund("dp_w3", ["pi_w3"], 4900, true))
+
+        const outcome = await f.handle(disputeWon("dp_w3", ["pi_w3"]))
+        expect(outcome).toMatchObject({ detail: "won dispute recorded; the chargeback took nothing to restore" })
+        expect((await restorationOf(tx, f.workspaceId, "dp_w3")).commissions).toEqual([])
+      })
+    }, 30_000)
+
+    it("is idempotent, and waits for the chargeback when the close arrives first", async () => {
+      await inRollback(async (tx) => {
+        const f = await fixture(tx)
+        await f.attribute({ providerCustomerId: "cus_w4" })
+        await f.handle(payment("pi_w4", [], "cus_w4"))
+
+        await expect(f.handle(disputeWon("dp_w4", ["pi_w4"]))).rejects.toBeInstanceOf(PaymentNotRecordedYetError)
+
+        await f.handle(refund("dp_w4", ["pi_w4"], 2450, true))
+        await f.handle(disputeWon("dp_w4", ["pi_w4"]))
+        const again = await f.handle(disputeWon("dp_w4", ["pi_w4"]))
+        expect(again).toMatchObject({ detail: "won dispute already recorded" })
+        expect((await restorationOf(tx, f.workspaceId, "dp_w4")).commissions).toHaveLength(1)
+      })
+    }, 30_000)
+
+    it("a later refund of the same payment counts the won dispute as money given back", async () => {
+      await inRollback(async (tx) => {
+        const f = await fixture(tx)
+        await f.attribute({ providerCustomerId: "cus_w5" })
+        await f.handle(payment("pi_w5", [], "cus_w5"))
+        await f.handle(refund("dp_w5", ["pi_w5"], 2450, true))
+        await f.handle(disputeWon("dp_w5", ["pi_w5"]))
+
+        // Half refunded after the dispute was won: half the commission comes off,
+        // and the original stays standing — the payment is not fully refunded.
+        await f.handle(refund("re_w5", ["pi_w5"], 2450))
+        const { original, reversals } = await f.commissionsOf("pi_w5")
+        expect(original.status).toBe("available")
+        expect(reversals.map((r) => r.commissionAmountMinor)).toEqual([-735, -735])
+      })
+    }, 30_000)
+  })
 
   it("does not count the same money twice once an invoice is linked to its PaymentIntent", async () => {
     await inRollback(async (tx) => {
@@ -502,7 +615,12 @@ describe.runIf(RUN)("environments, retries and the renewal lock", () => {
   it("a refund of a payment left out of the ledger (no customer) is ignored, not retried forever", async () => {
     await inRollback(async (tx) => {
       const f = await fixture(tx)
-      const guest = { ...payment("pi_guest", ["ch_guest"], "cus_x"), providerCustomerId: null }
+      // A Payment Link / one-off Checkout payment that created no Stripe
+      // customer. Typed explicitly: spreading over the event union widens it.
+      const guest: Extract<Event, { type: "payment.succeeded" }> = {
+        ...payment("pi_guest", ["ch_guest"], "cus_x"),
+        providerCustomerId: null,
+      }
       expect(await f.handle(guest)).toMatchObject({ status: "ignored" })
       expect(await f.handle(refund("re_guest", ["ch_guest"], 100))).toMatchObject({ status: "ignored" })
     })

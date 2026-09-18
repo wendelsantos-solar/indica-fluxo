@@ -1,5 +1,5 @@
 /**
- * IndicaFluxo's plans — the single source of what each plan allows and what it
+ * Refvia's plans — the single source of what each plan allows and what it
  * costs. Server enforcement (`src/server/services/entitlements.ts`), the
  * Settings "Plano e cobrança" page and the public pricing all read this module,
  * so what is sold and what is enforced cannot drift. Framework-free and pure.

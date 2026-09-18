@@ -27,7 +27,7 @@ vi.mock("@/server/services/invite-mail", () => ({
   inviteLinksFor: () => ({ inviteUrl: "", loginUrl: "" }),
 }))
 
-/** IndicaFluxo's own Stripe account, faked at the HTTP client: what `retrieve` answers is set per step. */
+/** Refvia's own Stripe account, faked at the HTTP client: what `retrieve` answers is set per step. */
 const platform = vi.hoisted(() => ({
   subscription: null as Record<string, unknown> | null,
   retrieve: [] as string[],
@@ -214,7 +214,7 @@ async function sendCustomerEvent(body: string, secret: string) {
   return { status: response.status, json: (await response.json()) as Record<string, unknown> }
 }
 
-// --- Platform billing (IndicaFluxo's Stripe) -------------------------------
+// --- Platform billing (Refvia's Stripe) -------------------------------
 
 function platformSubscription(price: string, status: string, extra: Record<string, unknown> = {}) {
   return {
@@ -443,7 +443,10 @@ describe.runIf(RUN)("plan journey: Sandbox → Launch → past due → Growth �
 
   it("5. a click with the test publishable key attributes; identify with the test secret key binds a test customer", async () => {
     const clicked = await trackClick(s.keys.pkTest, s.testCode, testVisitor)
-    expect(clicked).toEqual({ status: 200, json: { ok: true, attributed: true } })
+    // The response also carries the public attribution reference, which the
+    // tracker takes to the checkout (INTEGRATION_ARCHITECTURE_V2.md §2).
+    expect(clicked).toMatchObject({ status: 200, json: { ok: true, attributed: true } })
+    expect(clicked.json?.token).toMatch(/^ifx_[A-Za-z0-9_-]+$/)
 
     const clicks = await db.select().from(schema.referralClicks).where(eq(schema.referralClicks.visitorId, testVisitor))
     expect(clicks).toHaveLength(1)
@@ -617,7 +620,10 @@ describe.runIf(RUN)("plan journey: Sandbox → Launch → past due → Growth �
 
     // A test key does not see the live code; the live key does.
     expect((await trackClick(s.keys.pkTest, s.liveCode, liveVisitor)).status).toBe(404)
-    expect(await trackClick(s.keys.pkLive, s.liveCode, liveVisitor)).toEqual({ status: 200, json: { ok: true, attributed: true } })
+    expect(await trackClick(s.keys.pkLive, s.liveCode, liveVisitor)).toMatchObject({
+      status: 200,
+      json: { ok: true, attributed: true },
+    })
     const identified = await identifyVisitor(s.keys.skLive, {
       visitorId: liveVisitor,
       externalId: `user_live_${run}`,

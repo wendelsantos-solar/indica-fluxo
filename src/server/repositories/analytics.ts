@@ -32,7 +32,8 @@ import {
  *
  * - **Revenue** (“Receita indicada”) is the money referred customers actually
  *   paid: payments that earned a (not rejected) commission, minus the refunds
- *   and chargebacks of those payments. Each row counts on its own
+ *   and chargebacks of those payments, plus the `won_` adjustment of a dispute
+ *   later won. Each row counts on its own
  *   `occurred_at`, so a refund lowers the period it happened in. A payment
  *   recorded twice (the PaymentIntent and the invoice event before their link,
  *   see `billing-events.ts` “One payment, one commission”) is reversed by a
@@ -117,7 +118,8 @@ function referredMoneySql(workspaceId: string, environment: ViewEnvironment, ext
        and not ${duplicateRecordSql("t")}
        and (
          ${commissionedPaymentSql("t")}
-         or (t.type in ('refund', 'chargeback') and exists (
+         or ((t.type in ('refund', 'chargeback')
+              or (t.type = 'adjustment' and left(t.provider_transaction_id, 4) = 'won_')) and exists (
            select 1 from transactions paid
             where paid.workspace_id = t.workspace_id
               and paid.provider = t.provider

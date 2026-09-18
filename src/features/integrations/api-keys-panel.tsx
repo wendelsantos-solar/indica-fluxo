@@ -1,6 +1,6 @@
 "use client"
 
-import { KeyRound } from "lucide-react"
+import { KeyRound, TriangleAlert } from "lucide-react"
 import { useTranslations } from "next-intl"
 import type * as React from "react"
 import { useState } from "react"
@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/feedback/empty-state"
 import { InlineAlert } from "@/components/feedback/inline-alert"
 import { SectionHeader } from "@/components/layout/page-header"
 import { Button, buttonVariants, type ButtonProps } from "@/components/ui/button"
+import { StatusDot } from "@/components/ui/badge"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Table, TableContainer, TBody, TD, TH, THead, TR } from "@/components/ui/table"
 import { Link } from "@/i18n/navigation"
@@ -120,12 +121,14 @@ export function ApiKeysPanel({
     )
   }
 
+  // Read from the key itself, so the label cannot disagree with what is pasted.
+  const publishableEnvironment: KeyEnvironment = publishableKey?.startsWith("pk_live_") ? "live" : "test"
   const snippetStart = `<script defer src="${trackerUrl}" data-key="`
   const snippetEnd = `"></script>`
 
   return (
     <div className="space-y-10">
-      <section>
+      <section id="api-keys" className="scroll-mt-16">
         <SectionHeader
           title={t("title")}
           description={t.rich("description", {
@@ -193,12 +196,19 @@ export function ApiKeysPanel({
 
         {publishableKey ? (
           <div className="space-y-2">
+            <p className="flex items-center gap-1.5 text-meta text-muted-foreground">
+              <StatusDot tone={publishableEnvironment === "live" ? "success" : "warning"} />
+              {t("snippetEnvironment", { environment: publishableEnvironment })}
+            </p>
             <CodeField copyValue={`${snippetStart}${publishableKey}${snippetEnd}`}>
               {snippetStart}
               {publishableKey}
               {snippetEnd}
             </CodeField>
             <p className="text-meta text-muted-foreground">{t("snippetReady")}</p>
+            {publishableEnvironment === "test" ? (
+              <p className="max-w-prose text-meta text-muted-foreground">{t("snippetTestNote")}</p>
+            ) : null}
           </div>
         ) : (
           <div className="space-y-3">
@@ -232,6 +242,21 @@ export function ApiKeysPanel({
             </InlineAlert>
           </div>
         )}
+
+        <div className="mt-3 space-y-2">
+          {/* A local site on http://localhost loads it fine; a real HTTPS site does not. */}
+          {/^http:\/\/(?!localhost[:/]|127\.0\.0\.1[:/])/.test(trackerUrl) ? (
+            <p className="flex max-w-prose items-start gap-1.5 text-meta text-warning-foreground">
+              <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+              {t("snippetHttp")}
+            </p>
+          ) : null}
+          <p className="max-w-prose text-meta text-muted-foreground">
+            {t.rich("snippetSubdomain", {
+              code: (chunks) => <code className="font-mono text-meta">{chunks}</code>,
+            })}
+          </p>
+        </div>
       </section>
     </div>
   )

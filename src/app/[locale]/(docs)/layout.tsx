@@ -2,12 +2,13 @@ import { NextIntlClientProvider } from "next-intl"
 import { getLocale, getTranslations, setRequestLocale } from "next-intl/server"
 
 import { clientMessages } from "@/i18n/client-messages"
-import { Link } from "@/i18n/navigation"
+import { Link, getPathname } from "@/i18n/navigation"
 import type { Locale } from "@/i18n/routing"
 
+import { LegalLinks } from "@/components/layout/legal-links"
 import { Logo } from "@/components/layout/logo"
 import { DocsHeader } from "@/features/docs/docs-header"
-import { DOCS_GROUPS } from "@/features/docs/structure"
+import { docsNavGroups } from "@/features/docs/nav"
 
 /**
  * The documentation frame: a docs bar (not the marketing navbar), the page,
@@ -20,15 +21,14 @@ export default async function DocsLayout({ children, params }: LayoutProps<"/[lo
   const t = await getTranslations("docs")
   const current = (await getLocale()) as Locale
 
-  const groups = DOCS_GROUPS.map((group) => ({
-    key: group.key,
-    label: t(`nav.groups.${group.key}`),
-    items: group.sections.map((section) => ({
-      id: section.anchors[current],
-      label: t(`nav.sections.${section.key}`),
-      step: section.step,
-    })),
-  }))
+  // The mobile drawer: the guide's outline, with the beta methods linking out.
+  const groups = docsNavGroups({
+    t,
+    locale: current,
+    page: "guide",
+    guidePath: getPathname({ href: "/docs", locale: current }),
+    betaPath: getPathname({ href: "/docs/beta", locale: current }),
+  })
 
   const link = "text-meta text-muted-foreground transition-colors duration-[120ms] hover:text-foreground"
 
@@ -52,6 +52,7 @@ export default async function DocsLayout({ children, params }: LayoutProps<"/[lo
                 {t("footer.dashboard")}
               </Link>
             </div>
+            <LegalLinks className="w-full text-meta text-faint-foreground sm:w-auto" />
           </div>
         </footer>
       </div>

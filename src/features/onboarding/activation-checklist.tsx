@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button"
 import { InviteAffiliateDialog } from "@/features/affiliates/invite-affiliate-dialog"
 import { getFormatters } from "@/i18n/format"
 import { Link } from "@/i18n/navigation"
+import { applyBasisPoints } from "@/lib/money"
 import { cn } from "@/lib/utils"
 
-import type { Activation, ActivationStepKey } from "./activation"
+import { ACTIVATION_PHASES, type Activation, type ActivationStepKey } from "./activation"
 import { OnboardingStepper } from "./onboarding-stepper"
 
 type Href = React.ComponentProps<typeof Link>["href"]
@@ -43,10 +44,14 @@ function stepHref(
     case "affiliate":
       return { pathname: "/[workspaceSlug]/affiliates", params }
     case "stripe":
-      return { pathname: "/[workspaceSlug]/integrations", params }
+      // The step is "a payment provider is connected" — any provider.
+      return { pathname: "/[workspaceSlug]/integrations", params, query: { tab: "payments" } }
+    case "identity":
+      // `/api/identify` and the checkout reference live on the API tab.
+      return { pathname: "/[workspaceSlug]/integrations", params, query: { tab: "api" } }
     case "tracking":
-      // Straight to the tracking section, not the top of Integrations.
-      return { pathname: "/[workspaceSlug]/integrations", params, hash: "tracking" }
+      // Straight to the tracking tab, not the top of Integrations.
+      return { pathname: "/[workspaceSlug]/integrations", params, query: { tab: "tracking" } }
     case "testConversion":
       // The simulation lives on the test program's page.
       return testProgramSlug
@@ -87,6 +92,7 @@ export async function ActivationChecklist({
   const f = await getFormatters()
 
   const latest = programs[0] ?? null
+  const example = latest ? commissionExample(latest, f) : null
 
   const programLine = latest
     ? t("programLine", {
@@ -119,6 +125,87 @@ export async function ActivationChecklist({
     : welcome || programs.length === 1
       ? programLine
       : t("programCount", { count: programs.length })
+
+  const renderStep = ({ key, done, waiting }: Activation["steps"][number]) => {
+    const isNext = activation.next === key
+    // Stripe saved but silent: not "connected" until an event proves it.
+    const title = done
+      ? t(`steps.${key}.titleDone`)
+      : waiting
+        ? t("steps.stripe.titleWaiting")
+        : t(`steps.${key}.title`)
+    const label = done
+      ? t(`steps.${key}.actionDone`)
+      : waiting
+        ? t("steps.stripe.actionWaiting")
+        : t(`steps.${key}.action`)
+
+    let action: React.ReactNode
+    if (key === "affiliate" && !done && latest) {
+      // Inviting happens in place: the dialog is the whole task.
+      action = (
+        <InviteAffiliateDialog
+          workspaceSlug={workspaceSlug}
+          programs={programs.map((program) => ({ id: program.id, name: program.name }))}
+          defaultProgramId={latest.id}
+          triggerLabel={label}
+          triggerVariant={isNext ? "primary" : "secondary"}
+          triggerSize={isNext ? "md" : "sm"}
+        />
+      )
+    } else {
+      action = (
+        <Button
+          asChild
+          variant={isNext ? "primary" : done ? "ghost" : "secondary"}
+          size={isNext ? "md" : "sm"}
+        >
+          <Link href={stepHref(key, done, workspaceSlug, testProgramSlug(programs))}>
+            {label}
+            {isNext ? <ArrowRight aria-hidden="true" /> : null}
+          </Link>
+        </Button>
+      )
+    }
+
+    return (
+      <li
+        key={key}
+        aria-current={isNext ? "step" : undefined}
+        className={cn(
+          "flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border-faint",
+          isNext ? "py-4" : "py-3",
+        )}
+      >
+        <StepMarker done={done} next={isNext} />
+
+        <div className="min-w-0 flex-1">
+          <p
+            className={cn(
+              "text-caption",
+              done
+                ? "text-muted-foreground"
+                : isNext
+                  ? "font-medium text-foreground"
+                  : "text-foreground-secondary",
+            )}
+          >
+            {title}
+            <span className="sr-only"> {done ? t("srDone") : t("srPending")}</span>
+          </p>
+          {isNext ? (
+            <p className="mt-0.5 max-w-prose text-pretty text-caption text-muted-foreground">
+              {waiting ? t("steps.stripe.descriptionWaiting") : t(`steps.${key}.description`)}
+            </p>
+          ) : null}
+        </div>
+
+        <div className={cn("shrink-0", isNext && "max-sm:basis-full max-sm:pl-8")}>
+          {action}
+        </div>
+      </li>
+    )
+  }
 
   return (
     <section aria-labelledby="activation-title" className="max-w-2xl pb-8">
@@ -165,88 +252,23 @@ export async function ActivationChecklist({
           ))}
         </div>
 
-        <ol aria-labelledby="activation-checklist" className="mt-4 border-t border-border">
-          {activation.steps.map(({ key, done, waiting }) => {
-            const isNext = activation.next === key
-            // Stripe saved but silent: not "connected" until an event proves it.
-            const title = done
-              ? t(`steps.${key}.titleDone`)
-              : waiting
-                ? t("steps.stripe.titleWaiting")
-                : t(`steps.${key}.title`)
-            const label = done
-              ? t(`steps.${key}.actionDone`)
-              : waiting
-                ? t("steps.stripe.actionWaiting")
-                : t(`steps.${key}.action`)
-
-            let action: React.ReactNode
-            if (key === "affiliate" && !done && latest) {
-              // Inviting happens in place: the dialog is the whole task.
-              action = (
-                <InviteAffiliateDialog
-                  workspaceSlug={workspaceSlug}
-                  programs={programs.map((program) => ({ id: program.id, name: program.name }))}
-                  defaultProgramId={latest.id}
-                  triggerLabel={label}
-                  triggerVariant={isNext ? "primary" : "secondary"}
-                  triggerSize={isNext ? "md" : "sm"}
-                />
-              )
-            } else {
-              action = (
-                <Button
-                  asChild
-                  variant={isNext ? "primary" : done ? "ghost" : "secondary"}
-                  size={isNext ? "md" : "sm"}
-                >
-                  <Link href={stepHref(key, done, workspaceSlug, testProgramSlug(programs))}>
-                    {label}
-                    {isNext ? <ArrowRight aria-hidden="true" /> : null}
-                  </Link>
-                </Button>
-              )
-            }
-
+        <div className="mt-4 space-y-8">
+          {ACTIVATION_PHASES.map((phase, phaseIndex) => {
+            const steps = activation.steps.filter((step) => (phase.steps as readonly string[]).includes(step.key))
+            if (steps.length === 0) return null
             return (
-              <li
-                key={key}
-                aria-current={isNext ? "step" : undefined}
-                className={cn(
-                  "flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border-faint",
-                  isNext ? "py-4" : "py-3",
-                )}
-              >
-                <StepMarker done={done} next={isNext} />
-
-                <div className="min-w-0 flex-1">
-                  <p
-                    className={cn(
-                      "text-caption",
-                      done
-                        ? "text-muted-foreground"
-                        : isNext
-                          ? "font-medium text-foreground"
-                          : "text-foreground-secondary",
-                    )}
-                  >
-                    {title}
-                    <span className="sr-only"> {done ? t("srDone") : t("srPending")}</span>
-                  </p>
-                  {isNext ? (
-                    <p className="mt-0.5 max-w-prose text-pretty text-caption text-muted-foreground">
-                      {waiting ? t("steps.stripe.descriptionWaiting") : t(`steps.${key}.description`)}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className={cn("shrink-0", isNext && "max-sm:basis-full max-sm:pl-8")}>
-                  {action}
-                </div>
-              </li>
+              <section key={phase.key} aria-labelledby={`phase-${phase.key}`}>
+                <h4 id={`phase-${phase.key}`} className="text-caption font-medium text-foreground">
+                  <span className="tabular-nums text-muted-foreground">{phaseIndex + 1} · </span>
+                  {t(`phases.${phase.key}.title`)}
+                </h4>
+                <p className="mt-0.5 max-w-prose text-pretty text-meta text-muted-foreground">{t(`phases.${phase.key}.description`)}</p>
+                <ol className="mt-3 border-t border-border">{steps.map(renderStep)}</ol>
+                {phase.key === "try" && example ? <CommissionExample example={example} /> : null}
+              </section>
             )
           })}
-        </ol>
+        </div>
       </div>
     </section>
   )
@@ -303,5 +325,53 @@ export async function ActivationReminder({
         <ArrowRight className="size-3.5" aria-hidden="true" />
       </Link>
     </p>
+  )
+}
+
+/** A sample sale of 49.00 in the program's currency — the "aha" before any integration work. */
+const EXAMPLE_SALE_MINOR = 4_900
+
+interface Example {
+  sale: string
+  rate: string
+  payout: string
+}
+
+function commissionExample(
+  program: ActivationProgram,
+  f: Awaited<ReturnType<typeof getFormatters>>,
+): Example | null {
+  if (program.commissionType === "percentage") {
+    return {
+      sale: f.money(EXAMPLE_SALE_MINOR, program.currency),
+      rate: f.basisPoints(program.commissionValue),
+      payout: f.money(applyBasisPoints(EXAMPLE_SALE_MINOR, program.commissionValue), program.currency),
+    }
+  }
+  const fixed = f.money(program.commissionValue, program.currency)
+  return { sale: f.money(EXAMPLE_SALE_MINOR, program.currency), rate: fixed, payout: fixed }
+}
+
+async function CommissionExample({ example }: { example: Example }) {
+  const t = await getTranslations("dashboard.overview.activation.example")
+  const cells = [
+    { label: t("sale"), value: example.sale },
+    { label: t("commission"), value: example.rate },
+    { label: t("payout"), value: example.payout, strong: true },
+  ]
+  return (
+    <figure className="mt-4 rounded-panel border border-border p-4">
+      <figcaption className="text-meta text-muted-foreground">{t("title")}</figcaption>
+      <dl className="mt-2 grid grid-cols-3 gap-3">
+        {cells.map((cell) => (
+          <div key={cell.label} className="min-w-0">
+            <dt className="truncate text-meta text-muted-foreground">{cell.label}</dt>
+            <dd className={cn("mt-0.5 truncate tabular-nums text-foreground", cell.strong ? "text-title" : "text-caption")}>
+              {cell.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </figure>
   )
 }

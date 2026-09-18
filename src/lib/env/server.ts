@@ -51,7 +51,7 @@ const serverSchema = z.object({
   STRIPE_CONNECT_CLIENT_ID: optional(z.string().min(1)),
 
   /**
-   * Platform billing — IndicaFluxo's OWN Stripe account, charging workspaces
+   * Platform billing — Refvia's OWN Stripe account, charging workspaces
    * for Launch/Growth (docs/PLANS.md §5). Never the founders' Stripe above.
    * Optional as a set: without all four, checkout is unavailable and Settings
    * falls back to the manual upgrade request. See `platformBillingEnv()`.
